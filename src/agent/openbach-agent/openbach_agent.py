@@ -846,7 +846,7 @@ def recover_old_state():
             handler.action()
         except Exception:
             with suppress(OSError):
-                os.remove(fullpath)
+                os.remove(filepath)
 
 
 def read_listening_port(default=1112):
