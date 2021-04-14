@@ -42,7 +42,7 @@ then
   python3 -m venv .ansible_venv
   source "${ACTIVATE_VENV}"
   pip install -U pip wheel > /dev/null
-  pip install ansible==2.7.6 > /dev/null
+  pip install ansible==2.10.5 > /dev/null
   deactivate
   cd -P -- "${PWD}"
 fi
