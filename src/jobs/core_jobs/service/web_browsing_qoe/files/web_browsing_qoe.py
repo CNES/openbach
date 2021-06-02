@@ -45,7 +45,7 @@ import argparse
 import threading
 import traceback
 import contextlib
-from selenium import webdriver
+from seleniumwire import webdriver
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.firefox.firefox_binary import FirefoxBinary
 from selenium.webdriver.support.wait import WebDriverWait
@@ -123,6 +123,10 @@ def compute_qos_metrics(driver, url_to_fetch, qos_metrics):
         driver.get(url_to_fetch)
         for key, value in qos_metrics.items():
             results[key] = driver.execute_script(value)
+        for request in driver.requests:
+            if request.url in (url_to_fetch, url_to_fetch + '/'):
+                results["status_code"] = request.response.status_code
+                break
     except WebDriverException as ErrorMessage:
         message = 'ERROR when getting url: {}'.format(ErrorMessage)
         print(message)
@@ -132,7 +136,7 @@ def compute_qos_metrics(driver, url_to_fetch, qos_metrics):
     return results
 
     
-def print_qos_metrics(dict_to_print, config):
+def print_metrics(dict_to_print, config):
     """
     Helper method to print a dictionary of QoS metrics using their pretty names
     Args:
@@ -142,7 +146,10 @@ def print_qos_metrics(dict_to_print, config):
         NoneType
     """
     for key, value in dict_to_print.items():
-        print('{}: {} {}'.format(config['qos_metrics'][key]['pretty_name'], value, config['qos_metrics'][key]['unit']))
+        if key in config['qos_metrics']:
+            print('{}: {} {}'.format(config['qos_metrics'][key]['pretty_name'], value, config['qos_metrics'][key]['unit']))
+        if key in config['extra_metrics']:
+            print('{}: {} {}'.format(config['extra_metrics'][key]['pretty_name'], value, config['extra_metrics'][key]['unit']))
 
 
 def kill_children(parent_pid):
@@ -176,7 +183,7 @@ def launch_thread(collect_agent, url, config, qos_metrics, stop_compression, pro
         my_qos_metrics = compute_qos_metrics(my_driver, url, qos_metrics)
         s = '# Report for web page ' + url + ' #'
         print('\n' + s)
-        print_qos_metrics(my_qos_metrics, config)
+        print_metrics(my_qos_metrics, config)
         my_driver.quit()
         statistics = {}
         for key, value in my_qos_metrics.items():

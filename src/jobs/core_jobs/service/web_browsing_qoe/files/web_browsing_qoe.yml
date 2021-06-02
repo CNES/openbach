@@ -4,7 +4,7 @@ general:
   name:            web_browsing_qoe
   description: >
       Monitors W3C Navigation Timing metrics of an HTTP Service using Firefox web browser (please go to config.yaml to check/modify the list of web sites to be visited).
-  job_version:     '1.6'
+  job_version:     '1.7'
   keywords:        [web, performance, HTTP, QoE, PLT]
   persistent:      False
 
@@ -119,4 +119,8 @@ statistics:
     - name: "overhead"
       description: >
           HTTP1.1/2.0 overhead in Bytes received by client (TLS overhead bytes are not taken into account).
+      frequency: 'every time a page is fetched'
+    - name: "status_code"
+      description: >
+          HTTP1.1/2.0 response status code received by client.
       frequency: 'every time a page is fetched'

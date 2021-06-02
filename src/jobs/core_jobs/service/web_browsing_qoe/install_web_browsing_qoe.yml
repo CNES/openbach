@@ -63,7 +63,12 @@
   environment: "{{ openbach_proxies }}"
 
 - name: Install Selenium for python3
-  pip: name=selenium executable=pip3 state=present
+  pip:
+    name:
+      - selenium
+      - selenium-wire
+    executable: pip3
+    state: present
   become: yes
   environment: "{{ openbach_proxies }}"
 

@@ -77,6 +77,13 @@ qos_metrics:
     js: return Math.round((performance.getEntriesByType("navigation")[0].transferSize * 8000) / (performance.getEntriesByType("navigation")[0].responseEnd - performance.getEntriesByType("navigation")[0].responseStart))
     unit: bps
    
+extra_metrics:
+  status_code:
+    id: status_code
+    pretty_name: Response Status Code
+    js: ""
+    unit: "" 
+
 web_pages_to_fetch:
   - https://www.google.com
   - https://www.youtube.com
