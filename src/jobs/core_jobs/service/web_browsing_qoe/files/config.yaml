@@ -83,6 +83,16 @@ extra_metrics:
     pretty_name: Response Status Code
     js: ""
     unit: "" 
+  compression_savings:
+    id: compression_savings
+    pretty_name: Compression Savings Ratio
+    js: ""
+    unit: "" 
+  overhead:
+    id: overhead
+    pretty_name: Overhead
+    js: ""
+    unit: "" 
 
 web_pages_to_fetch:
   - https://www.google.com

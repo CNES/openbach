@@ -148,8 +148,10 @@ def print_metrics(dict_to_print, config):
     for key, value in dict_to_print.items():
         if key in config['qos_metrics']:
             print('{}: {} {}'.format(config['qos_metrics'][key]['pretty_name'], value, config['qos_metrics'][key]['unit']))
-        if key in config['extra_metrics']:
+        elif key in config['extra_metrics']:
             print('{}: {} {}'.format(config['extra_metrics'][key]['pretty_name'], value, config['extra_metrics'][key]['unit']))
+        else:
+            print('{}: {}'.format(key, value))
 
 
 def kill_children(parent_pid):
@@ -180,16 +182,13 @@ def launch_thread(collect_agent, url, config, qos_metrics, stop_compression, pro
         exit(message)
     if my_driver is not None:
         timestamp = int(time.time() * 1000)
-        my_qos_metrics = compute_qos_metrics(my_driver, url, qos_metrics)
+        statistics = compute_qos_metrics(my_driver, url, qos_metrics)
+        my_driver.quit()
+        statistics['compression_savings'] = 1 - (statistics['encoded_body_size'] / statistics['decoded_body_size'])
+        statistics['overhead'] = statistics['transfer_size'] - statistics['encoded_body_size']
         s = '# Report for web page ' + url + ' #'
         print('\n' + s)
-        print_metrics(my_qos_metrics, config)
-        my_driver.quit()
-        statistics = {}
-        for key, value in my_qos_metrics.items():
-            statistics.update({key:value})
-        statistics['compression_savings'] = 1 - (statistics['encoded_body_size'] / statistics['decoded_body_size'])
-        statistics['overhead'] = statistics['transfer_size'] - statistics['decoded_body_size']
+        print_metrics(statistics, config)
         collect_agent.send_stat(timestamp, **statistics, suffix=url)
 
     else:
