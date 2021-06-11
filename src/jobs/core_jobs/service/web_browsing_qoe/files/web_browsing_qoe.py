@@ -216,7 +216,8 @@ def main(nb_runs, max_threads, stop_compression, proxy_address, proxy_port, urls
     try:
         for i in range(1, args.nb_runs + 1, 1):
             for url in urls:
-                while threading.active_count() > max_threads:
+                # condition of "max_threads + 1" because seleniumwire uses 1 additional inner thread to monitor requests
+                while threading.active_count() > max_threads + 1:
                     time.sleep(1)
                 t = threading.Thread(target=launch_thread, args=(collect_agent, url, config, qos_metrics, stop_compression, proxy_address, proxy_port))
                 thread_list.append(t)
