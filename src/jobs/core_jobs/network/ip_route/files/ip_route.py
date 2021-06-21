@@ -80,7 +80,10 @@ def use_configuration(filepath):
 
 
 def main(operation, destination, gateway_ip, device, initcwnd, initrwnd):
-    command = ['ip', '-{}'.format(destination.version), 'route', str(operation), str(destination)]
+    if destination == "default":
+        command = ['ip', 'route', str(operation), str(destination)]
+    else:
+        command = ['ip', '-{}'.format(destination.version), 'route', str(operation), str(destination)]
     if gateway_ip:
        command.extend(['via', str(gateway_ip)])
     if device:
