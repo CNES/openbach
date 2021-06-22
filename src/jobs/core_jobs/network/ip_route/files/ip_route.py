@@ -128,7 +128,7 @@ if __name__ == '__main__':
                  formatter_class=argparse.ArgumentDefaultsHelpFormatter
         )
 
-        parser.add_argument('operation', help='choose the opeartion to apply',
+        parser.add_argument('operation', help='choose the operation to apply',
                       choices=[Operations.ADD.value, Operations.CHANGE.value, Operations.REPLACE.value, Operations.DELETE.value]
         )
    
