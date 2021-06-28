@@ -60,7 +60,7 @@
     prompt: "\n{{ continue_var | trim }}"
   vars:
     continue_var: >
-      The resources are not verified. Continue installationi (Enter)?
+      The resources are not verified. Continue installation (Enter)?
       To avoid this task you can cancel this playbook (^C) and
       restart it using the '--skip-tags check_resources' flag.
   register: continue_prompt
