@@ -30,8 +30,8 @@
     msg: >
       "disk_total: {{ hostvars[item].disk_total }} (needed: {{ controller_disk }}) --
       disk_available: {{ hostvars[item].disk_available }} (needed: {{ controller_disk }}) --
-      ram: {{ hostvars[item].ram }} (needed: {{ controller_ram }}) --
-      cpu: {{ hostvars[item].cpu }} (needed: {{ controller_cpu }}) --
+      ram: {{ hostvars[item].ram|int }} (needed: {{ controller_ram }}) --
+      cpu: {{ hostvars[item].cpu|int }} (needed: {{ controller_cpu }}) --
       ipv4: {{ hostvars[item].ipv4 }} --
       ipv6: {{ hostvars[item].ipv6 }}"
   with_items: "{{ groups.controller | default([]) }}"
@@ -41,8 +41,8 @@
     msg: >
       "disk_total: {{ hostvars[item].disk_total }} (needed: {{ agent_disk }}) --
       disk_available: {{ hostvars[item].disk_available }} (needed: {{ agent_disk }}) --
-      ram: {{ hostvars[item].ram }} (needed: {{ agent_ram }}) --
-      cpu: {{ hostvars[item].cpu }} (needed: {{ agent_cpu }}) --
+      ram: {{ hostvars[item].ram|int }} (needed: {{ agent_ram }}) --
+      cpu: {{ hostvars[item].cpu|int }} (needed: {{ agent_cpu }}) --
       ipv4: {{ hostvars[item].ipv4 }} --
       ipv6: {{ hostvars[item].ipv6 }} --"
   with_items: "{{ groups.agent | default([]) }}"

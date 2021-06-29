@@ -32,7 +32,7 @@
   set_fact:
      disk_available: "{{ (mount.size_available|int / 1000000000) | round(2, 'common') }}"
      disk_total: "{{ (mount.size_total| int / 1000000000) | round(2, 'common') }}"
-     ram: "{{ ansible_facts.devices.vdb.size.split(' ')[0] }}"
+     ram: "{{ (ansible_memory_mb.real.total|int / 1000) | round(1, 'ceil') }}"
      cpu: "{{ ansible_facts.processor_vcpus }}"
      ipv4: "{{ ansible_facts.default_ipv4 }}"
      ipv6: "{{ ansible_facts.default_ipv6 }}"
