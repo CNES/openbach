@@ -25,9 +25,13 @@
 
 ---
 
+- set_fact:
+    mount: "{{ ansible_mounts | first }}"
+                                                                                                                        
 - name: setting available resources facts
   set_fact:
-     disk: "{{ ansible_facts.devices.vda.size.split(' ')[0] }}"
+     disk_available: "{{ (mount.size_available|int / 1000000000) | round(2, 'common') }}"
+     disk_total: "{{ (mount.size_total| int / 1000000000) | round(2, 'common') }}"
      ram: "{{ ansible_facts.devices.vdb.size.split(' ')[0] }}"
      cpu: "{{ ansible_facts.processor_vcpus }}"
      ipv4: "{{ ansible_facts.default_ipv4 }}"

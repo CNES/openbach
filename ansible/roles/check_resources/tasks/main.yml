@@ -28,32 +28,38 @@
 - name: Display various values regarding controller
   debug:
     msg: >
-      "disk < {{ controller_disk }}: {{ (hostvars[item].disk|int) < controller_disk }} --
-      ram < {{ controller_ram }}: {{ (hostvars[item].ram|int) < controller_ram }} --
-      cpu < {{ controller_cpu }}: {{ (hostvars[item].cpu|int) < controller_cpu }} --
-      ipv4 or ipv6 default not defined: {{ hostvars[item].ipv4 == {} and hostvars[item].ipv6 == {} }}"
+      "disk_total: {{ hostvars[item].disk_total }} (needed: {{ controller_disk }}) --
+      disk_available: {{ hostvars[item].disk_available }} (needed: {{ controller_disk }}) --
+      ram: {{ hostvars[item].ram }} (needed: {{ controller_ram }}) --
+      cpu: {{ hostvars[item].cpu }} (needed: {{ controller_cpu }}) --
+      ipv4: {{ hostvars[item].ipv4 }} --
+      ipv6: {{ hostvars[item].ipv6 }}"
   with_items: "{{ groups.controller | default([]) }}"
 
 - name: Display various values regarding agents
   debug:
     msg: >
-      "disk < {{ agent_disk }}: {{ (hostvars[item].disk|int) < agent_disk }} --
-      ram < {{ agent_ram }}: {{ (hostvars[item].ram|int) < agent_ram }} --
-      cpu < {{ agent_cpu }}: {{ (hostvars[item].cpu|int) < agent_cpu }} --
-      ipv4 or ipv6 default not defined: {{ hostvars[item].ipv4 == {} and hostvars[item].ipv6 == {} }}"
+      "disk_total: {{ hostvars[item].disk_total }} (needed: {{ agent_disk }}) --
+      disk_available: {{ hostvars[item].disk_available }} (needed: {{ agent_disk }}) --
+      ram: {{ hostvars[item].ram }} (needed: {{ agent_ram }}) --
+      cpu: {{ hostvars[item].cpu }} (needed: {{ agent_cpu }}) --
+      ipv4: {{ hostvars[item].ipv4 }} --
+      ipv6: {{ hostvars[item].ipv6 }} --"
   with_items: "{{ groups.agent | default([]) }}"
 
 - name: Check controller resources
   set_fact:
     resources_ctrl: "nok"
   with_items: "{{ groups.controller | default([]) }}"
-  when: (hostvars[item].disk|int) < controller_disk or (hostvars[item].ram|int) < controller_ram or (hostvars[item].cpu|int) < controller_cpu or (hostvars[item].ipv4 == {} and hostvars[item].ipv6 == {})
+  #when: (hostvars[item].disk_available|int) < controller_disk or (hostvars[item].ram|int) < controller_ram or (hostvars[item].cpu|int) < controller_cpu or (hostvars[item].ipv4 == {} and hostvars[item].ipv6 == {}) or ((hostvars[item].ipv4 != {} and hostvars[item].ipv4.type == 'wifi') or (hostvars[item].ipv6 != {} and hostvars[item].ipv6.type == 'wifi'))
+  when: (hostvars[item].disk_total|int) < controller_disk or (hostvars[item].ram|int) < controller_ram or (hostvars[item].cpu|int) < controller_cpu or (hostvars[item].ipv4 == {} and hostvars[item].ipv6 == {}) or ((hostvars[item].ipv4 != {} and hostvars[item].ipv4.type == 'wifi') or (hostvars[item].ipv6 != {} and hostvars[item].ipv6.type == 'wifi'))
 
 - name: Check agents resources
   set_fact:
     resources_agents: "nok"
   with_items: "{{ groups.agent | default([]) }}"
-  when: (hostvars[item].disk|int) < agent_disk or (hostvars[item].ram|int) < agent_ram or (hostvars[item].cpu|int) < agent_cpu or (hostvars[item].ipv4 == {} and hostvars[item].ipv6 == {})
+  #when: (hostvars[item].disk_available|int) < agent_disk or (hostvars[item].ram|int) < agent_ram or (hostvars[item].cpu|int) < agent_cpu or (hostvars[item].ipv4 == {} and hostvars[item].ipv6 == {}) or ((hostvars[item].ipv4 != {} and hostvars[item].ipv4.type == 'wifi') or (hostvars[item].ipv6 != {} and hostvars[item].ipv6.type == 'wifi'))
+  when: (hostvars[item].disk_total|int) < agent_disk or (hostvars[item].ram|int) < agent_ram or (hostvars[item].cpu|int) < agent_cpu or (hostvars[item].ipv4 == {} and hostvars[item].ipv6 == {}) or ((hostvars[item].ipv4 != {} and hostvars[item].ipv4.type == 'wifi') or (hostvars[item].ipv6 != {} and hostvars[item].ipv6.type == 'wifi'))
 
 - name: Ask to continue installation if resources are not met
   pause:
