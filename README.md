@@ -1,20 +1,49 @@
 OpenBACH
 ========
 
-OpenBACH is a user-friendly and efficient benchmark to configure, supervise and control your network under test (e.g. terrestrial networks, satellite networks, WAN, LAN, etc.). It provides an efficient modular structure to facilitate the additions of new software tools, monitoring parameters, tasks, etc. The benchmark is able to be integrated in different types of equipments, servers, clients, hardware and software with minimal adaptation effort.
+OpenBACH is a user-friendly and efficient benchmark to configure, supervise and
+control your network under test (e.g. terrestrial networks, satellite networks,
+WAN, LAN, etc.). It provides an efficient modular structure to facilitate the
+additions of new software tools, monitoring parameters, tasks, etc. The
+benchmark is able to be integrated in different types of equipments, servers,
+clients, hardware and software with minimal adaptation effort.
 
-This platform has been promoted by CNES (French Space Center) as a reference open-source software tool within its research and development studies and activities in the domain of satellite network communications systems. OpenBACH has been developped in order to be complementary to OpenSAND, the satellite network emulator.
+This platform has been promoted by CNES (French Space Center) as a reference
+open-source software tool within its research and development studies and
+activities in the domain of satellite network communications systems. OpenBACH
+has been developped in order to be complementary to OpenSAND, the satellite
+network emulator.
 
-Read the documentation and more at https://wiki.net4sat.org/doku.php?id=openbach:index
+The documentation is scattered in this repository through README files at
+appropriate places, a table of content is available below.
 
-OpenBACH is funded and promoted by CNES (French Space Center) as a reference open-source software tool within its research and development studies and activities in the domain of satellite communication systems and networks.
+OpenBACH is funded and promoted by CNES (French Space Center) as a reference
+open-source software tool within its research and development studies and
+activities in the domain of satellite communication systems and networks.
 
 Design Principles
 =================
 
-   * The controller can launch several pre-coded jobs (ping, iperf, rate monitoring) on the remote agents
+![functions design](documents/basic_func_design.png)
+
+   * A **user** can pilot OpenBACH through a web or command-line **Auditorium** interface
+   * This interface manipulates metrology **scenarios** on OpenBACH **Controller**
+   * The controller orchestrate **jobs** on distributed **Agents**
+   * Agents can send stats and logs to OpenBACH global **collector**
+   * The web auditorium provides ways to visualize these stats and logs (using Grafana and Kibana)
    * The user can code new jobs, install them on the agents and launch them with the controller
-   * OpenBACH provides web interfaces to visualize the results and the logs of the simulations (using Grafana and Kibana)
+
+The full design is available in details in [the design document](documents/design/design_openbach.adoc).
+
+Manuals
+=======
+
+Various manuals are available in this repository:
+
+Exploitation
+============
+
+This section gathers:
 
 Get Involved
 ============
@@ -51,3 +80,12 @@ Licence
 =======
 Copyright © 2016-2020 CNES
 OpenBACH is released under GPLv3 (see [LICENSE](LICENSE.md) file).
+
+The OpenBACH core uses third-party software components. Below, we list their licences:
+
+  * Ansible: GPLv3
+  * ELK (ElasticSearch, Logstash and Kibana): Apache 2.0
+  * Grafana: Apache 2.0
+  * InfluxDB: MIT
+  * Django: BSD 3-clauses
+  * Nginx: BSD 2-clauses
