@@ -128,38 +128,51 @@ if __name__ == '__main__':
                  formatter_class=argparse.ArgumentDefaultsHelpFormatter
         )
 
-        parser.add_argument('operation', help='choose the operation to apply',
-                      choices=[Operations.ADD.value, Operations.CHANGE.value, Operations.REPLACE.value, Operations.DELETE.value]
+        parser.add_argument(
+                'operation', help='choose the operation to apply',
+                choices=[
+                    Operations.ADD.value,
+                    Operations.CHANGE.value,
+                    Operations.REPLACE.value,
+                    Operations.DELETE.value,
+                ],
         )
    
         # Add common optional arguments
-        parser.add_argument('-gw', '--gateway_ip', type=ip_address, 
-                            help='ip address of the gateway (this or output device is required ' 
-                                 'when adding/changing/replacing route)'
+        parser.add_argument(
+                '-gw', '--gateway_ip', type=ip_address,
+                help='ip address of the gateway (this or output device '
+                'is required when adding/changing/replacing route)',
         )
-        parser.add_argument('-dev', '--device', type=str, 
-                            help='the output device name (this or gateway is required '
-                                 'when adding/changing/replacing route)'
+        parser.add_argument(
+                '-dev', '--device', type=str,
+                help='the output device name (this or gateway '
+                'is required when adding/changing/replacing route)',
         )
-        parser.add_argument('-icwnd', '--initcwnd', type=int, default=0,
-                            help='initial congestion window size for connections to this destination'
+        parser.add_argument(
+                '-icwnd', '--initcwnd', type=int, default=0,
+                help='initial congestion window size for connections to this destination',
         )
-        parser.add_argument('-irwnd', '--initrwnd', type=int, default=0,
-                            help='initial receive window size for connections to this destination'
+        parser.add_argument(
+                '-irwnd', '--initrwnd', type=int, default=0,
+                help='initial receive window size for connections to this destination',
         )
         
         # Sub-commands functionnality to split default route and a route to a network
-        subparsers = parser.add_subparsers(title='destination', dest='destination', 
-                                           help='choose the destination'
+        subparsers = parser.add_subparsers(
+                title='destination',
+                dest='destination',
+                required=True,
+                help='choose the destination',
         )
-        subparsers.required = True
         # Add arguments specific to the default route
         parser_default = subparsers.add_parser('default', help='default route')
         
         # Add arguments specific to a destination network
         parser_dest_ip = subparsers.add_parser('destination_ip', help='route to a destination')
-        parser_dest_ip.add_argument('network_ip', type=ip_network, 
-                                    help='ip address/mask of the destination network'
+        parser_dest_ip.add_argument(
+                'network_ip', type=ip_network,
+                help='ip address/mask of the destination network',
         )
           
         # get args
@@ -171,6 +184,6 @@ if __name__ == '__main__':
         initcwnd = args.initcwnd
         initrwnd = args.initrwnd
         
-        if destination != 'default':
+        if destination == 'destination_ip':
            destination = args.network_ip
         main(operation, destination, gateway_ip, device, initcwnd, initrwnd)
