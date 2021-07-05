@@ -2239,10 +2239,40 @@ class StartScenarioInstance(ScenarioInstanceAction):
         super().__init__(name=scenario_name, project=project, arguments=arguments, date=date)
 
     def _action(self):
+        self._check_jobs()
         self._build_scenario_instance()
         clapper = OpenBachClapperBoard()
         self.share_user(clapper)
         return clapper.start_scenario_instance(self.instance_id)
+
+    def _recurse_subscenario(self, scenario, start_job_instance_list):
+        for function in scenario.openbach_functions.all():
+            if "start job instance" in function.name:
+                start_job_instance_list.append(function.startjobinstance)
+            elif "start scenario instance" in function.name:
+                start_sub_scenario_instance = function.startscenarioinstance
+                sub_scenario_name = start_sub_scenario_instance.json['start_scenario_instance']['scenario_name']
+                sub_scenario = Scenario.objects.get(name=sub_scenario_name)
+                self._recurse_subscenario(sub_scenario, start_job_instance_list)
+        return start_job_instance_list
+
+    def _check_jobs(self):
+        scenario_infos = InfosScenario(self.name, self.project)
+        self.share_user(scenario_infos)
+        scenario = scenario_infos.get_scenario_or_not_found_error()
+        uninstalled_jobs = set()
+        start_job_instance_list = self._recurse_subscenario(scenario, [])
+
+        for start_job_instance in start_job_instance_list:
+            agent = Entity.objects.get(name=start_job_instance.entity_name).agent
+            installed = InstalledJob.objects.filter(job__name=start_job_instance.job_name, agent=agent).exists()
+            if not installed:
+                uninstalled_jobs.add((start_job_instance.entity_name, start_job_instance.job_name))
+
+        if len(uninstalled_jobs) > 0:
+            raise errors.NotFoundError(
+                    'The following jobs are not installed on the respective agents: {}'
+                    .format(uninstalled_jobs))
 
     def _build_scenario_instance(self):
         scenario_infos = InfosScenario(self.name, self.project)
