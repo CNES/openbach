@@ -124,11 +124,11 @@ More information on the uninstall can be found in the [using Ansible manual](/do
 
 ## Miscellaneous topics
 
-  * [[openbach:manuals:2.x:installation_manual:using_proxies:index|Working with proxies guide]];
-  * [[openbach:manuals:2.x:installation_manual:ntp_configuration:index|NTP configuration guide]];
+  * [Working with proxies guide](/documents/installation/Proxies.md);
+  * [NTP configuration guide](/documents/installation/NTP.md);
   * [[openbach:manuals:2.x:installation_manual:ldap_configuration:index|LDAP configuration guide]];
-  * [[openbach:manuals:2.x:installation_manual:security:index|Specifying your own admin user]];
-  * [[openbach:manuals:2.x:installation_manual:backup_and_restore:index|Backup and Restoration guide]];
+  * [Specifying your own admin user](/documents/installation/Security.md);
+  * [Backup and Restoration guide](/documents/installation/Backup.md);
 
 
 [1]: https://forge.net4sat.org/openbach/openbach/repository/archive.tar.gz?ref=master

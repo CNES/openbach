@@ -42,7 +42,7 @@ to install all 4 components on a single machine.
 in the `ansible/inventory/` folder will be executed and its output interpretted as an
 inventory. See [the ansible documentation][3] for more details.
 
-===== Group dependencies =====
+## Group dependencies
 
 The following rules determines which components will be installed on which machines:
 
@@ -91,7 +91,7 @@ is equivalent to the simpler
 172.20.0.3
 ```
 
-===== Machine dependencies =====
+## Machine dependencies
 
 The agent and auditorium components need to be associated to a controller (if any) and
 a collector (if any). The rules of default association are pretty simple:
