@@ -1,7 +1,6 @@
+# Installation Manual
 
 [[_TOC_]]
-
-# Installation Manual
 
 This manual explains how to install and upgrade an OpenBACH platform. 
 
