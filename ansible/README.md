@@ -26,7 +26,7 @@ For specific requirements of each kind of machine, see the
 
 Make sure that the version of ansible you have installed is actually using Python 3
 and **not** Python 2. If this is not the case please refer to the
-[Ansible installation instructions](/documents/installation/Requirements.md#ansible_installation).
+[Ansible installation instructions](/documents/installation/Requirements.md#ansible-installation).
 
 ```
 $ ansible --version
@@ -45,7 +45,7 @@ hosted on the [Net4Sat forge](https://forge.net4sat.org/openbach/openbach
 "To be fair, you might already know that if you're reading this").
 
 You can either:
-  * Download an [archive file of the repository](https://forge.net4sat.org/openbach/openbach/repository/archive.tar.gz?ref=master);
+  * Download an [archive file of the repository][1];
   * Or clone the repository using `git`: `git clone --depth 1 --single-branch https://forge.net4sat.org/openbach/openbach.git`
 
 > :warning: Developpers that want to contribute to the OpenBACH repository should clone
@@ -77,8 +77,7 @@ the machine to name each agent. For advanced topologies see the
 ## Install procedure
 
 The installation of OpenBACH is performed via [Ansible](https://www.ansible.com/). Be aware
-that you need to [learn some Ansible concepts](https://docs.ansible.com/ansible/latest/index.html)
-to ease the following procedure.
+that you need to [learn some Ansible concepts][2] to ease the following procedure.
 
 Before the installation, we highly recommend to test the SSH connectivity between your
 installation machine and your OpenBACH platform by means of an Ansible ping. Assuming
@@ -105,8 +104,8 @@ $ ansible-playbook -i inventory/my-openbach-inventory install.yml -u *ssh_userna
 ```
 
 from the `ansible` folder of the OpenBACH sources. Extra options can be enabled in various
-ways, refer to the list of [Ansible variables](/documents/installation/Ansible.md#ansible_variables)
-and [tags](/documents/installation/Ansible.md#ansible_tags) for details.
+ways, refer to the list of [Ansible variables](/documents/installation/Ansible.md#ansible-variables)
+and [tags](/documents/installation/Ansible.md#ansible-tags) for details.
 
 ## Upgrading an OpenBACH platform
 
@@ -130,3 +129,7 @@ More information on the uninstall can be found in the [using Ansible manual](/do
   * [[openbach:manuals:2.x:installation_manual:ldap_configuration:index|LDAP configuration guide]];
   * [[openbach:manuals:2.x:installation_manual:security:index|Specifying your own admin user]];
   * [[openbach:manuals:2.x:installation_manual:backup_and_restore:index|Backup and Restoration guide]];
+
+
+[1]: https://forge.net4sat.org/openbach/openbach/repository/archive.tar.gz?ref=master
+[2]: https://docs.ansible.com/ansible/latest/index.html

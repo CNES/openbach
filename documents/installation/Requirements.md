@@ -18,7 +18,7 @@ in the future, but the feature needs contributions yet.
   * Python 3.5 or newer;
   * Optionally the openssh SSH client (see ansible invokation below);
   * Optionally the sshpass program (see ansible invokation below);
-  * Optionally the git program (see [getting OpenBACH sources](/ansible/README.md#getting_openbach)).
+  * Optionally the git program (see [getting OpenBACH sources](/ansible/README.md#getting-openbach)).
 
 > :warning: On recent version of Ubuntu 16.04, the python openssl package is not updated and
 conflicts with the OpenBACH install. To correct that do: `sudo apt remove –-purge python-openssl`
@@ -66,7 +66,7 @@ version of Ansible provided by your packet manager, we highly recommend to use [
 
 In case you have problems with Python and/or Ansible versions (or in order to simplify the whole
 process), a wrapper around the invocation of the `ansible-playbook` command is available in the
-`ansible` directory of the OpenBACH sources ([get OpenBACH sources](/ansible/README.md#getting_openbach)).
+`ansible` directory of the OpenBACH sources ([get OpenBACH sources](/ansible/README.md#getting-openbach)).
 This script create a hidden virtualenv and caches a suitable version of Ansible into it. First
 invocation is thus slow as it will download Ansible and install it in the virtualenv. Subsequent
 calls should be seamless, though. This script acts as a drop-in replacement for the `ansible-playbook`
