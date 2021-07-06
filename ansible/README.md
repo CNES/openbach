@@ -48,7 +48,8 @@ You can either:
   * Download an [archive file of the repository](https://forge.net4sat.org/openbach/openbach/repository/archive.tar.gz?ref=master);
   * Or clone the repository using `git`: `git clone --depth 1 --single-branch https://forge.net4sat.org/openbach/openbach.git`
 
-> Developpers that want to contribute to the OpenBACH repository should clone the whole history (i.e.: dropping the `depth` and `single-branch` options)
+> :warning: Developpers that want to contribute to the OpenBACH repository should clone
+the whole history (i.e.: dropping the `depth` and `single-branch` options)
 
 ===== Target topology configuration =====
 
@@ -89,7 +90,8 @@ $ cd openbach/ansible/
 $ ansible -i inventory/my-openbach-inventory -u *ssh_username* -k -m ping all 
 ```
 
-> Use the option `--private-key=*path_to_private_key*`  if you connect to the machines via a private key.
+> :warning: Use the option `--private-key=*path_to_private_key*` if
+you connect to the machines via a private key.
 
 from the `ansible` folder of the OpenBACH sources. Other means of connecting to the target
 machines as well as debugging connection issues are explained in the
