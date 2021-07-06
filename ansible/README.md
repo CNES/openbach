@@ -1,7 +1,5 @@
 # Installation Manual
 
-[[_TOC_]]
-
 This manual explains how to install and upgrade an OpenBACH platform. 
 
 ## Requirements
@@ -28,7 +26,7 @@ For specific requirements of each kind of machine, see the
 
 Make sure that the version of ansible you have installed is actually using Python 3
 and **not** Python 2. If this is not the case please refer to the
-[Ansible installation instructions](/documents/installation/Requirements.md#L36).
+[Ansible installation instructions](/documents/installation/Requirements.md#ansible_installation).
 
 ```
 $ ansible --version
