@@ -1,20 +1,22 @@
-====== Installation Manual ======
+[[_TOC_]]
+
+# Installation Manual
 
 This manual explains how to install and upgrade an OpenBACH platform. 
 
-===== Requirements =====
+## Requirements
 
 For specific requirements of each kind of machine, see the
 [advanced page of requirements](/documents/installation/Requirements.md).
 
-==== Target machines (your future agents/controller/collector/auditorium) ====
+### Target machines (your future agents/controller/collector/auditorium)
 
   * Ubuntu 16.04 LTS for the target machines;
   * Recommended 2Gb of RAM on the target machines.
   * Recommended Python3.5.2
   * The machines need to have a default route (check ip route) and Internet access.
 
-==== Installation machine ====
+### Installation machine
 
   * Any Linux flavor with Ansible (at least version 2.10) and
     Python 3.5 or newer on the installation machine;
@@ -38,7 +40,7 @@ ansible 2.7.6
   python version = 3.7.2 (default, Jan 10 2019, 23:51:51) [GCC 8.2.1 20181127]
 ```
 
-===== Getting OpenBACH =====
+## Getting OpenBACH
 
 Before being able to deploy an OpenBACH platform, you must acquire the sources files
 hosted on the [Net4Sat forge](https://forge.net4sat.org/openbach/openbach
@@ -51,7 +53,7 @@ You can either:
 > :warning: Developpers that want to contribute to the OpenBACH repository should clone
 the whole history (i.e.: dropping the `depth` and `single-branch` options)
 
-===== Target topology configuration =====
+### Target topology configuration
 
 Before deploying OpenBACH to your target machines, you need to configure which component
 will be installed on which machine. Just create a file in the `ansible/inventory` folder
@@ -74,7 +76,7 @@ the machine to name each agent. For advanced topologies see the
 172.20.0.3 openbach_name=server
 ```
 
-===== Install procedure =====
+## Install procedure
 
 The installation of OpenBACH is performed via [Ansible](https://www.ansible.com/). Be aware
 that you need to [learn some Ansible concepts](https://docs.ansible.com/ansible/latest/index.html)
@@ -108,7 +110,7 @@ from the `ansible` folder of the OpenBACH sources. Extra options can be enabled 
 ways, refer to the list of [Ansible variables](/documents/installation/Ansible.md#ansible_variables)
 and [tags](/documents/installation/Ansible.md#ansible_tags) for details.
 
-===== Upgrading an OpenBACH platform =====
+## Upgrading an OpenBACH platform
 
 In case you want to upgrade an existing OpenBACH platform, we recommend to clone the relevant
 OpenBACH git repository and repeat the install procedure.
@@ -123,7 +125,7 @@ $ ansible-playbook -i inventory/my-openbach-inventory uninstall.yml -u *ssh_user
 
 More information on the uninstall can be found in the [using Ansible manual](/documents/installation/Ansible.md).
 
-===== Miscellaneous topics =====
+## Miscellaneous topics
 
   * [[openbach:manuals:2.x:installation_manual:using_proxies:index|Working with proxies guide]];
   * [[openbach:manuals:2.x:installation_manual:ntp_configuration:index|NTP configuration guide]];
