@@ -126,7 +126,7 @@ More information on the uninstall can be found in the [using Ansible manual](/do
 
   * [Working with proxies guide](/documents/installation/Proxies.md);
   * [NTP configuration guide](/documents/installation/NTP.md);
-  * [[openbach:manuals:2.x:installation_manual:ldap_configuration:index|LDAP configuration guide]];
+  * [LDAP configuration guide](/documents/installation/LDAP.md);
   * [Specifying your own admin user](/documents/installation/Security.md);
   * [Backup and Restoration guide](/documents/installation/Backup.md);
 

@@ -26,12 +26,12 @@ Design Principles
 
 ![functions design](documents/basic_func_design.png)
 
-   * A **user** can pilot OpenBACH through a web or command-line **Auditorium** interface
-   * This interface manipulates metrology **scenarios** on OpenBACH **Controller**
-   * The controller orchestrate **jobs** on distributed **Agents**
-   * Agents can send stats and logs to OpenBACH global **collector**
-   * The web auditorium provides ways to visualize these stats and logs (using Grafana and Kibana)
-   * The user can code new jobs, install them on the agents and launch them with the controller
+  * A **user** can pilot OpenBACH through a web or command-line **Auditorium** interface
+  * This interface manipulates metrology **scenarios** on OpenBACH **Controller**
+  * The controller orchestrate **jobs** on distributed **Agents**
+  * Agents can send stats and logs to OpenBACH global **collector**
+  * The web auditorium provides ways to visualize these stats and logs (using Grafana and Kibana)
+  * The user can code new jobs, install them on the agents and launch them with the controller
 
 The full design is available in details in [the design document](documents/design/design_openbach.adoc).
 
@@ -39,6 +39,7 @@ Manuals
 =======
 
 Various manuals are available in this repository:
+  * [Installation manual](ansible/README.md)
 
 Exploitation
 ============
@@ -48,13 +49,15 @@ This section gathers:
 Get Involved
 ============
 
-*  See OpenBACH web site : http://www.openbach.org/
-*  A mailing list is available : users@openbach.org
+  * See OpenBACH web site: http://www.openbach.org/
+  * A mailing list is available: users@openbach.org
+  * You can also find the [Frequently asked questions](documents/support/FAQ.md)
+    and a [troubleshooting guide](documents/support/Troubleshooting.md)
 
 Examples of project using OpenBACH
 =======
-*  A simple example chaining reference scenarios in python is available [here](https://forge.net4sat.org/openbach/openbach-extra/tree/master/executors/examples)
-*  A project that let you install, set up and run OpenBACH basic scenarios is available [here](https://forge.net4sat.org/kuhnn/openbach-example-simple)
+  * A simple example chaining reference scenarios in python is available [here][1]
+  * A project that let you install, set up and run OpenBACH basic scenarios is available [here][2]
 
 Project Partners
 =======
@@ -89,3 +92,7 @@ The OpenBACH core uses third-party software components. Below, we list their lic
   * InfluxDB: MIT
   * Django: BSD 3-clauses
   * Nginx: BSD 2-clauses
+
+
+[1]: https://forge.net4sat.org/openbach/openbach-extra/tree/master/executors/examples
+[2]: https://forge.net4sat.org/kuhnn/openbach-example-simple

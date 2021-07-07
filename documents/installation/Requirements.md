@@ -6,7 +6,7 @@
   * Each machine should allow SSH connections;
   * Each SSH connection should be made with a user able to run arbitrary sudo commands;
   * The machine for the collector component should have a 64 bits OS;
-  * Recommended 2Gb of RAM on each machine.
+  * Recommended 2Gb of RAM on each machine and 4Gb for controller.
 
 Targets machines hosting only the agent component may support arbitrary OS installation
 in the future, but the feature needs contributions yet.
@@ -14,23 +14,11 @@ in the future, but the feature needs contributions yet.
 ## Installation Machine (the one from which you install OpenBACH)
 
   * Any Linux flavor;
-  * Ansible (between version 2.6 and 2.7.6);
-  * Python 3.5 or newer;
+  * Ansible (at least version 2.10);
+  * Python 3.8.5 or newer;
   * Optionally the openssh SSH client (see ansible invokation below);
   * Optionally the sshpass program (see ansible invokation below);
   * Optionally the git program (see [getting OpenBACH sources](/ansible/README.md#getting-openbach)).
-
-> :warning: On recent version of Ubuntu 16.04, the python openssl package is not updated and
-conflicts with the OpenBACH install. To correct that do: `sudo apt remove –-purge python-openssl`
-if this packets exists and `sudo pip3 install pyopenssl`.
-
-Ansible might need the following dependencies on Ubuntu 16.04:
-
-```
-$ sudo apt install libffi-dev libssl-dev python3-dev python3-pip
-$ sudo apt remove python3-cryptography
-$ sudo pip3 install cryptography==2.5
-```
 
 ## Ansible Installation
 
@@ -41,23 +29,24 @@ You can check which Python version is used by Ansible by issuing:
 
 ```
 $ ansible --version
-ansible 2.10.9
+ansible 2.10.5
   config file = None
   configured module search path = ['/home/ubuntu/.ansible/plugins/modules', '/usr/share/ansible/plugins/modules']
   ansible python module location = /usr/local/lib/python3.8/dist-packages/ansible
   executable location = /usr/local/bin/ansible
-  python version = 3.8.10 (default, Jun  2 2021, 10:49:15) [GCC 9.4.0]
+  python version = 3.8.5 (default, Jul 28 2020, 12:59:40) [GCC 9.3.0]
 ```
 
 To better control both the Ansible version installed and the Python version used to run it, we
 advise, [as Ansible do][2], to use `pip`, the Python packet manager, to install Ansible:
 
 ```
-$ sudo pip3 install ansible==2.10.9
+$ sudo apt install python3-pip
+$ sudo pip3 install "ansible<2.11"
 ```
 
 `pip3` may install the ansible binary in the `.local/bin` folder. You may want to update your
-`PATH` variable accordingly.
+`PATH` environment variable accordingly.
 
 If you want to keep several version of Ansible on your system, or don't want to uninstall the
 version of Ansible provided by your packet manager, we highly recommend to use [virtual environments][3].
