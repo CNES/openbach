@@ -8,14 +8,14 @@ A few extra variables control the configuration of using an LDAP server alongsid
 
 | Variable Name             | Required | Effect |
 | ---                       | ---      | ---    |
-| `openbach_ldap_auth`      | <ul><li>- [ ]</li></ul> | Boolean value to indicate if LDAP configuration is required or not (default: no) |
-| `openbach_ldap_server_ip` | <ul><li>- [x]</li></ul> | IP address of the LDAP server to use |
-| `openbach_ldap_tls`       | <ul><li>- [ ]</li></ul> | Boolean value to indicate if the LDAP server should be contacted using TLS (default: no) |
-| `openbach_ldap_bindDn`    | <ul><li>- [ ]</li></ul> | Domain name to authenticate into the LDAP service (default: None) |
-| `openbach_ldap_bindPwd`   | <ul><li>- [ ]</li></ul> | Password to authenticate into the LDAP service (default: None) |
-| `openbach_ldap_filter`    | <ul><li>- [ ]</li></ul> | Field to use to filter users with (default: 'uid')   |
-| `openbach_ldap_baseDn`    | <ul><li>- [x]</li></ul> | Domain name to connect to LDAP |
-| `openbach_ldap_groupDn`   | <ul><li>- [x]</li></ul> | LDAP group to fetch users from |
+| `openbach_ldap_auth`      | :negative_squared_cross_mark: | Boolean value to indicate if LDAP configuration is required or not (default: no) |
+| `openbach_ldap_server_ip` | :white_check_mark: | IP address of the LDAP server to use |
+| `openbach_ldap_tls`       | :negative_squared_cross_mark: | Boolean value to indicate if the LDAP server should be contacted using TLS (default: no) |
+| `openbach_ldap_bindDn`    | :negative_squared_cross_mark: | Domain name to authenticate into the LDAP service (default: None) |
+| `openbach_ldap_bindPwd`   | :negative_squared_cross_mark: | Password to authenticate into the LDAP service (default: None) |
+| `openbach_ldap_filter`    | :negative_squared_cross_mark: | Field to use to filter users with (default: 'uid')   |
+| `openbach_ldap_baseDn`    | :white_check_mark: | Domain name to connect to LDAP |
+| `openbach_ldap_groupDn`   | :white_check_mark: | LDAP group to fetch users from |
 
 Variables marked required does not need to be provided when LDAP configuration is
 deactivated (_i.e._ `openbach_ldap_auth` is not set to `True`).
