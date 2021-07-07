@@ -8,14 +8,14 @@ A few extra variables control the configuration of using an LDAP server alongsid
 
 | Variable Name             | Required | Effect |
 | ---                       | ---      | ---    |
-| `openbach_ldap_auth`      | - [ ]    | Boolean value to indicate if LDAP configuration is required or not (default: no) |
-| `openbach_ldap_server_ip` | - [x]    | IP address of the LDAP server to use |
-| `openbach_ldap_tls`       | - [ ]    | Boolean value to indicate if the LDAP server should be contacted using TLS (default: no) |
-| `openbach_ldap_bindDn`    | - [ ]    | Domain name to authenticate into the LDAP service (default: None) |
-| `openbach_ldap_bindPwd`   | - [ ]    | Password to authenticate into the LDAP service (default: None) |
-| `openbach_ldap_filter`    | - [ ]    | Field to use to filter users with (default: 'uid')   |
-| `openbach_ldap_baseDn`    | - [x]    | Domain name to connect to LDAP |
-| `openbach_ldap_groupDn`   | - [x]    | LDAP group to fetch users from |
+| `openbach_ldap_auth`      | <ul><li>- [ ]</li></ul> | Boolean value to indicate if LDAP configuration is required or not (default: no) |
+| `openbach_ldap_server_ip` | <ul><li>- [x]</li></ul> | IP address of the LDAP server to use |
+| `openbach_ldap_tls`       | <ul><li>- [ ]</li></ul> | Boolean value to indicate if the LDAP server should be contacted using TLS (default: no) |
+| `openbach_ldap_bindDn`    | <ul><li>- [ ]</li></ul> | Domain name to authenticate into the LDAP service (default: None) |
+| `openbach_ldap_bindPwd`   | <ul><li>- [ ]</li></ul> | Password to authenticate into the LDAP service (default: None) |
+| `openbach_ldap_filter`    | <ul><li>- [ ]</li></ul> | Field to use to filter users with (default: 'uid')   |
+| `openbach_ldap_baseDn`    | <ul><li>- [x]</li></ul> | Domain name to connect to LDAP |
+| `openbach_ldap_groupDn`   | <ul><li>- [x]</li></ul> | LDAP group to fetch users from |
 
 Variables marked required does not need to be provided when LDAP configuration is
 deactivated (_i.e._ `openbach_ldap_auth` is not set to `True`).
