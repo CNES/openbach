@@ -7,7 +7,7 @@ an LDAP to authenticate users, you can leverage it to avoid this manual interven
 A few extra variables control the configuration of using an LDAP server alongside an OpenBACH platform:
 
 | Variable Name             | Required | Effect |
-| ---                       | ---      | ---    |
+| ---                       | :---:    | ---    |
 | `openbach_ldap_auth`      | :negative_squared_cross_mark: | Boolean value to indicate if LDAP configuration is required or not (default: no) |
 | `openbach_ldap_server_ip` | :white_check_mark: | IP address of the LDAP server to use |
 | `openbach_ldap_tls`       | :negative_squared_cross_mark: | Boolean value to indicate if the LDAP server should be contacted using TLS (default: no) |
