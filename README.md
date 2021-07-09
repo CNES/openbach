@@ -40,8 +40,8 @@ Manuals
 
 Various manuals are available in this repository:
   * [Installation manual](ansible/README.md)
-  * [User manual](src/auditorium/README.md)
-  * [Administrator manual](src/auditorium/ihm/README.md)
+  * [User manual](src/auditorium/ihm/README.md)
+  * [Administrator manual](src/auditorium/README.md)
   * [Developer manual](src/README.md)
 
 Exploitation
