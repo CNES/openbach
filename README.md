@@ -58,32 +58,36 @@ Get Involved
     and a [troubleshooting guide](documents/support/Troubleshooting.md)
 
 Examples of project using OpenBACH
-=======
+==================================
+
   * A simple example chaining reference scenarios in python is available [here][1]
   * A project that let you install, set up and run OpenBACH basic scenarios is available [here][2]
 
 Project Partners
-=======
+================
+
 Vivéris Technologies
 
 Authors
 =======
-*  Adrien Thibaud      (Vivéris Technologies),      adrien.thibaud@viveris.fr
-*  Mathias Ettinger    (Vivéris Technologies),      mathias.ettinger@viveris.fr
-*  Léa Thibout         (Vivéris Technologies),      lea.thibout@viveris.fr
-*  David Fernandes     (Vivéris Technologies),      david.fernandes@viveris.fr
-*  Joaquin Muguerza    (Vivéris Technologies),      joaquin.muguerza@viveris.fr
-*  Bastien Tauran      (Vivéris Technologies),      bastien.tauran@viveris.fr
-*  Francklin Simo      (Vivéris Technologies),      francklin.simo@viveris.fr
-*  Mathieu Petrou      (Vivéris Technologies),      mathieu.petrou@viveris.fr
-*  Oumaima Zerrouq     (Vivéris Technologies),      oumaima.zerrouq@viveris.fr
-*  David Pradas        (Vivéris Technologies),      david.pradas@viveris.fr
-*  Emmanuel Dubois     (CNES),                      emmanuel.dubois@cnes.fr
-*  Nicolas Kuhn        (CNES),                      nicolas.kuhn@cnes.fr 
-*  Santiago Garcia Guillen (CNES),                  santiago.garciaguillen@cnes.fr
+
+  *  Adrien Thibaud      (Vivéris Technologies),      adrien.thibaud@viveris.fr
+  *  Mathias Ettinger    (Vivéris Technologies),      mathias.ettinger@viveris.fr
+  *  Léa Thibout         (Vivéris Technologies),      lea.thibout@viveris.fr
+  *  David Fernandes     (Vivéris Technologies),      david.fernandes@viveris.fr
+  *  Joaquin Muguerza    (Vivéris Technologies),      joaquin.muguerza@viveris.fr
+  *  Bastien Tauran      (Vivéris Technologies),      bastien.tauran@viveris.fr
+  *  Francklin Simo      (Vivéris Technologies),      francklin.simo@viveris.fr
+  *  Mathieu Petrou      (Vivéris Technologies),      mathieu.petrou@viveris.fr
+  *  Oumaima Zerrouq     (Vivéris Technologies),      oumaima.zerrouq@viveris.fr
+  *  David Pradas        (Vivéris Technologies),      david.pradas@viveris.fr
+  *  Emmanuel Dubois     (CNES),                      emmanuel.dubois@cnes.fr
+  *  Nicolas Kuhn        (CNES),                      nicolas.kuhn@cnes.fr 
+  *  Santiago Garcia Guillen (CNES),                  santiago.garciaguillen@cnes.fr
 
 Licence
 =======
+
 Copyright © 2016-2020 CNES
 OpenBACH is released under GPLv3 (see [LICENSE](LICENSE.md) file).
 
