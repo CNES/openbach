@@ -49,6 +49,7 @@ class ValuesType(enum.Enum):
     STRING = 'str'
     FLOATING_POINT_NUMBER = 'float'
     IP_ADDRESS = 'ip'
+    IP_NETWORK = 'network'
     NONE_TYPE = 'None'
     JOB_INSTANCE_ID = 'job'
     SCENARIO_INSTANCE_ID = 'scenario'
@@ -65,7 +66,8 @@ class OpenbachFunctionParameter(models.TextField):
             ValuesType.INTEGER: int,
             ValuesType.STRING: str,
             ValuesType.FLOATING_POINT_NUMBER: float,
-            ValuesType.IP_ADDRESS: ipaddress._BaseAddress,
+            ValuesType.IP_ADDRESS: (ipaddress.IPv4Address, ipaddress.IPv6Address),
+            ValuesType.IP_NETWORK: (ipaddress.IPv4Interface, ipaddress.IPv6Interface),
             ValuesType.NONE_TYPE: type(None),
             ValuesType.JOB_INSTANCE_ID: [int],
             ValuesType.SCENARIO_INSTANCE_ID: [int],
@@ -75,7 +77,8 @@ class OpenbachFunctionParameter(models.TextField):
             type(None): lambda x: True,
             dict: json.loads,
             list: shlex.split,
-            ipaddress._BaseAddress: ipaddress.ip_address,
+            (ipaddress.IPv4Address, ipaddress.IPv6Address): ipaddress.ip_address,
+            (ipaddress.IPv4Interface, ipaddress.IPv6Interface): ipaddress.ip_interface,
     }
 
     def __init__(self, *args, **kwargs):
@@ -175,13 +178,17 @@ class OpenbachFunctionParameter(models.TextField):
         except (ValueError, KeyError):
             if loose:
                 return value
+            if isinstance(self.type, tuple):
+                expected = ' or '.join(t.__name__ for t in self.type)
+            else:
+                expected = self.type.__name__
             raise ValidationError(
                     'value has an invalid type \'%(real_type)s\' '
                     'should be \'%(expected_type)s\'',
                     code='invalid',
                     params={
                         'real_type': value.__class__.__name__,
-                        'expected_type': self.type.__name__,
+                        'expected_type': expected
                     })
 
     def to_python(self, value):

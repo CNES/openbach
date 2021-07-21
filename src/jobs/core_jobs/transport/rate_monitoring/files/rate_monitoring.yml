@@ -31,7 +31,7 @@ general:
       This Job measures the rate (b/s) of flows with specific
       characteristics (e.g. dest/src IP/port, protocol,
       interface) using iptables chains.
-  job_version: '2.1'
+  job_version: '2.2'
   keywords:
     - rate
     - monitoring
@@ -62,12 +62,12 @@ arguments:
       description: The iptables chain to monitor
   optional:
     - name: source_ip
-      type: ip
+      type: network
       count: 1
       flag: '-s'
       description: The source IPs to monitor (with or without mask[ip/mask])
     - name: destination_ip
-      type: ip
+      type: network
       count: 1
       flag: '-d'
       description: The destination IPs to monitor(with or without mask [ip/mask])
