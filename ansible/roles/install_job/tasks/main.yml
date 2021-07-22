@@ -26,22 +26,18 @@
 ---
 
 - block:
-    - name: Set fact all_installed
-      set_fact:
-        all_installed: "{{ all_installed | default('false') }}"
-
     - name: Gather Jobs Metadata
       local_action:
         module: jobs_metadata
         folders: "{{ ['../src/jobs/'] + (openbach_jobs_folders | default([])) }}"
         platforms: yes
       register: make_openbach_install_default_jobs
-      when: jobs is not defined and all_installed is truthy(convert_bool=True) and installed_on is defined and installed_on in group_names
+      when: jobs is not defined and installed_on is defined and installed_on in group_names
 
     - name: Setup Default Jobs
       set_fact:
         jobs: "{{ make_openbach_install_default_jobs.openbach_jobs }}"
-      when: jobs is not defined and all_installed is truthy(convert_bool=True) and installed_on is defined and installed_on in group_names
+      when: jobs is not defined and installed_on is defined and installed_on in group_names
 
     - name: Gather Jobs Metadata
       local_action:
