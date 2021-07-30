@@ -38,6 +38,8 @@ general:
     - interface
     - link
     - netem
+    - jitter
+    - losses
   persistent: no
   need_privileges: yes
 
@@ -97,6 +99,7 @@ arguments:
                count: 1
                flag: '-j'
                description: The delay variation to add, in milliseconds (default=0)
+                            Warning, this may introduce packets disorder
              - name: loss_model
                type: str
                count: 1
