@@ -146,30 +146,30 @@ arguments:
                       description: The TCP/SCTP maximum segment size (MTU - 39 bytes)
                               
 statistics:
-    - name: "sent_data_*flow_number*"
+    - name: "sent_data"
       description: The cumulative amount of data sent from the job launch, in Bytes (client and server sides)
       frequency: 'every *metrics_interval* seconds'
-    - name: "throughput_*flow_number*"
+    - name: "throughput"
       description: The throughput in this period, in bits/sec (client and server sides)
       frequency: 'every *metrics_interval* seconds'
-    - name: "jitter_*flow_number*"
+    - name: "jitter"
       description: The jitter between packets in this period, in seconds (server side)
       frequency: 'every *metrics_interval* seconds'
-    - name: "sent_pkts_*flow_number*"
+    - name: "sent_pkts"
       description: The number of sent packets (server side)
       frequency: 'every *metrics_interval* seconds'
-    - name: "lost_pkts_*flow_number*"
+    - name: "lost_pkts"
       description: The number of lost packets (server side)
       frequency: 'every *metrics_interval* seconds'
-    - name: "plr_*flow_number*"
+    - name: "plr"
       description: The packet loss rate for this period, in % (server side)
       frequency: 'every *metrics_interval* seconds'
-    - name: "download_time_*flow_number*"
+    - name: "download_time"
       description: The total download time, in seconds (client and server sides)
       frequency: 'once'
-    - name: "cwnd_*flow_number*"
+    - name: "cwnd"
       description: The value of the congestion window, in Bytes, when TCP is chosen (client side)
       frequency: 'every *metrics_interval* seconds'
-    - name: "retransmissions_*flow_number*"
+    - name: "retransmissions"
       description: The number of TCP retransmissions, when TCP is chosen (client side)
       frequency: 'every *metrics_interval* seconds'
