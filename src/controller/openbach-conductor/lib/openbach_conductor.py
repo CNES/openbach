@@ -1671,10 +1671,12 @@ class SetStatisticsPolicyJob(ThreadedAction, InstalledJobAction):
     """Action responsible for changing the log severity of an Installed Job"""
 
     def __init__(self, address, name, local=None, storage=None,
-                 broadcast=None, stat_name=None, config_file=None):
-        super().__init__(address=address, name=name, storage=storage, 
-                         broadcast=broadcast, statistic=stat_name, 
-                         local=local, config_file=config_file)
+                 broadcast=None, stat_name=None, config_file=None,
+                 path=None):
+        super().__init__(address=address, name=name, storage=storage,
+                         broadcast=broadcast, statistic=stat_name,
+                         local=local, config_file=config_file,
+                         path=path)
 
     def _create_command_result(self):
         command_result, _ = InstalledJobCommandResult.objects.get_or_create(
@@ -1707,7 +1709,7 @@ class SetStatisticsPolicyJob(ThreadedAction, InstalledJobAction):
                         job_name=self.name)
             statistic_instance, _ = StatisticInstance.objects.get_or_create(
                     job=installed_job, stat=statistic)
-            if storage is None and broadcast is None and local is None:
+            if not storage and not broadcast and not local:
                 statistic_instance.delete()
             else:
                 if local is not None:
@@ -1739,11 +1741,21 @@ class SetStatisticsPolicyJob(ThreadedAction, InstalledJobAction):
             destination = destination / '{}_rstats_filter.conf'.format(self.name)
         else:
             destination = destination / self.config_file
-        parameters = {
+
+        if not self.local and not self.broadcast and not self.storage and self.path:
+            path = Path(self.path)
+            parameters = {
                 'user': 'openbach',
-                'source': rstats_filter.name,
+                'source': path.as_posix(),
                 'destination': destination.as_posix(),
-        }
+            }
+            start_playbook('push_file', self.address, [parameters])
+        else:
+            parameters = {
+                    'user': 'openbach',
+                    'source': rstats_filter.name,
+                    'destination': destination.as_posix(),
+            }
 
         try:
             start_playbook('push_file', self.address, [parameters], True)

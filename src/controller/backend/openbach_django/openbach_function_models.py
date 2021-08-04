@@ -742,6 +742,7 @@ class SetStatisticsPolicyJob(OpenbachFunction):
     local = OpenbachFunctionParameter(type=bool)
     storage = OpenbachFunctionParameter(type=bool)
     broadcast = OpenbachFunctionParameter(type=bool)
+    path = OpenbachFunctionParameter(type=str)
 
     @property
     def _json(self):
@@ -753,6 +754,7 @@ class SetStatisticsPolicyJob(OpenbachFunction):
             'local': self.local,
             'storage': self.storage,
             'broadcast': self.broadcast,
+            'path': self.path,
         }}
 
     def _get_arguments(self, parameters, scenario_instance):
@@ -764,6 +766,7 @@ class SetStatisticsPolicyJob(OpenbachFunction):
                 'local': self.instance_value('local', parameters),
                 'storage': self.instance_value('storage', parameters),
                 'broadcast': self.instance_value('broadcast', parameters),
+                'path': self.instance_value('path', parameters),
         }
 
 
