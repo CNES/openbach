@@ -6,8 +6,10 @@ import IconButton from "material-ui/IconButton";
 import RaisedButton from "material-ui/RaisedButton";
 import {List, ListItem} from "material-ui/List";
 
+import {clearStartScenarioInstanceError, notify} from "../../../actions/global";
 import {deleteScenarioInstance, getScenarioInstancesFromProject, getFilteredScenarioInstancesFromProject} from "../../../actions/scenario";
-import {IScenarioInstance} from "../../../interfaces/scenarioInstance.interface";
+import {installJobs} from "../../../api/agent";
+import {IScenarioInstance, IScenarioInstanceState} from "../../../interfaces/scenarioInstance.interface";
 import {getGenericDeleteIcon} from "../../../utils/theme";
 
 import ActionDialog from "../../common/ActionDialog";
@@ -62,10 +64,13 @@ class ProjectScenariosInstances extends React.Component<IProps & IStoreProps & I
         this.showDeleteInstances = this.showDeleteInstances.bind(this);
         this.hideDeleteInstances = this.hideDeleteInstances.bind(this);
         this.onLoadMore = this.onLoadMore.bind(this);
+        this.clearStartError = this.clearStartError.bind(this);
+        this.doInstallJobs = this.doInstallJobs.bind(this);
     }
 
     public render() {
         const {scenarioName, instanceOpened, onInstancePopup} = this.props;
+        const {startError} = this.props.instances;
         const {instances, allSelected, selected, deleteOpen} = this.state;
         const items = instances.map((scenarioInstance: IScenarioInstance, index: number) => (
             <ScenarioInstanceListItem
@@ -130,6 +135,23 @@ class ProjectScenariosInstances extends React.Component<IProps & IStoreProps & I
                     removed from the database. You will not be able
                     to recover them.</p>
                     <p>Proceed?</p>
+                </ActionDialog>
+                <ActionDialog
+                    title="Missing jobs on agents"
+                    modal={false}
+                    open={startError != null}
+                    auto={false}
+                    cancel={{label: "No", action: this.clearStartError}}
+                    actions={[{label: "Yes", action: this.doInstallJobs}]}
+                >
+                    {startError && <p>{startError.error}</p><p><ul>{
+                        Object.keys(startError.entities).map((entity_name: string, i: number) => (
+                            <li key={i}>Entity {entity_name}:<ul>{
+                                Reflect.get(startError.entities, entity_name).jobs.map((job: string, idx: number) => <li key={idx}>{job}</li>)
+                            }</ul></li>
+                        ))
+                    }</ul></p>}
+                    <p>Would you like to install them?</p>
                 </ActionDialog>
             </PaddedContainer>
         );
@@ -198,6 +220,27 @@ class ProjectScenariosInstances extends React.Component<IProps & IStoreProps & I
         const {projectName, scenarioName, loadMore} = this.props;
         loadMore(projectName, scenarioName);
     }
+
+    private clearStartError() {
+        this.props.clearStartScenarioError();
+    }
+
+    private doInstallJobs() {
+        const {startError} = this.props.instances;
+        if (startError != null) {
+            const {entities} = startError;
+            Object.key(entities).forEach((entity_name: string) => {
+                const entity = Reflect.get(entities, entity_name);
+                const {address} = entity.agent;
+                installJobs(address, entity.jobs).then((onSuccess) => {
+                    this.props.notify("Finished installing jobs on " + entity_name);
+                }).catch((error) => {
+                    this.props.notify("Failed installing jobs on " + entity_name);
+                });
+            });
+        }
+        this.clearStartError();
+    }
 };
 
 
@@ -218,12 +261,7 @@ interface IProps {
 
 
 interface IStoreProps {
-    instances: {
-        all: IScenarioInstance[];
-        current: IScenarioInstance[];
-        more: boolean;
-        moreCurrent: boolean;
-    };
+    instances: IScenarioInstanceState;
 };
 
 
@@ -235,12 +273,16 @@ const mapStoreToProps = (store): IStoreProps => ({
 interface IDispatchProps {
     deleteInstance: (scenarioInstance: IScenarioInstance) => void;
     loadMore: (project: string, scenario?: string) => void;
+    clearStartScenarioError: () => void;
+    notify: (message: string) => void;
 };
 
 
 const mapDispatchToProps = (dispatch): IDispatchProps => ({
     deleteInstance: (scenarioInstance: IScenarioInstance) => dispatch(deleteScenarioInstance(scenarioInstance)),
     loadMore: (project: string, scenario?: string) => dispatch(scenario == null ?  getScenarioInstancesFromProject(project) :  getFilteredScenarioInstancesFromProject(project, scenario)),
+    clearStartScenarioError: () => dispatch(clearStartScenarioInstanceError()),
+    notify: (message: string) => dispatch(notify(message)),
 });
 
 

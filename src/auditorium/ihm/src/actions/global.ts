@@ -19,6 +19,7 @@ import {
     SET_SNACKMESSAGE,
     SET_TITLE,
     CLEAR_SCENARIO_INSTANCES,
+    CLEAR_SCENARIO_INSTANCE_ERROR,
     CLEAR_FILTERED_SCENARIO_INSTANCES,
 } from "../utils/constants";
 
@@ -68,6 +69,14 @@ export function clearCurrentScenarioInstances() {
     return {
         payload: null,
         type: CLEAR_FILTERED_SCENARIO_INSTANCES,
+    };
+};
+
+
+export function clearStartScenarioInstanceError() {
+    return {
+        payload: null,
+        type: CLEAR_SCENARIO_INSTANCE_ERROR,
     };
 };
 

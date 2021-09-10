@@ -1,3 +1,4 @@
+import {IAgent} from "./agent.interface";
 import {IOpenbachFunctionWait, IStartJobInstance, IStartScenarioInstance, IStopJobInstance, IStopScenarioInstance} from "./project.interface";
 
 
@@ -11,6 +12,7 @@ export interface IScenarioInstanceState {
     current: IScenarioInstance[];
     more: boolean;
     moreCurrent: boolean;
+    startError?: IStartScenarioError;
 };
 
 
@@ -108,4 +110,10 @@ export function extractOpenbachFunctionName(openbachFunction: IOpenbachFunctionI
 
 export interface IFilesCount {
     [jobName: string]: {[statName: string]: number};
+};
+
+
+export interface IStartScenarioError {
+    error: string;
+    entities: {[entityName: string]: {agent: IAgent; jobs: string[];};
 };

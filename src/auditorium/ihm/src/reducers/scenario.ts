@@ -5,9 +5,11 @@ import {
     CLEAR_SCENARIO_INSTANCES,
     CLEAR_FILTERED_SCENARIO_INSTANCES,
     GET_FILTERED_SCENARIO_INSTANCES_SUCCESS,
+    START_SCENARIO_INSTANCE_ERROR,
+    CLEAR_SCENARIO_INSTANCE_ERROR,
 } from "../utils/constants";
 
-import {IScenarioInstanceState, IScenarioInstance} from "../interfaces/scenarioInstance.interface";
+import {IScenarioInstanceState, IScenarioInstance, IStartScenarioError} from "../interfaces/scenarioInstance.interface";
 
 const INITIAL_STATE: IScenarioInstanceState = {
     all: [],
@@ -97,6 +99,22 @@ function scenarioReducer(state: IScenarioInstanceState = INITIAL_STATE, action =
                 ...state,
                 current: [],
                 moreCurrent: true,
+            };
+
+        case START_SCENARIO_INSTANCE_ERROR:
+            const error: IStartScenarioError = action.payload;
+            if (!error.hasOwnProperty("entities")) {
+                return state;
+            }
+            return {
+                ...state,
+                startError: error,
+            };
+
+        case CLEAR_SCENARIO_INSTANCE_ERROR:
+            return {
+                ...state,
+                startError: undefined,
             };
 
         default:
