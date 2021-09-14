@@ -113,7 +113,17 @@ export interface IFilesCount {
 };
 
 
+export interface IMissingJobAgent {
+    agent: IAgent;
+    jobs: string[];
+};
+
+export interface IMissingJobEntities {
+    [entityName: string]: IMissingJobAgent;
+};
+
+
 export interface IStartScenarioError {
     error: string;
-    entities: {[entityName: string]: {agent: IAgent; jobs: string[];};
+    entities: IMissingJobEntities;
 };

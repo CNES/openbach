@@ -4,9 +4,9 @@ import {connect} from "react-redux";
 import {Tab, Tabs} from "material-ui/Tabs";
 
 import {getAgents} from "../../actions/agent";
-import {setTitle, clearScenarioInstances, clearCurrentScenarioInstances} from "../../actions/global";
+import {clearScenarioInstances, clearCurrentScenarioInstances, setTitle} from "../../actions/global";
 import {getSingleProject} from "../../actions/project";
-import {getScenarioInstancesFromProject, getFilteredScenarioInstancesFromProject} from "../../actions/scenario";
+import {getFilteredScenarioInstancesFromProject, getScenarioInstancesFromProject} from "../../actions/scenario";
 import {IProject} from "../../interfaces/project.interface";
 import {IScenarioInstance} from "../../interfaces/scenarioInstance.interface";
 import muiTheme from "../../utils/theme";
@@ -106,10 +106,10 @@ class ProjectContainer extends React.Component<IProps & IStoreProps & IDispatchP
         if (projectId !== previousProps.params.projectId) {
             this.props.clearAllInstances();
             this.props.loadScenarioInstances(projectId);
-            if (scenarioId != null) this.props.loadCurrentInstances(projectId, scenarioId);
+            if (scenarioId != null) { this.props.loadCurrentInstances(projectId, scenarioId); }
         } else if (scenarioId !== previousProps.params.scenarioId) {
             this.props.clearCurrentInstances();
-            if (scenarioId != null) this.props.loadCurrentInstances(projectId, scenarioId);
+            if (scenarioId != null) { this.props.loadCurrentInstances(projectId, scenarioId); }
         }
     }
 
@@ -159,11 +159,11 @@ interface IDispatchProps {
 
 
 const mapDispatchToProps = (dispatch): IDispatchProps => ({
+    clearAllInstances: () => dispatch(clearScenarioInstances()),
+    clearCurrentInstances: () => dispatch(clearCurrentScenarioInstances()),
     loadAgents: () => dispatch(getAgents(false)),
     loadProject: (name: string) => dispatch(getSingleProject(name)),
     loadScenarioInstances: (project: string) => dispatch(getScenarioInstancesFromProject(project)),
-    clearAllInstances: () => dispatch(clearScenarioInstances()),
-    clearCurrentInstances: () => dispatch(clearCurrentScenarioInstances()),
     loadCurrentInstances: (project: string, name: string) => dispatch(getFilteredScenarioInstancesFromProject(project, name)),
     setTitle: (title: string) => dispatch(setTitle(title)),
 });

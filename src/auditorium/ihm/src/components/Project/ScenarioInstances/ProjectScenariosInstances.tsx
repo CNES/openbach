@@ -3,13 +3,13 @@ import {connect} from "react-redux";
 
 import Checkbox from "material-ui/Checkbox";
 import IconButton from "material-ui/IconButton";
-import RaisedButton from "material-ui/RaisedButton";
 import {List, ListItem} from "material-ui/List";
+import RaisedButton from "material-ui/RaisedButton";
 
 import {clearStartScenarioInstanceError, notify} from "../../../actions/global";
 import {deleteScenarioInstance, getScenarioInstancesFromProject, getFilteredScenarioInstancesFromProject} from "../../../actions/scenario";
 import {installJobs} from "../../../api/agent";
-import {IScenarioInstance, IScenarioInstanceState} from "../../../interfaces/scenarioInstance.interface";
+import {IMissingJobEntities, IScenarioInstance, IScenarioInstanceState} from "../../../interfaces/scenarioInstance.interface";
 import {getGenericDeleteIcon} from "../../../utils/theme";
 
 import ActionDialog from "../../common/ActionDialog";
@@ -144,13 +144,8 @@ class ProjectScenariosInstances extends React.Component<IProps & IStoreProps & I
                     cancel={{label: "No", action: this.clearStartError}}
                     actions={[{label: "Yes", action: this.doInstallJobs}]}
                 >
-                    {startError && <p>{startError.error}</p><p><ul>{
-                        Object.keys(startError.entities).map((entity_name: string, i: number) => (
-                            <li key={i}>Entity {entity_name}:<ul>{
-                                Reflect.get(startError.entities, entity_name).jobs.map((job: string, idx: number) => <li key={idx}>{job}</li>)
-                            }</ul></li>
-                        ))
-                    }</ul></p>}
+                    <p>{startError?.error}</p>
+                    <p><ul>{this.missingJobs(startError?.entities)}</ul></p>
                     <p>Would you like to install them?</p>
                 </ActionDialog>
             </PaddedContainer>
@@ -229,7 +224,7 @@ class ProjectScenariosInstances extends React.Component<IProps & IStoreProps & I
         const {startError} = this.props.instances;
         if (startError != null) {
             const {entities} = startError;
-            Object.key(entities).forEach((entity_name: string) => {
+            Object.keys(entities).forEach((entity_name: string) => {
                 const entity = Reflect.get(entities, entity_name);
                 const {address} = entity.agent;
                 installJobs(address, entity.jobs).then((onSuccess) => {
@@ -240,6 +235,16 @@ class ProjectScenariosInstances extends React.Component<IProps & IStoreProps & I
             });
         }
         this.clearStartError();
+    }
+
+    private missingJobs(entities?: IMissingJobEntities) {
+        if (entities == null) { return []; }
+
+        return Object.keys(entities).map((entity_name: string, i: number) => (
+            <li key={i}>Entity {entity_name}:<ul>
+            {Reflect.get(entities, entity_name).jobs.map((job: string, idx: number) => <li key={idx}>{job}</li>)}
+            </ul></li>
+        ));
     }
 };
 
@@ -279,9 +284,11 @@ interface IDispatchProps {
 
 
 const mapDispatchToProps = (dispatch): IDispatchProps => ({
-    deleteInstance: (scenarioInstance: IScenarioInstance) => dispatch(deleteScenarioInstance(scenarioInstance)),
-    loadMore: (project: string, scenario?: string) => dispatch(scenario == null ?  getScenarioInstancesFromProject(project) :  getFilteredScenarioInstancesFromProject(project, scenario)),
     clearStartScenarioError: () => dispatch(clearStartScenarioInstanceError()),
+    deleteInstance: (scenarioInstance: IScenarioInstance) => dispatch(deleteScenarioInstance(scenarioInstance)),
+    loadMore: (project: string, scenario?: string) => dispatch(
+        scenario == null ? getScenarioInstancesFromProject(project) : getFilteredScenarioInstancesFromProject(project, scenario)
+    ),
     notify: (message: string) => dispatch(notify(message)),
 });
 

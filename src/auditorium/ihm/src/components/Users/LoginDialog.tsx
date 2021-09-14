@@ -30,7 +30,7 @@ class LoginDialog extends React.Component<IProps & FormProps<IFields, {}, {}>, {
     }
 
     private doAuthenticate(event?) {
-	if (event) { event.preventDefault(); }
+        if (event) { event.preventDefault(); }
         const onSubmit = this.props.onLoginRequired;
         this.props.handleSubmit(onSubmit)(null);
         if (this.props.valid) {
