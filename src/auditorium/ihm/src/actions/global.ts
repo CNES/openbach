@@ -1,8 +1,8 @@
 import {doApiCall} from "../api/common";
 import {get as getProjects, getProject} from "../api/project";
 import {
-    CLEAR_SCENARIO_INSTANCES,
     CLEAR_SCENARIO_INSTANCE_ERROR,
+    CLEAR_SCENARIO_INSTANCES,
     CLEAR_FILTERED_SCENARIO_INSTANCES,
     GET_JSON_ERROR,
     GET_JSON_PENDING,

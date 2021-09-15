@@ -162,9 +162,9 @@ const mapDispatchToProps = (dispatch): IDispatchProps => ({
     clearAllInstances: () => dispatch(clearScenarioInstances()),
     clearCurrentInstances: () => dispatch(clearCurrentScenarioInstances()),
     loadAgents: () => dispatch(getAgents(false)),
+    loadCurrentInstances: (project: string, name: string) => dispatch(getFilteredScenarioInstancesFromProject(project, name)),
     loadProject: (name: string) => dispatch(getSingleProject(name)),
     loadScenarioInstances: (project: string) => dispatch(getScenarioInstancesFromProject(project)),
-    loadCurrentInstances: (project: string, name: string) => dispatch(getFilteredScenarioInstancesFromProject(project, name)),
     setTitle: (title: string) => dispatch(setTitle(title)),
 });
 

@@ -7,7 +7,7 @@ import {List, ListItem} from "material-ui/List";
 import RaisedButton from "material-ui/RaisedButton";
 
 import {clearStartScenarioInstanceError, notify} from "../../../actions/global";
-import {deleteScenarioInstance, getScenarioInstancesFromProject, getFilteredScenarioInstancesFromProject} from "../../../actions/scenario";
+import {deleteScenarioInstance, getFilteredScenarioInstancesFromProject, getScenarioInstancesFromProject} from "../../../actions/scenario";
 import {installJobs} from "../../../api/agent";
 import {IMissingJobEntities, IScenarioInstance, IScenarioInstanceState} from "../../../interfaces/scenarioInstance.interface";
 import {getGenericDeleteIcon} from "../../../utils/theme";
@@ -144,8 +144,8 @@ class ProjectScenariosInstances extends React.Component<IProps & IStoreProps & I
                     cancel={{label: "No", action: this.clearStartError}}
                     actions={[{label: "Yes", action: this.doInstallJobs}]}
                 >
-                    <p>{startError?.error}</p>
-                    <p><ul>{this.missingJobs(startError?.entities)}</ul></p>
+                    <p>{startError && startError.error}</p>
+                    <p><ul>{this.missingJobs(startError && startError.entities)}</ul></p>
                     <p>Would you like to install them?</p>
                 </ActionDialog>
             </PaddedContainer>
@@ -287,8 +287,7 @@ const mapDispatchToProps = (dispatch): IDispatchProps => ({
     clearStartScenarioError: () => dispatch(clearStartScenarioInstanceError()),
     deleteInstance: (scenarioInstance: IScenarioInstance) => dispatch(deleteScenarioInstance(scenarioInstance)),
     loadMore: (project: string, scenario?: string) => dispatch(
-        scenario == null ? getScenarioInstancesFromProject(project) : getFilteredScenarioInstancesFromProject(project, scenario)
-    ),
+        scenario == null ? getScenarioInstancesFromProject(project) : getFilteredScenarioInstancesFromProject(project, scenario)),
     notify: (message: string) => dispatch(notify(message)),
 });
 
