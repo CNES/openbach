@@ -125,7 +125,11 @@ def compute_qos_metrics(driver, url_to_fetch, qos_metrics):
             results[key] = driver.execute_script(value)
         for request in driver.requests:
             if request.url in (url_to_fetch, url_to_fetch + '/'):
-                results["status_code"] = request.response.status_code
+                results['status_code'] = request.response.status_code
+                if results['status_code'] == 404:
+                    message = 'Warning : Fetched url {} returned response code 404 (Not Found)'.format(url_to_fetch)
+                    collect_agent.send_log(syslog.LOG_WARNING, message)
+                    print(message)
                 break
     except WebDriverException as ErrorMessage:
         message = 'ERROR when getting url: {}'.format(ErrorMessage)
