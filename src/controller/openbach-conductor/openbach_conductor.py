@@ -109,13 +109,9 @@ class BackendHandler(socketserver.BaseRequestHandler):
         try:
             response, returncode = self.execute_request(request)
         except errors.ConductorError as e:
-            result = {
-                    'response': e.json,
-                    'returncode': e.ERROR_CODE,
-            }
             is_warning = isinstance(e, errors.ConductorWarning)
             log_level = syslog.LOG_WARNING if is_warning else syslog.LOG_ERR
-            syslog.syslog(log_level, '{}'.format(result))
+            syslog.syslog(log_level, '{}'.format(e.json))
         except Exception as e:
             result = {
                     'response': {

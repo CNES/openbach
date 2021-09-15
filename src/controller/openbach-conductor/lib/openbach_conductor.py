@@ -2241,7 +2241,6 @@ class StartScenarioInstance(ScenarioInstanceAction):
         super().__init__(name=scenario_name, project=project, arguments=arguments, date=date)
 
     def _action(self):
-        self._check_jobs()
         self._build_scenario_instance()
         clapper = OpenBachClapperBoard()
         self.share_user(clapper)
