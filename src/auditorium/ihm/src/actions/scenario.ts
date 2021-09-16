@@ -248,7 +248,11 @@ function convertFormToScenario(form: IScenarioForm, registeredFields: IRegistere
 };
 
 
-function convertStartJobInstanceParameters(parameters: IStartJobParameters, subcommands: IOpenbachSubcommandForm, registeredFields: IRegisteredFields, key: string): IStartJobParameters {
+function convertStartJobInstanceParameters(
+        parameters: IStartJobParameters,
+        subcommands: IOpenbachSubcommandForm,
+        registeredFields: IRegisteredFields,
+        key: string): IStartJobParameters {
     const jobParameters: IStartJobParameters = {};
     for (const param in parameters) {
         if (parameters.hasOwnProperty(param)) {

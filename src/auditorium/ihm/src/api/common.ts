@@ -51,8 +51,8 @@ export const checkStatus = (response: Response, cancelError: boolean = false) =>
     } else {
         const errorMessage = response.statusText;
         return response.json().catch((onError) => { throw new Error(errorMessage); }).then((body: any) => {
-	    if (cancelError) { return new Promise<Response>((resolve, reject) => reject(body)); }
-	    else if (body.hasOwnProperty("error")) { throw new Error(body.error); }
+            if (cancelError) { return new Promise<Response>((resolve, reject) => reject(body)); }
+            else if (body.hasOwnProperty("error")) { throw new Error(body.error); }
             else if (body.hasOwnProperty("msg")) { throw new Error(body.msg); }
             else { throw new Error(errorMessage); }
         });

@@ -18,6 +18,7 @@ import {
     RESERVE_AGENT_ERROR,
     RESERVE_AGENT_SUCCESS,
     SET_SNACKMESSAGE,
+    START_SCENARIO_INSTANCE_ERROR,
     START_SCENARIO_INSTANCE_SUCCESS,
     UPDATE_PROJECT_ERROR,
     UPDATE_PROJECT_SUCCESS,
@@ -104,6 +105,11 @@ function snackReducer(state = INITIAL_STATE, action = {payload: null, message: n
         case UPDATE_PROJECTS_ERROR:
         case UPDATE_SCENARIO_ERROR:
             return buildMessage("Something went wrong: " + action.payload.message);
+
+        case START_SCENARIO_INSTANCE_ERROR:
+            if (!action.payload.hasOwnProperty("entities")) {
+                return buildMessage("Something went wrong: " + action.payload.error);
+            }
 
         default:
             return state;

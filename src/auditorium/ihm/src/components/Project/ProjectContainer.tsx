@@ -4,9 +4,10 @@ import {connect} from "react-redux";
 import {Tab, Tabs} from "material-ui/Tabs";
 
 import {getAgents} from "../../actions/agent";
-import {clearScenarioInstances, clearCurrentScenarioInstances, setTitle} from "../../actions/global";
+import {clearCurrentScenarioInstances, clearScenarioInstances, setTitle} from "../../actions/global";
 import {getSingleProject} from "../../actions/project";
 import {getFilteredScenarioInstancesFromProject, getScenarioInstancesFromProject} from "../../actions/scenario";
+import {IJobStateQuery} from "../../interfaces/job.interface";
 import {IProject} from "../../interfaces/project.interface";
 import {IScenarioInstance} from "../../interfaces/scenarioInstance.interface";
 import muiTheme from "../../utils/theme";
@@ -23,6 +24,7 @@ const selectedStyle: React.CSSProperties = {
 
 
 class ProjectContainer extends React.Component<IProps & IStoreProps & IDispatchProps, IState> {
+    private projectPage;  // TODO: Fix typing
     private changeToBuilderTab: () => void;
 
     constructor(props) {
@@ -31,6 +33,8 @@ class ProjectContainer extends React.Component<IProps & IStoreProps & IDispatchP
         this.changeToBuilderTab = this.changeTab.bind(this, "builder");
         this.changeTab = this.changeTab.bind(this);
         this.onScenarioInstanceDialogChange = this.onScenarioInstanceDialogChange.bind(this);
+        this.setProjectPage = this.setProjectPage.bind(this);
+        this.jobsListener = this.jobsListener.bind(this);
     }
 
     public render() {
@@ -51,6 +55,7 @@ class ProjectContainer extends React.Component<IProps & IStoreProps & IDispatchP
         const id = params.scenarioId;
         const extraProps = {
             instanceOpened: this.state.currentInstanceOpened,
+            jobsListener: this.jobsListener,
             onInstancePopup: this.onScenarioInstanceDialogChange,
         };
         const currentScenario = id ? (
@@ -70,7 +75,7 @@ class ProjectContainer extends React.Component<IProps & IStoreProps & IDispatchP
         return (
             <Tabs value={this.state.currentTab} onChange={this.changeTab}>
                 <Tab value="project" label="Project">
-                    <ProjectDescription project={project} />
+                    <ProjectDescription ref={this.setProjectPage} project={project} />
                 </Tab>
                 <Tab value="scenarios" label="Scenarios">
                     <ProjectScenarios project={project} onScenarioClick={this.changeToBuilderTab} />
@@ -119,6 +124,16 @@ class ProjectContainer extends React.Component<IProps & IStoreProps & IDispatchP
 
     private onScenarioInstanceDialogChange(id: number) {
         this.setState({ currentInstanceOpened: id });
+    }
+
+    private setProjectPage(page) {
+        this.projectPage = page;
+    }
+
+    private jobsListener(jobs: IJobStateQuery[]) {
+        if (this.projectPage != null) {
+            this.projectPage.getWrappedInstance().listenForJobs(jobs);
+        }
     }
 };
 

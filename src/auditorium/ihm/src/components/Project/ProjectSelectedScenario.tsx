@@ -1,6 +1,7 @@
 import * as React from "react";
 import {connect} from "react-redux";
 
+import {IJobStateQuery} from "../../interfaces/job.interface";
 import {IProject, IScenario} from "../../interfaces/project.interface";
 import {IScenarioInstance} from "../../interfaces/scenarioInstance.interface";
 
@@ -65,6 +66,7 @@ class ProjectSelectedScenario extends React.Component<IProps & IStoreProps, ISta
                         scenarioName={currentScenario.name}
                         instanceOpened={this.props.instanceOpened}
                         onInstancePopup={this.props.onInstancePopup}
+                        jobsListener={this.props.jobsListener}
                     />
                 </TitledPaper>
             </div>
@@ -97,6 +99,7 @@ interface IProps {
     };
     onInstancePopup: (id: number) => void;
     instanceOpened: number;
+    jobsListener?: (jobs: IJobStateQuery[]) => void;
 };
 
 

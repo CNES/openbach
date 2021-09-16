@@ -9,6 +9,7 @@ import RaisedButton from "material-ui/RaisedButton";
 import {clearStartScenarioInstanceError, notify} from "../../../actions/global";
 import {deleteScenarioInstance, getFilteredScenarioInstancesFromProject, getScenarioInstancesFromProject} from "../../../actions/scenario";
 import {installJobs} from "../../../api/agent";
+import {IJobStateQuery} from "../../../interfaces/job.interface";
 import {IMissingJobEntities, IScenarioInstance, IScenarioInstanceState} from "../../../interfaces/scenarioInstance.interface";
 import {getGenericDeleteIcon} from "../../../utils/theme";
 
@@ -229,8 +230,11 @@ class ProjectScenariosInstances extends React.Component<IProps & IStoreProps & I
                 const {address} = entity.agent;
                 installJobs(address, entity.jobs).then((onSuccess) => {
                     this.props.notify("Installation of jobs on " + entity_name + " started");
+                    if (this.props.jobsListener != null) {
+                        this.props.jobsListener(entity.jobs.map((n) => ({ agent: entity.agent, jobName: n, operation: "install" })));
+                    }
                 }).catch((error) => {
-                    this.props.notify("Failed installing jobs on " + entity_name);
+                    this.props.notify("Failed installing jobs on " + entity_name + ": " + error);
                 });
             });
         }
@@ -262,6 +266,7 @@ interface IProps {
     scenarioName?: string;
     onInstancePopup: (id: number) => void;
     instanceOpened: number;
+    jobsListener?: (jobs: IJobStateQuery[]) => void;
 };
 
 
