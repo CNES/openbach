@@ -102,13 +102,13 @@ function scenarioReducer(state: IScenarioInstanceState = INITIAL_STATE, action =
             };
 
         case START_SCENARIO_INSTANCE_ERROR:
-            const error: {response: IStartScenarioError; returncode: number} = action.payload;
-            if (!error.hasOwnProperty("response") || !error.response.hasOwnProperty("entities")) {
+            const error: IStartScenarioError = action.payload;
+            if (!error.hasOwnProperty("entities")) {
                 return state;
             }
             return {
                 ...state,
-                startError: error.response,
+                startError: error,
             };
 
         case CLEAR_SCENARIO_INSTANCE_ERROR:
