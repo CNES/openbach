@@ -228,7 +228,7 @@ class ProjectScenariosInstances extends React.Component<IProps & IStoreProps & I
                 const entity = Reflect.get(entities, entity_name);
                 const {address} = entity.agent;
                 installJobs(address, entity.jobs).then((onSuccess) => {
-                    this.props.notify("Finished installing jobs on " + entity_name);
+                    this.props.notify("Installation of jobs on " + entity_name + " started");
                 }).catch((error) => {
                     this.props.notify("Failed installing jobs on " + entity_name);
                 });

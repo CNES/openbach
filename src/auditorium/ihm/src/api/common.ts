@@ -1,7 +1,7 @@
 import "whatwg-fetch";
 
 
-export function doApiCall(route: string, method: string = "GET", body?: { [propName: string]: any; }) {
+export function doApiCall(route: string, method: string = "GET", body?: { [propName: string]: any; }, cancelError: boolean = false) {
     const fetch_config: RequestInit = {method, credentials: "same-origin"};
     if (body !== undefined) {
         fetch_config.body = JSON.stringify(body);
@@ -11,7 +11,7 @@ export function doApiCall(route: string, method: string = "GET", body?: { [propN
         };
     }
 
-    return apiCall(route, fetch_config);
+    return apiCall(route, fetch_config, cancelError);
 };
 
 
@@ -45,13 +45,14 @@ export function doApiMultipartCall(route: string, multipart: { [formPart: string
 };
 
 
-export const checkStatus = (response: Response) => {
+export const checkStatus = (response: Response, cancelError: boolean = false) => {
     if (response.ok) {
         return new Promise<Response>((resolve) => resolve(response));
     } else {
         const errorMessage = response.statusText;
         return response.json().catch((onError) => { throw new Error(errorMessage); }).then((body: any) => {
-            if (body.hasOwnProperty("error")) { throw new Error(body.error); }
+	    if (cancelError) { return new Promise<Response>((resolve, reject) => reject(body)); }
+	    else if (body.hasOwnProperty("error")) { throw new Error(body.error); }
             else if (body.hasOwnProperty("msg")) { throw new Error(body.msg); }
             else { throw new Error(errorMessage); }
         });
@@ -59,8 +60,8 @@ export const checkStatus = (response: Response) => {
 };
 
 
-function apiCall(route: string, config: RequestInit) {
-    return fetch(encodeURI("/openbach" + route), config).then(checkStatus);
+function apiCall(route: string, config: RequestInit, cancelError: boolean = false) {
+    return fetch(encodeURI("/openbach" + route), config).then((response: Response) => checkStatus(response, cancelError));
 };
 
 

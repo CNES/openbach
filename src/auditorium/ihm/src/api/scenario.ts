@@ -45,7 +45,7 @@ export function favoriteScenario(projectName: string, scenarioName: string, favo
 
 export function launchScenario(projectName: string, scenarioName: string, date: Date, scenarioArguments: any): Promise<IScenarioInstance> {
     const route = "/project/" + projectName + "/scenario/" + scenarioName + "/scenario_instance";
-    return doApiCall(route, "POST", {date, arguments: scenarioArguments})
+    return doApiCall(route, "POST", {date, arguments: scenarioArguments}, true)
         .then((response: Response) => response.json<IScenarioInstance>());
 };
 
