@@ -2254,7 +2254,7 @@ class StartScenarioInstance(ScenarioInstanceAction):
                 yield openbach_function
             elif isinstance(openbach_function, OpenbachFunctionStartScenarioInstance):
                 scenario_infos.name = openbach_function.scenario_name
-                yield from self._recurse_subscenario(scenario_infos)
+                yield from self._recurse_subscenario_for_start_job_instances(scenario_infos)
 
     def _check_jobs(self, start_job_instances):
         uninstalled_jobs = {}
