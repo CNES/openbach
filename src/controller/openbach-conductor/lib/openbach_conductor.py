@@ -1743,13 +1743,11 @@ class SetStatisticsPolicyJob(ThreadedAction, InstalledJobAction):
             destination = destination / self.config_file
 
         if not self.local and not self.broadcast and not self.storage and self.path:
-            path = Path(self.path)
             parameters = {
-                'user': 'openbach',
-                'source': path.as_posix(),
-                'destination': destination.as_posix(),
+                    'user': 'openbach',
+                    'source': Path(self.path).as_posix(),
+                    'destination': destination.as_posix(),
             }
-            start_playbook('push_file', self.address, [parameters])
         else:
             parameters = {
                     'user': 'openbach',
