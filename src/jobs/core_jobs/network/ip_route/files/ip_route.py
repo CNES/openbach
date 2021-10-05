@@ -92,21 +92,20 @@ def run_command(command):
 
     if p.returncode:
         error = p.stderr.decode()
-        if 'File exists' in error or 'No such process' in error:
+        if 'No such process' in error:
             message = 'WARNING: {} exited with non-zero return value ({}): {}'.format(
                 command, p.returncode, error)
             collect_agent.send_log(syslog.LOG_WARNING, message)
             sys.exit(0)
         else:
-            message = 'ERROR: {} exited with non-zero return value ({})'.format(
-                command, p.returncode)
+            message = 'ERROR: {} exited with non-zero return value ({}): {}'.format(
+                command, p.returncode, error)
             collect_agent.send_log(syslog.LOG_ERR, message)
             sys.exit(message)
     else:
         collect_agent.send_log(syslog.LOG_DEBUG, 'Applied successfully : ' + ' '.join(command))
 
     return p.stdout.decode()
-
 
 
 def restore_route(old_route, destination, operation, signal, frame):
@@ -131,11 +130,12 @@ def restore_route(old_route, destination, operation, signal, frame):
 
 def main(operation, destination, gateway_ip, device, initcwnd, initrwnd, restore):
     if restore:
-        old_route = run_command(['ip', '-4', 'r', 'show', str(destination)])
-        if not old_route:
+        if destination != 'default' and destination.version == 6:
             old_route = run_command(['ip', '-6', 'r', 'show', str(destination)])
+        else: 
+            old_route = run_command(['ip', '-4', 'r', 'show', str(destination)])
 
-    if destination == "default":
+    if destination == 'default':
         command = ['ip', 'route', str(operation), str(destination)]
     else:
         command = ['ip', '-{}'.format(destination.version), 'route', str(operation), str(destination)]
