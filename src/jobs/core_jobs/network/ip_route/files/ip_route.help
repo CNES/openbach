@@ -1,3 +1,11 @@
+=== Job Description ===
+
+This job launches "ip route" tool to manage network routes. The user can add, delete or replace the routes of an entity.
+
+Note : If the user tries to "add" a route which already exists, the job will raise an error and will stop its execution.
+I you want to avoid this type of behaviour, we advise to use the option "replace" instead of "add".
+
+
 === Examples ===
 
 == Example 1 ==
