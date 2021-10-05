@@ -115,7 +115,7 @@ def restore_route(old_route, destination, operation, signal, frame):
 def main(operation, destination, gateway_ip, device, initcwnd, initrwnd, restore):
     if restore:
         _, old_route, _ = run_command(['ip', '-4', 'r', 'show', str(destination)])
-        if old_route == '':
+        if not old_route:
             _, old_route, _ = run_command(['ip', '-6', 'r', 'show', str(destination)])
 
     if destination == "default":
