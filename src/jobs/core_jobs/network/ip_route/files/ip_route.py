@@ -89,7 +89,24 @@ def run_command(command):
         message = 'ERROR: {}'.format(ex)
         collect_agent.send_log(syslog.LOG_ERR, message)
         sys.exit(message)
-    return p.returncode, p.stdout.decode(), p.stderr.decode()
+
+    if p.returncode:
+        error = p.stderr.decode()
+        if 'File exists' in error or 'No such process' in error:
+            message = 'WARNING: {} exited with non-zero return value ({}): {}'.format(
+                command, p.returncode, error)
+            collect_agent.send_log(syslog.LOG_WARNING, message)
+            sys.exit(0)
+        else:
+            message = 'ERROR: {} exited with non-zero return value ({})'.format(
+                command, p.returncode)
+            collect_agent.send_log(syslog.LOG_ERR, message)
+            sys.exit(message)
+    else:
+        collect_agent.send_log(syslog.LOG_DEBUG, 'Applied successfully : ' + ' '.join(command))
+
+    return p.stdout.decode()
+
 
 
 def restore_route(old_route, destination, operation, signal, frame):
@@ -114,9 +131,9 @@ def restore_route(old_route, destination, operation, signal, frame):
 
 def main(operation, destination, gateway_ip, device, initcwnd, initrwnd, restore):
     if restore:
-        _, old_route, _ = run_command(['ip', '-4', 'r', 'show', str(destination)])
+        old_route = run_command(['ip', '-4', 'r', 'show', str(destination)])
         if not old_route:
-            _, old_route, _ = run_command(['ip', '-6', 'r', 'show', str(destination)])
+            old_route = run_command(['ip', '-6', 'r', 'show', str(destination)])
 
     if destination == "default":
         command = ['ip', 'route', str(operation), str(destination)]
@@ -131,25 +148,7 @@ def main(operation, destination, gateway_ip, device, initcwnd, initrwnd, restore
     if initrwnd:
        command.extend(['initrwnd', str(initrwnd)])
     
-    returncode, output, error = run_command(command)
-    if returncode:
-        if any(
-                err in error
-                for err in {'File exists', 'No such process'}
-                ):
-            message = 'WARNING: {} exited with non-zero return value ({}): {}'.format(
-                command, returncode, error)
-            collect_agent.send_log(syslog.LOG_WARNING, message)
-            sys.exit(0)
-        else:
-            message = 'ERROR: {} exited with non-zero return value ({})'.format(
-                command, returncode)
-            collect_agent.send_log(syslog.LOG_ERR, message)
-            sys.exit(message)
-    else:
-        collect_agent.send_log(
-                syslog.LOG_DEBUG,
-                '{} route {}'.format(operation, destination))
+    run_command(command)
 
     if restore:
         # Manage SIGTERM and SIGINT signals behavior
