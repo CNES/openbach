@@ -101,17 +101,23 @@ def restore_route(old_route, destination, operation, signal, frame):
         cmd = ['ip', 'route', 'add'] + old_route
     else:
         # Restore previous route
-        cmd = ['ip', 'route', operation] + old_route
+        if old_route:
+            cmd = ['ip', 'route', operation] + old_route
+        else:
+            cmd = ['ip', 'route', 'del', str(destination)]
 
     run_command(cmd)
-    message = 'Stoped job ip_route. Previous route has ben restored.'
+    message = 'Stopped job ip_route. Previous route has been restored.'
     collect_agent.send_log(syslog.LOG_DEBUG, message)
     sys.exit(message)
 
 
 def main(operation, destination, gateway_ip, device, initcwnd, initrwnd, restore):
     if restore:
-        _, old_route, _ = run_command(['ip', 'r', 'show', str(destination)])
+        _, old_route, _ = run_command(['ip', '-4', 'r', 'show', str(destination)])
+        if old_route == '':
+            _, old_route, _ = run_command(['ip', '-6', 'r', 'show', str(destination)])
+
     if destination == "default":
         command = ['ip', 'route', str(operation), str(destination)]
     else:
@@ -149,8 +155,8 @@ def main(operation, destination, gateway_ip, device, initcwnd, initrwnd, restore
         # Manage SIGTERM and SIGINT signals behavior
         signal.signal(signal.SIGTERM, partial(restore_route, old_route.split(), destination, operation))
         signal.signal(signal.SIGINT, partial(restore_route, old_route.split(), destination, operation))
-        while True:
-            time.sleep(1)
+        # Sleep until a signal is received
+        signal.pause()
 
 
 if __name__ == '__main__':
