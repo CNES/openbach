@@ -1,0 +1,9 @@
+---
+
+openbach_proxy_env:
+{{ hostvars[item].openbach_proxy_env | to_nice_yaml | indent(2, True) }}
+{% if hostvars[item].ansible_connection is defined %}
+ansible_connection: {{ hostvars[item].ansible_connection }}
+{% if hostvars[item].ansible_winrm_server_cert_validation is defined %}
+ansible_winrm_server_cert_validation: {{ hostvars[item].ansible_winrm_server_cert_validation }}
+{% endif %}{% endif %}

@@ -1,0 +1,65 @@
+#   OpenBACH is a generic testbed able to control/configure multiple
+#   network/physical entities (under test) and collect data from them. It is
+#   composed of an Auditorium (HMIs), a Controller, a Collector and multiple
+#   Agents (one for each network entity that wants to be tested).
+#   
+#   
+#   Copyright © 2016-2020 CNES
+#   
+#   
+#   This file is part of the OpenBACH testbed.
+#   
+#   
+#   OpenBACH is a free software : you can redistribute it and/or modify it under
+#   the terms of the GNU General Public License as published by the Free Software
+#   Foundation, either version 3 of the License, or (at your option) any later
+#   version.
+#   
+#   This program is distributed in the hope that it will be useful, but WITHOUT
+#   ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS
+#   FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+#   details.
+#   
+#   You should have received a copy of the GNU General Public License along with
+#   this program. If not, see http://www.gnu.org/licenses/.
+
+---
+
+- name: Create a Temporary Directory to Extract the Archive
+  tempfile:
+    prefix: openbach_restore_
+    state: directory
+  register: openbach_restore_name
+
+- name: Extract the Archive in the Temporary Directory
+  unarchive:
+    dest: "{{ openbach_restore_name.path }}"
+    src: "{{ openbach_restore_archive | mandatory }}"
+
+- name: Find Out the Name of the Root Folder in the Archive
+  set_fact:
+    openbach_archive_root: "{{ lookup('file_glob', 'openbach_backup_* root={{ openbach_restore_name.path }}') }}"
+
+- name: Read the Inventory File Stored in the Archive
+  set_fact:
+    openbach_known_groups: "{{ lookup('read_ini', '{{ openbach_archive_root }}/inventory') }}"
+
+- name: Re-Create Topology Using New Hosts
+  add_host:
+    name: "{{ item }}"
+    groups: "{{ openbach_known_groups[hostvars[item].openbach_restore_host | mandatory] }}"
+  with_items: "{{ groups.restore | default([]) }}"
+
+- name: Check for Mandatory Variables
+  assert:
+    that:
+      - hostvars[item].openbach_backend_admin_name is defined
+      - hostvars[item].openbach_backend_admin_password is defined
+    fail_msg: >
+      When restoring a controller you must provide the name and password
+      of an administrator user so the playbook is able to modify the
+      IP addresses in the backend's database. Please set the facts
+      'openbach_backend_admin_name' and 'openbach_backend_admin_password'
+      on each host that is restoring a controller.
+  with_items: "{{ groups.controller | default([]) }}"
+  when: hostvars[item].openbach_restore_host is defined

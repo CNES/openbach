@@ -1,0 +1,12 @@
+Source: collect-agent
+Section: misc
+Priority: optional
+Maintainer: OpenBACH maintainers <admin@openbach.org>
+Build-Depends: debhelper (>= 8.0.0)
+Standards-Version: 3.9.4
+Homepage: http://www.openbach.org/
+
+Package: collect-agent
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, rsyslog
+Description: OpenBACH collect-agent API

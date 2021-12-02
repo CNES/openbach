@@ -1,0 +1,25 @@
+@startuml
+
+class Controller
+class ControllerScheduler
+class Project
+class Scenario
+class OpenbachFunction
+class ScenarioInstance
+class OpenbachFunctionInstance
+class WaitFor
+
+Controller *-- "1" ControllerScheduler
+Controller *-- "*" Project
+Controller *-- "*" Scenario
+Scenario *-- "*" OpenbachFunction
+Scenario o-- "*" ScenarioInstance
+ScenarioInstance *-- "*" OpenbachFunctionInstance
+OpenbachFunction o-- "*" OpenbachFunctionInstance
+OpenbachFunction *-- "0-2" WaitFor
+WaitFor .. OpenbachFunction
+WaitFor .. OpenbachFunctionInstance
+Project *-- "*" Scenario
+ControllerScheduler o-- "*" ScenarioInstance
+
+@enduml

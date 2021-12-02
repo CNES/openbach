@@ -1,0 +1,41 @@
+=== Job Description ===
+
+This Job is used by OpenBACH to synchronize agents. It verify the offset and force a re-synchronization if necessary.
+During the re-synchronization the job stops ''ntp.service'' then run a ''ntpd -gq'' command, and then restart the ''ntp.service''. 
+
+=== Examples ===
+
+== Example 1 ==
+
+We want to force the synchronization if the offset is less than (absolute) 0.5.
+We don't want the job to last more than 60 seconds.
+
+In the web interface, set the following parameters:
+  * **synchro_offset** = 0.5
+  * **timeout** = 60
+
+Or launch the job manually from the Agent as follows:
+<code>
+JOB_NAME=synchronization sudo -H python3 /opt/openbach/agent/jobs/synchronization/synchronization.py 0.5 60
+</code>
+
+By default, ''retries'' and ''sleep_time'' is 10 and 2 respectively.
+
+
+== Example 2 (using "-r/--retries" and "-s/--sleep_time" parameters) ==
+
+We want to force the synchronization if the offset is less than (absolute) 1.
+We don't want the job to last more than 60 seconds.
+We want ntp-wait to retry requesting ntp 20 times and wait 6 seconds between each try.
+
+In the web interface, set the following parameters:
+  * **synchro_offset** = 1
+  * **timeout** = 60
+  * **retries** = 20
+  * **sleep_time** = 6
+
+Or launch the job manually from the Agent as follows:
+<code>
+JOB_NAME=synchronization sudo -H python3 /opt/openbach/agent/jobs/synchronization/synchronization.py 1 60 -r 20 -s 6
+</code>
+

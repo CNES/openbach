@@ -1,0 +1,18 @@
+=== Job Description ===
+
+This Job collects different measurements of TCP connections by means of tcpprobe.
+
+=== Examples ===
+
+== Example 1 ==
+
+Measure the TCP connection statistics on port ''5001'' considering 1-in-20 packet.
+
+In the web interface, set the following parameters:
+  * **port** = 5001
+  * **packet_sampling_interval** = 20
+
+Or launch the job manually from the Agent as follows:
+<code>
+JOB_NAME=tcpprobe_monitoring sudo -E python3 /opt/openbach/agent/jobs/tcpprobe_monitoring/tcpprobe_monitoring.py 5001 -i 20
+</code>

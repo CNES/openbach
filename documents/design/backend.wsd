@@ -1,0 +1,482 @@
+@startuml
+
+hide empty members
+
+class Collector {
+  address: String
+  logs_port: Integer
+  logs_query_port: Integer
+  logs_database_name: String
+  stats_port: Integer
+  stats_query_port: Integer
+  stats_database_name: String
+  stats_database_precision: String
+  logstash_broadcast_mode: String
+  logstash_broadcast_port: Integer
+}
+
+class Agent {
+  name: String
+  address: String
+  status: String
+  update_status: Datetime
+  reachable: Boolean
+  update_reachable: Datetime
+  available: Boolean
+  update_available: Datetime
+  collector: ForeignKey
+}
+
+Collector "1" *-- "*" Agent : < collector
+
+class User {
+  username: String
+  password: String
+  is_staff: Boolean
+  is_active: Boolean
+  first_name: String
+  last_name: String
+  email: String
+}
+
+class Project {
+  name: String
+  description: String
+  owners: ManyToMany
+}
+
+User "*" --o "*" Project : < owners
+
+class Network {
+  name: String
+  address: String
+  project: ForeignKey
+}
+
+Project "1" *-- "*" Network : < project
+
+class HiddenNetwork {
+  name: String
+  project: ForeignKey
+}
+
+Project "1" *-- "*" HiddenNetwork : < project
+
+class PotentialNetwork {
+  old_network: ForeignKey
+  new_network: ForeignKey
+  project: ForeignKey
+}
+
+Network "1" *-- "*" PotentialNetwork : < old_network
+Network "1" *-- "*" PotentialNetwork : < new_network
+Project "1" *-- "*" PotentialNetwork : < project
+
+class Entity {
+  name: String
+  description: String
+  networks: ManyToMany
+  project: ForeignKey
+  agent: OneToOne
+}
+
+Network "*" --o "*" Entity : < networks
+Project "1" *-- "*" Entity : < project
+Agent "1?" --* "1?" Entity : < agent
+
+
+abstract class ContentTyped
+
+class ArgumentValue {
+  value: String
+}
+
+abstract class Argument {
+  CHOICES
+  type: String
+  count: String
+  name: String
+  description: String
+}
+
+
+class CommandResult {
+  response: String
+  returncode: Integer
+  date: Datetime
+}
+
+class CollectorCommandResult {
+  address: String
+  status_add: ForeignKey
+  status_modify: ForeignKey
+  status_del: ForeignKey
+}
+
+CommandResult "1" --* "*" CollectorCommandResult : < status_add
+CommandResult "1" --* "*" CollectorCommandResult : < status_modify
+CommandResult "1" --* "*" CollectorCommandResult : < status_del
+Collector "1" --o "*" CollectorCommandResult : < address
+
+class AgentCommandResult {
+  address: String
+  status_install: ForeignKey
+  status_uninstall: ForeignKey
+  status_assign: ForeignKey
+  status_log_severity: ForeignKey
+}
+
+CommandResult "1" --* "*" AgentCommandResult : < status_install
+CommandResult "1" --* "*" AgentCommandResult : < status_uninstall
+CommandResult "1" --* "*" AgentCommandResult : < status_assign
+CommandResult "1" --* "*" AgentCommandResult : < status_log_severity
+Agent "1" --o "*" AgentCommandResult : < address
+
+class FileCommandResult {
+  address: String
+  filename: String
+  remote_path: String
+}
+
+Agent "1" --o "*" FileCommandResult : < address
+
+class InstalledJobCommandResult {
+  address: String
+  job_name: String
+  status_install: ForeignKey
+  status_uninstall: ForeignKey
+  status_stat_policy: ForeignKey
+  status_log_severity: ForeignKey
+}
+
+CommandResult "1" --* "*" InstalledJobCommandResult : < status_install
+CommandResult "1" --* "*" InstalledJobCommandResult : < status_uninstall
+CommandResult "1" --* "*" InstalledJobCommandResult : < status_stat_policy
+CommandResult "1" --* "*" InstalledJobCommandResult : < status_log_severity
+InstalledJob "1" --o "*" InstalledJobCommandResult : < address + job_name
+
+class JobInstanceCommandResult {
+  job_instance_id: Integer
+  status_start: ForeignKey
+  status_stop: ForeignKey
+  status_restart: ForeignKey
+}
+
+CommandResult "1" --* "*" JobInstanceCommandResult : < status_start
+CommandResult "1" --* "*" JobInstanceCommandResult : < status_stop
+CommandResult "1" --* "*" JobInstanceCommandResult : < status_restart
+JobInstance "1" --o "*" JobInstanceCommandResult : < job_instance_id
+
+class Keyword {
+  name: String
+}
+
+class Job {
+  name: String
+  path: String
+  help: String
+  job_version: String
+  description: String
+  keywords: ManyToMany
+  has_uncertain_required_args: Boolean
+  persistent: Boolean
+}
+
+Job "*" o-- "*" Keyword : keywords >
+
+class OsCommand {
+  job: ForeignKey
+  family: String
+  distribution: String
+  version: String
+  command: String
+  command_stop: String
+}
+
+Job "1" *-- "*" OsCommand : < job
+
+class Statistic {
+  name: String
+  job: ForeignKey
+  description: String
+  frequency: String
+}
+
+Job "1" *-- "*" Statistic : < job
+
+class InstalledJob {
+  agent: ForeignKey
+  job: ForeignKey
+  job_version: String
+  update_status: Datetime
+  severity: Integer
+  local_severity: Integer
+  default_stat_storage: Boolean
+  default_stat_broadcast: Boolean
+}
+
+Agent "1" *-- "*" InstalledJob : < agent
+Job "1" *-- "*" InstalledJob : < job
+
+class StatisticInstance {
+  stat: ForeignKey
+  job: ForeignKey
+  storage: Boolean
+  broadcast: Boolean
+}
+
+Statistic "1" *-- "*" StatisticInstance : < stat
+InstalledJob "1" *-- "*" StatisticInstance : < job
+
+class JobInstance {
+  job_name: String
+  agent_name: String
+  agent: ForeignKey
+  collector: ForeignKey
+  status: String
+  update_status: Datetime
+  start_date: Datetime
+  started_by: ForeignKey
+  stop_date: Datetime
+  periodic: Boolean
+  is_stopped: Boolean
+  openbach_function_instance: OneToOne
+}
+
+Agent "1" o-- "*" JobInstance : < agent
+Collector "1" *-- "*" JobInstance : < collector
+User "1" *-- "*" JobInstance : < started_by
+JobInstance "1?" o-- "1?" OpenbachFunctionInstance : < openbach_function_instance
+
+class RequiredJobArgument {
+  job: ForeignKey
+  rank: Integer
+}
+
+Argument <|-- RequiredJobArgument
+Job "1" *-- "*" RequiredJobArgument : < job
+
+class OptionalJobArgument {
+  job: ForeignKey
+  flag: String
+}
+
+Argument <|-- OptionalJobArgument
+Job "1" *-- "*" OptionalJobArgument : < job
+
+class RequiredJobArgumentValue {
+  argument: ForeignKey
+  job_instance: ForeignKey
+}
+
+ArgumentValue <|-- RequiredJobArgumentValue
+RequiredJobArgument "1" *-- "*" RequiredJobArgumentValue : < argument
+JobInstance "1" *-- "*" RequiredJobArgumentValue : < job_instance
+
+class OptionalJobArgumentValue {
+  argument: ForeignKey
+  job_instance: ForeignKey
+}
+
+ArgumentValue <|-- OptionalJobArgumentValue
+OptionalJobArgument "1" *-- "*" OptionalJobArgumentValue : < argument
+JobInstance "1" *-- "*" OptionalJobArgumentValue : < job_instance
+
+class Scenario {
+  name: String
+  description: String
+  project: ForeignKey
+}
+
+Project "1" *-- "*" Scenario : < project
+
+class ScenarioVersion {
+  scenario: ForeignKey
+}
+
+Scenario "1" *-- "*" ScenarioVersion : < scenario
+
+class ScenarioInstance {
+  scenario_version: ForeignKey
+  status: String
+  start_date: Datetime
+  started_by: ForeignKey
+  stop_date: Datetime
+  is_stopped: Boolean
+  openbach_function_instance: OneToOne
+}
+
+ScenarioVersion "1" *-- "*" ScenarioInstance : < scenario_version
+User "1" *-- "*" ScenarioInstance : < started_by
+ScenarioInstance "1?" o-- "1?" OpenbachFunctionInstance : < openbach_function_instance
+
+class ScenarioArgument {
+  scenario_version: ForeignKey
+}
+
+Argument <|-- ScenarioArgument
+ScenarioVersion "1" *-- "*" ScenarioArgument : < scenario_version
+
+class ScenarioConstant {
+  scenario_version: ForeignKey
+  value: String
+}
+
+Argument <|-- ScenarioConstant
+ScenarioVersion "1" *-- "*" ScenarioConstant : < scenario_version
+
+class ScenarioArgumentValue {
+  argument: ForeignKey
+  scenario_instance: ForeignKey
+}
+
+ArgumentValue <|-- ScenarioArgumentValue
+ScenarioArgument "1" *-- "*" ScenarioArgumentValue : < argument
+ScenarioInstance "1" *-- "*" ScenarioArgumentValue : < scenario_instance
+
+class Operand
+
+ContentTyped <|-- Operand
+
+class OperandDatabase {
+  name: OpenbachFunctionArgument
+  key: OpenbachFunctionArgument
+  attribute: OpenbachFunctionArgument
+}
+
+Operand <|-- OperandDatabase
+
+class OperandValue {
+  value: OpenbachFunctionArgument
+}
+
+Operand <|-- OperandValue
+
+class OperandStatistic {
+  field: OpenbachFunctionArgument
+  job_name: OpenbachFunctionArgument
+  agent_address: OpenbachFunctionArgument
+}
+
+Operand <|-- OperandStatistic
+
+class Condition
+
+ContentTyped <|-- Condition
+
+class ConditionNot {
+  condition: ForeignKey
+}
+
+Condition <|-- ConditionNot
+Condition "1" *-- "*" ConditionNot : < condition
+
+abstract class _TwoConditions {
+  left_condition: ForeignKey
+  right_condition: ForeignKey
+}
+
+Condition <|-- _TwoConditions
+Condition "1" *-- "*" _TwoConditions : < left_condition
+Condition "1" *-- "*" _TwoConditions : < right_condition
+
+_TwoConditions <|-- ConditionOr
+_TwoConditions <|-- ConditionAnd
+_TwoConditions <|-- ConditionXor
+
+abstract class _TwoOperands {
+  left_operand: ForeignKey
+  right_operand: ForeignKey
+}
+
+Condition <|-- _TwoOperands
+Operand "1" *-- "*" _TwoOperands : < left_operand
+Operand "1" *-- "*" _TwoOperands : < right_operand
+
+_TwoOperands <|-- ConditionEqual
+_TwoOperands <|-- ConditionUnequal
+_TwoOperands <|-- ConditionLowerOrEqual
+_TwoOperands <|-- ConditionLower
+_TwoOperands <|-- ConditionGreaterOrEqual
+_TwoOperands <|-- ConditionGreater
+
+class OpenbachFunction {
+  function_id: Integer
+  label: String
+  scenario_version: ForeignKey
+  wait_time: Integer
+}
+
+ContentTyped <|-- OpenbachFunction
+ScenarioVersion "1" *-- "*" OpenbachFunction : < scenario_version
+
+class OpenbachFunctionInstance {
+  openbach_function: ForeignKey
+  scenario_instance: ForeignKey
+  status: String
+  launch_date: Datetime
+}
+
+OpenbachFunction "1" *-- "*" OpenbachFunctionInstance : < openbach_function
+ScenarioVersion "1" *-- "*" OpenbachFunctionInstance : < scenario_version
+
+class WaitForLaunched {
+  openbach_function_waited: ForeignKey
+  openbach_function_instance: ForeignKey
+}
+
+OpenbachFunction "1" *-- "*" WaitForLaunched : < openbach_function_waited
+OpenbachFunction "1" *-- "*" WaitForLaunched : < openbach_function_instance
+
+class WaitForFinished {
+  openbach_function_waited: ForeignKey
+  openbach_function_instance: ForeignKey
+}
+
+OpenbachFunction "1" *-- "*" WaitForFinished : < openbach_function_waited
+OpenbachFunction "1" *-- "*" WaitForFinished : < openbach_function_instance
+
+OpenbachFunction <|-- AssignCollector
+OpenbachFunction <|-- InstallAgent
+OpenbachFunction <|-- UninstallAgent
+OpenbachFunction <|-- PushFile
+OpenbachFunction <|-- StartJobInstance
+OpenbachFunction <|-- StopJobInstance
+OpenbachFunction <|-- StopJobInstances
+OpenbachFunction <|-- RestartJobInstance
+OpenbachFunction <|-- StatusJobInstance
+OpenbachFunction <|-- ListJobInstance
+OpenbachFunction <|-- SetLogSeverityJob
+OpenbachFunction <|-- SetStatisticsPolicyJob
+OpenbachFunction <|-- If
+OpenbachFunction <|-- While
+OpenbachFunction <|-- StartScenarioInstance
+OpenbachFunction <|-- StopScenarioInstance
+
+If -- Condition
+While -- Condition
+
+
+
+
+StatisticInstance -[hidden]- CommandResult
+OpenbachFunctionInstance -[hidden]- OpenbachFunction
+WaitForLaunched -[hidden]- AssignCollector
+WaitForLaunched -[hidden]- InstallAgent
+WaitForFinished -[hidden]- If
+WaitForFinished -[hidden]- While
+WaitForLaunched -[hidden]- PushFile
+InstallAgent -[hidden]- StopJobInstance
+UninstallAgent -[hidden]- StopJobInstances
+PushFile -[hidden]- RestartJobInstance
+PushFile -[hidden]- UninstallAgent
+If -[hidden]- StatusJobInstance
+While -[hidden]- ListJobInstance
+StartJobInstance -[hidden]- SetLogSeverityJob
+StopJobInstances -[hidden]- SetStatisticsPolicyJob
+StatusJobInstance -[hidden]- StartScenarioInstance
+ListJobInstance -[hidden]- StopScenarioInstance
+StopScenarioInstance -[hidden]- ContentTyped
+SetStatisticsPolicyJob -[hidden]- StartJobInstance
+
+@enduml

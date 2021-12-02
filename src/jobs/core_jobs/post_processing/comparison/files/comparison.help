@@ -1,0 +1,14 @@
+=== Job Description ===
+
+This job post-process statistics from other job instances. It computes the average value of several statistic (time-series) and their confidence interval, and plots a figure comparing them.
+
+=== Examples ===
+
+== Example 1 ==
+
+Comparison of jobs instances //hping// and //fping//. When the job instances of the pings are finished, launch the comparison job in order to plot the average RTT as well as the confidence interval for both //fping// and //hping//. You can launch the job from the web interface specifying the job instances ids to compare, the name(s) of the statistic(s) to compare, the y-axis label, the title of the plot and the label names to display in the x-axis.
+
+or from CLI as follows:
+<code>
+JOB_NAME=comparison sudo -E python3 /opt/openbach/agent/jobs/comparison/comparison.py fping_job_instance_id hping_job_instance_id -s rtt -y 'delay in ms' -t 'fping vs hping' -l "fping" -l "hping" 
+</code>

@@ -1,0 +1,61 @@
+@startuml
+
+state Scheduling
+Scheduling : when a user decides to launch a
+Scheduling : scenario, the Controller starts
+Scheduling : validating locally the arguments
+Scheduling : provided to the openbach-functions
+Scheduling : and create resources to schedule them.
+
+state Running
+Running : a scenario instance is considered
+Running : in this state when at least one of
+Running : the openbach-functions, job instances,
+Running : or scenario instances is still running.
+Running : It keeps running until an error occurs,
+Running : a user asked to stop the scenario or
+Running : every scheduled instance comes to an end.
+
+state "Finished OK" as FinishedOK
+FinishedOK : when the end time of the
+FinishedOK : scenario instance is reached
+FinishedOK : meaning the scenario instance
+FinishedOK : is correctly finished.
+
+state "Finished KO" as FinishedKO
+FinishedKO : when one Agent or an openbach-function
+FinishedKO : send an error status. If the error is
+FinishedKO : considered not critical, the scenario
+FinishedKO : might keep running. If it is considered
+FinishedKO : critical, the scenario instance should
+FinishedKO : stop all started job instances, scenario
+FinishedKO : instances, and openbach-functions.
+
+state Stopped
+Stopped : in this state, the backend tries
+Stopped : to stop the scenario instance (and
+Stopped : thus all the job instances, scenario
+Stopped : instances, and openbach-functions
+Stopped : running/scheduled) because a user
+Stopped : asked to stop the scenario instance.
+
+state "Stopped, out of control" as StoppedOutOfControl
+StoppedOutOfControl : when stopping the scenario on
+StoppedOutOfControl : behalf of a user action, if a
+StoppedOutOfControl : resource (openbach-function) is
+StoppedOutOfControl : unreachable, the state of the
+StoppedOutOfControl : scenario is set to "stopped
+StoppedOutOfControl : out of control".
+
+[*] --> Scheduling : New
+Scheduling --> Running : All openbach-function\nvalidate their arguments
+Running --> FinishedOK : Every openbach-function,\njob instances and\nscenario instance finished
+Running --> FinishedKO : Some openbach-function\nor job instances\nrepported an error
+Running --> Stopped : User asked to\nstop the scenario
+Stopped --> StoppedOutOfControl : An openbach-function from this\nscenario could not be retrieved
+FinishedOK --> [*]
+FinishedKO --> [*]
+Stopped --> [*] : Everything went fine
+StoppedOutOfControl --> [*]
+
+@enduml

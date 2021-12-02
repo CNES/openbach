@@ -1,0 +1,39 @@
+{
+  "name": "OpenSAND",
+  "description": "OpenSAND scenario (for test)",
+  "arguments": {},
+  "constants": {
+    "sat": "172.20.34.36",
+    "st1": "172.20.34.38",
+    "gw0": "172.20.34.41"
+  },
+  "openbach_functions": [
+    {
+      "id": 1,
+      "start_job_instance": {
+        "agent_ip": "$sat",
+        "opensand_sat": {
+        },
+        "offset": 0
+      }
+    },
+    {
+      "id": 2,
+      "start_job_instance": {
+        "agent_ip": "$gw0",
+        "opensand_gw": {
+        },
+        "offset": 0
+      }
+    },
+    {
+      "id": 3,
+      "start_job_instance": {
+        "agent_ip": "$st1",
+        "opensand_st": {
+        },
+        "offset": 0
+      }
+    }
+  ]
+}

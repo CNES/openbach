@@ -1,0 +1,48 @@
+=== Job Description ===
+
+This job launches the Sender Component (ITGSend) from the D-ITG platform.
+ITGSend generates traffic towards multiple ITGRecv instances (one-way flow). Multiple traffic can be generated
+by ITGSend.
+
+This job requires to target a destination which have the job d-itg_recv running.
+
+Traffic generated at transport level: TCP, UDP, SCTP, DCCP, ICMP...
+
+Multiple stats providing the most common QoS metrics are generated (throughput (bps), one-way delay (ms), round-trip time (ms), jitter (ms), packet loss (pkts/s), packet loss rate (%)).
+
+Careful when choosing dest_path, the generated stats may overwrite any existing stats in the directory.
+
+=== Additionnal information ===
+
+To get an accurate owd, both agents (receiver and sender) must be synchronized (through ntp command or else).
+
+We do not guarantee the accuracy of the measured stats. Only some metrics have been tested and validated during our test campaign.
+The validated metrics are the following:
+  * jitter_receiver
+  * owd_receiver
+  * bitrate
+  * rttm
+
+Tool's parameter "packet rate" is not always respected (>100 packets/sec) by d-itg. Therefore the bandwidth and packrate set in the job are not guaranteed.
+
+The  IP address ("target_address" and "sender_address") must be directly assigned to a network interface of the receiver and the sender. If not, the receiver won't be able to receive the flow.
+
+=== Examples ===
+
+== Example 1 ==
+
+Launch the sender job (ip: ''192.168.1.46'') to the receiver job (ip: ''192.168.1.45''), with a granularity of 1 sec (1000 ms). The log file will be saved in the ''/tmp/'' directory. The mode is UDP and the metrics are measured in both side (rttm).
+
+In the web interface, set the following parameters:
+  * **target_address** = 192.168.1.45
+  * **sender_address** = 192.168.1.46
+  * **dest_path** = /tmp/
+  * **granularity** = 1000
+  * **traffic_type** = UDP
+  * **meter** = rttm
+
+Or launch the job manually from CLI of the Agent as follows:
+
+<code>
+JOB_NAME=d-itg_sender sudo -E python3 /opt/openbach/agent/jobs/d-itg_send/d-itg_send.py 192.168.1.45 192.168.1.46 /tmp/ 1000 -T UDP -m rttm
+</code>

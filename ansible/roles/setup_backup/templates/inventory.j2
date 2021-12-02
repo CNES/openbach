@@ -1,0 +1,7 @@
+{% for name, group in groups.items() if name != 'all' and name != 'ungrouped' %}
+[{{ name }}]
+{% for host in group %}
+{{ host }}
+{% endfor %}
+
+{% endfor %}

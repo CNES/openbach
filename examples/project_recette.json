@@ -1,0 +1,84 @@
+{
+  "name": "Recette",
+  "description": "Recette 16/01/2017",
+  "entity": [
+    {
+      "name": "Sat",
+      "description": "The satellite",
+      "agent": {
+          "name": "vmos03-03-ob-sat",
+          "address": "10.103.100.8",
+          "username": "opensand",
+          "collector_ip": "10.103.100.4"
+      },
+      "networks": [
+        "st_sat",
+        "gw_sat"
+      ]
+    },
+    {
+      "name": "gw0",
+      "description": "Gateway",
+      "agent": {
+          "name": "vmos03-02-ob-gw",
+          "address": "10.103.100.3",
+          "username": "opensand",
+          "collector_ip": "10.103.100.4"
+      },
+      "networks": [
+        "gw_sat",
+        "lan_gw"
+      ]
+    },
+    {
+      "name": "st1",
+      "description": "Satellite terminal 1",
+      "agent":  {
+          "name": "vmos03-04-ob-st1",
+          "address": "10.103.100.5",
+          "username": "opensand",
+          "collector_ip": "10.103.100.4"
+    },
+      "networks": [
+        "st_sat",
+        "lan_st"
+      ]
+    },
+    {
+      "name": "gw0-ws1",
+      "description": "WorkStation 1 of GW0",
+      "agent":  {
+          "name": "vmos03-05-ob-wsc",
+          "address": "10.103.100.7",
+          "username": "opensand",
+          "collector_ip": "10.103.100.4"
+    },
+      "networks": [
+        "lan_gw",
+        "lan_ws"
+      ]
+    },
+    {
+      "name": "st1-ws1",
+      "description": "WorkStation 1 of ST1",
+      "agent":  {
+          "name": "vmos03-01-ob-wss",
+          "address": "10.103.100.6",
+          "username": "opensand",
+          "collector_ip": "10.103.100.4"
+    },
+      "networks": [
+        "lan_st",
+        "lan_ws"
+      ]
+    }
+  ],
+  "network": [
+    "gw_sat",
+    "st_sat",
+    "lan_gw",
+    "lan_st",
+    "lan_ws"
+  ],
+  "scenario": []
+}

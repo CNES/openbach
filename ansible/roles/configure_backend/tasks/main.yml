@@ -1,0 +1,184 @@
+#   OpenBACH is a generic testbed able to control/configure multiple
+#   network/physical entities (under test) and collect data from them. It is
+#   composed of an Auditorium (HMIs), a Controller, a Collector and multiple
+#   Agents (one for each network entity that wants to be tested).
+#   
+#   
+#   Copyright © 2016-2020 CNES
+#   
+#   
+#   This file is part of the OpenBACH testbed.
+#   
+#   
+#   OpenBACH is a free software : you can redistribute it and/or modify it under
+#   the terms of the GNU General Public License as published by the Free Software
+#   Foundation, either version 3 of the License, or (at your option) any later
+#   version.
+#   
+#   This program is distributed in the hope that it will be useful, but WITHOUT
+#   ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS
+#   FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+#   details.
+#   
+#   You should have received a copy of the GNU General Public License along with
+#   this program. If not, see http://www.gnu.org/licenses/.
+
+---
+
+- name: Deactivate Ansible Host Key Checking on the Controller
+  copy: src=ansible.cfg dest=/home/openbach/.ansible.cfg
+  remote_user: openbach
+  tags:
+    - consider_safe_network
+
+- name: Create the Variables Folder
+  file: path=/opt/openbach/controller/ansible/{{ item }} state=directory
+  with_items:
+    - group_vars
+    - host_vars
+  remote_user: openbach
+
+- name: Add the Controller IP as the openbach_controller Ansible Variable
+  template: src=group_vars_all.j2 dest=/opt/openbach/controller/ansible/group_vars/all
+  remote_user: openbach
+
+- name: Copy the Required Playbooks
+  copy: src={{ item }} dest=/opt/openbach/controller/ansible
+  with_items:
+    - install.yml
+    - uninstall.yml
+    - assign_collector.yml
+    - check_connection.yml
+    - enable_logs.yml
+    - fetch_files.yml
+    - install_a_job.yml
+    - push_files.yml
+    - uninstall_a_job.yml
+    - controller_access.yml
+    - reboot.yml
+    - manage_retention_policies.yml
+    - rsyslog_job.j2
+    - rsyslog_job_local.j2
+  remote_user: openbach
+
+- name: Configure HTTP Proxies for Agents
+  template: src=host_vars.j2 dest=/opt/openbach/controller/ansible/host_vars/{{ item }}
+  with_items: "{{ groups.agent | default([]) }}"
+  remote_user: openbach
+
+- name: Restart OpenBACH Services
+  systemd: name={{ item }} state=restarted enabled=yes daemon_reload=yes
+  with_items:
+    - openbach_backend
+    - openbach_conductor
+    - openbach_director
+  become: yes
+
+- name: Wait for the OpenBACH Conductor to Start
+  wait_for: port=1113 timeout=60
+
+- name: Authentify into the Backend Database
+  uri:
+    url: http://localhost:{{ django_port }}/login/
+    method: POST
+    body_format: json
+    body:
+      login: "{{ openbach_backend_admin_name | mandatory }}"
+      password: "{{ openbach_backend_admin_password | mandatory }}"
+  register: openbach_backend_login
+
+- block:
+    - name: List Jobs found in Core Folder
+      local_action: jobs_metadata folders={{ ['../src/jobs/'] }} substitute=/opt/openbach/controller/src/jobs/
+      register: openbach_jobs_metadata_core
+
+    - name: List Jobs found in User-provided Folders
+      local_action: jobs_metadata folders={{ openbach_jobs_folders | default([]) }} substitute=/opt/openbach/controller/src/jobs/private_jobs/
+      register: openbach_jobs_metadata_extra
+
+    - name: Add Jobs into the Backend Database
+      uri:
+        url: http://localhost:{{ django_port }}/job/
+        method: POST
+        body_format: json
+        body:
+          name: "{{ item.name }}"
+          path: "{{ item.path }}"
+        headers:
+          Cookie: "sessionid={{ openbach_backend_login.cookies.sessionid }}"
+      with_items:
+        - "{{ openbach_jobs_metadata_core.openbach_jobs }}"
+        - "{{ openbach_jobs_metadata_extra.openbach_jobs }}"
+
+  when: openbach_restore_host is not defined
+        
+- name: Add Collectors into the Backend Database
+  uri:
+    url: http://localhost:{{ django_port }}/collector/
+    method: POST
+    body_format: json
+    body:
+      address: "{{ item }}"
+      name: "{{ hostvars[item].openbach_name }}"
+      logs_port: "{{ hostvars[item].logstash_logs_port | default(omit) }}"
+      logs_query_port: "{{ hostvars[item].elasticsearch_port | default(omit) }}"
+      cluster_name: "{{ hostvars[item].elasticsearch_cluster_name | default(omit) }}"
+      stats_mode: "{{ hostvars[item].logstash_stats_mode | default(omit) }}"
+      stats_port: "{{ hostvars[item].logstash_stats_port | default(omit) }}"
+      stats_query_port: "{{ hostvars[item].influxdb_port | default(omit) }}"
+      database_name: "{{ hostvars[item].influxdb_database_name | default(omit) }}"
+      database_precision: "{{ hostvars[item].influxdb_database_precision | default(omit) }}"
+      broadcast_mode: "{{ hostvars[item].auditorium_broadcast_mode | default(omit) }}"
+      broadcast_port: "{{ hostvars[item].auditorium_broadcast_port | default(omit) }}"
+      skip_playbook: true
+    headers:
+      Cookie: "sessionid={{ openbach_backend_login.cookies.sessionid }}"
+    status_code: 202
+  with_items: "{{ groups.collector | default([]) }}"
+  when: hostvars[item].openbach_restore_host is not defined
+
+- name: Wait until Playbook Finishes
+  uri: url=http://localhost:{{ django_port }}/collector/{{ item }}/state
+  register: response
+  with_items: "{{ groups.collector | default([]) }}"
+  when: hostvars[item].openbach_restore_host is not defined
+  delay: "{{ openbach_backend_retry_delay | default(5) }}"
+  retries: 5
+  until: response.json.add.returncode in (200, 204)
+
+- name: Add Agents into the Backend Database
+  uri:
+    url: http://localhost:{{ django_port }}/agent/
+    method: POST
+    body_format: json
+    body:
+      address: "{{ item }}"
+      name: "{{ hostvars[item].openbach_name }}"
+      collector_ip: "{{ hostvars[item].openbach_collector }}"
+      skip_playbook: true
+    headers:
+      Cookie: "sessionid={{ openbach_backend_login.cookies.sessionid }}"
+    status_code: 202
+  with_items: "{{ groups.agent | default([]) }}"
+  when: hostvars[item].openbach_restore_host is not defined
+
+- name: Wait until Playbook Finishes
+  uri: url=http://localhost:{{ django_port }}/agent/{{ item }}/state
+  register: response
+  with_items: "{{ groups.agent | default([]) }}"
+  when: hostvars[item].openbach_restore_host is not defined
+  delay: "{{ openbach_backend_retry_delay | default(5) }}"
+  retries: 5
+  until: response.json.install.returncode in (200, 204)
+
+- name: Change Old IP Addresses to New One
+  uri:
+    url: http://localhost:{{ django_port }}/agent/{{ hostvars[item].openbach_restore_host }}
+    method: PUT
+    body_format: json
+    body:
+      agent_ip: "{{ item }}"
+    headers:
+      Cookie: "sessionid={{ openbach_backend_login.cookies.sessionid }}"
+  with_items: "{{ groups.agent | default([]) }}"
+  when: hostvars[item].openbach_restore_host is defined

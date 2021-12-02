@@ -1,0 +1,66 @@
+#   OpenBACH is a generic testbed able to control/configure multiple
+#   network/physical entities (under test) and collect data from them. It is
+#   composed of an Auditorium (HMIs), a Controller, a Collector and multiple
+#   Agents (one for each network entity that wants to be tested).
+#   
+#   
+#   Copyright © 2016-2020 CNES
+#   
+#   
+#   This file is part of the OpenBACH testbed.
+#   
+#   
+#   OpenBACH is a free software : you can redistribute it and/or modify it under
+#   the terms of the GNU General Public License as published by the Free Software
+#   Foundation, either version 3 of the License, or (at your option) any later
+#   version.
+#   
+#   This program is distributed in the hope that it will be useful, but WITHOUT
+#   ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS
+#   FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+#   details.
+#   
+#   You should have received a copy of the GNU General Public License along with
+#   this program. If not, see http://www.gnu.org/licenses/.
+
+---
+
+- name: Configure Controller Machine
+  set_fact: openbach_controller={{ openbach_controller | default(('controller' in group_names and inventory_hostname) or ('controller' in groups and groups.controller and groups.controller[0]) or omit) }}
+
+- name: Configure Collector Machine
+  set_fact: openbach_collector={{ openbach_collector | default(('collector' in group_names and inventory_hostname) or ('collector' in groups and groups.collector and groups.collector[0]) or omit) }}
+
+- name: Configure Http Proxy
+  set_fact: openbach_http_proxy={{ openbach_http_proxy is defined and (openbach_http_proxy | encode_url) or (lookup('env', 'HTTP_PROXY') | encode_url) }}
+
+- name: Configure Https Proxy
+  set_fact: openbach_https_proxy={{ openbach_https_proxy is defined and (openbach_https_proxy | encode_url) or (lookup('env', 'HTTPS_PROXY') | encode_url) or openbach_http_proxy }}
+
+- name: Configure Proxy Environment
+  set_fact: openbach_proxy_env={{ openbach_proxy_env | default({}) }}
+
+- name: Configure Http Proxy in Environment
+  set_fact:
+    openbach_proxy_env: "{{ openbach_proxy_env | combine({'http_proxy': openbach_http_proxy, 'HTTP_PROXY': openbach_http_proxy}) }}"
+  when: openbach_http_proxy != ''
+
+- name: Configure Https Proxy in Environment
+  set_fact:
+    openbach_proxy_env: "{{ openbach_proxy_env | combine({'https_proxy': openbach_https_proxy, 'HTTPS_PROXY': openbach_https_proxy}) }}"
+  when: openbach_https_proxy != ''
+
+- name: Install python3-minimal
+  raw: sudo apt-get -y install python3-minimal
+  become: yes
+  ignore_errors: true
+  when: not (openbach_skip_python_install | default(False))
+
+- name: Save Temporary Folder Path
+  set_fact:
+    openbach_installer_folder: "{{ hostvars.localhost.openbach_installer_tempdir.path }}"
+    openbach_archive_root: "{{ hostvars.localhost.openbach_archive_root | default('/tmp') }}"
+
+- name: Use the temporary SSH key as the Default for this Installation
+  set_fact: ansible_ssh_private_key_file={{ openbach_installer_folder }}/openbach_install_rsa
+  when: ansible_ssh_private_key_file is not defined

@@ -1,0 +1,131 @@
+---
+
+general:
+  name:            d-itg_send
+  description: >
+      This Job principaly launches the executable of D-ITG
+      that sends data towards a target. The flow is unilateral.
+      It is possible to launch multiple instances of the job at the same time.
+  job_version:     '0.7'
+  keywords:        [d-itg, round, trip, time, rate]
+  persistent:      True
+  need_privileges: False
+
+platform_configuration:
+  - ansible_system: 'Debian'
+    ansible_distribution: 'Ubuntu'
+    ansible_distribution_version: '20.04'
+    command: '/usr/bin/env python3 /opt/openbach/agent/jobs/d-itg_send/d-itg_send.py'
+    command_stop:
+
+arguments:
+  required:
+    - name:        target_address
+      type:        'ip'
+      count:       1
+      description: >
+          Address IP where the flow is sent.
+    - name:        sender_address
+      type:        'ip'
+      count:       1
+      description: >
+          Address of the sender to get the receiver's logs.
+    - name:        dest_path
+      type:        'str'
+      count:       1
+      description: >
+          Path where the stats will be located. Careful, if multiple instances of the job:
+          put a unique path to not overwrite the data.
+    - name:        granularity
+      type:        'int'
+      count:       1
+      description: >
+          Set the granularity (in ms) at which the stats will
+          be generated. Careful, set large granularity value (e.g. > 50ms).
+  optional:
+    - name:        traffic_type
+      type:        'str'
+      count:       1
+      flag:        '-T'
+      description: >
+          Traffic type (UDP, TCP, ICMP, ...).
+          Default: UDP.
+    - name:        port
+      type:        'int'
+      count:       1
+      flag:        '-p'
+      description: >
+          Set server port (default = 8999)
+    - name:        signal_port
+      type:        'int'
+      count:       1
+      flag:        '-P'
+      description: >
+          Set port for signal transmission (default = 9000)
+    - name:        packet_size
+      type:        'int'
+      count:       1
+      flag:        '-c'
+      description: >
+          Size of each packet in byte.
+          Default: 512B.
+    - name:        packet_rate
+      type:        'int'
+      count:       1
+      flag:        '-C'
+      description: >
+          Number of packets to send in one second.
+          Default: 1000pkt/s.
+    - name:        bandwidth
+      type:        'str'
+      count:       1
+      flag:        '-B'
+      description: >
+          Set bandwidth in [K/M/G]bits/s, if set will overrun packet_rate (default=0) 
+          Default: '0'
+    - name:        duration
+      type:        'int'
+      count:       1
+      flag:        '-d'
+      description: >
+          Duration of the traffic in s.
+          Default: 10s.
+    - name:        data_size
+      type:        'str'
+      count:       1
+      flag:        '-k'
+      description: >
+          Set the number of [K/M/G]Bytes to send, if set either duration or data_size will limit the job 
+    - name:        meter
+      type:        'str'
+      count:       1
+      flag:        '-m'
+      description: >
+          Way to compute the time: One Way Delay (owdm) or Round Trip Time (rttm).
+          Default: rttm
+          Careful, if "rttm" is chosen, a bidirectional traffic will be generated for the sender to compute the RTT.
+          However, if anykind of synchronization doesn't exist between the equipments, rttm is advised.
+      choices:
+          - owdm
+          - rttm
+statistics:
+    - name:        bitrate
+      description: >
+          Bitrate of the receiver/sender
+      frequency:   'Only one time, once the D-ITGDec task is finished'
+    - name:        delay
+      description: >
+          One Way Delay or Round Trip Time
+      frequency:   'Only one time, once the D-ITGDec task is finished'
+    - name:        jitter
+      description: >
+          Jitter of the receiver/sender
+      frequency:   'Only one time, once the D-ITGDec task is finished'
+    - name:        packetloss
+      description: >
+          Packetloss of the receiver/sender
+      frequency:   'Only one time, once the D-ITGDec task is finished'
+    - name:        packetloss_rate
+      description: >
+          Packetloss Rate of the receiver/sender
+      frequency:   'Only one time, once the D-ITGDec task is finished'

@@ -1,0 +1,2 @@
+if $programname == '{{ job }}' and $syslogseverity <= '{{ syslogseverity }}' then \
+  @{{ collector_ip }}:{{ logstash_logs_port }}

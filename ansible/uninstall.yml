@@ -1,0 +1,100 @@
+#   OpenBACH is a generic testbed able to control/configure multiple
+#   network/physical entities (under test) and collect data from them. It is
+#   composed of an Auditorium (HMIs), a Controller, a Collector and multiple
+#   Agents (one for each network entity that wants to be tested).
+#   
+#   
+#   Copyright © 2016-2020 CNES
+#   
+#   
+#   This file is part of the OpenBACH testbed.
+#   
+#   
+#   OpenBACH is a free software : you can redistribute it and/or modify it under
+#   the terms of the GNU General Public License as published by the Free Software
+#   Foundation, either version 3 of the License, or (at your option) any later
+#   version.
+#   
+#   This program is distributed in the hope that it will be useful, but WITHOUT
+#   ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS
+#   FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+#   details.
+#   
+#   You should have received a copy of the GNU General Public License along with
+#   this program. If not, see http://www.gnu.org/licenses/.
+
+---
+
+- hosts: localhost
+  gather_facts: no
+  roles:
+    - setup
+
+- name: Pre-configure Agents and Auditoriums
+  hosts:
+    - agent
+    - auditorium
+  gather_facts: no
+  vars:
+    openbach_skip_python_install: yes
+  roles:
+    - setup_remotes
+
+
+- name: Uninstall Controllers
+  hosts: controller
+  roles:
+    - uninstall_controller
+
+
+- name: Uninstall Collectors
+  hosts: collector
+  roles:
+    - uninstall_collector
+
+
+- name: Uninstall Auditoriums
+  hosts: auditorium
+  roles:
+    - uninstall_auditorium
+
+
+- name: Uninstall Agents
+  hosts: agent
+  pre_tasks:
+    - name: Trust the install SSH key by the openbach user
+      authorized_key: user=openbach key={{ lookup('file', '{{ ansible_ssh_private_key_file }}.pub') }}
+      become: yes
+  roles:
+    - uninstall_job
+    - uninstall_agent
+
+
+- name: Cleanup Accounts
+  hosts:
+    - agent
+    - auditorium
+  gather_facts: no
+  post_tasks:
+    - name: Remove Trusted Public Key from the openbach User Authorized Keys
+      authorized_key: user=openbach state=absent key={{ lookup('file', '/home/openbach/.ssh/id_rsa.pub') }}
+      when: is_run_from_conductor
+
+    - name: Remove Trusted Public Key from the openbach User Authorized Keys
+      authorized_key: user=openbach state=absent key={{ lookup('file', '{{ ansible_ssh_private_key_file }}.pub') }}
+      when: is_run_from_conductor and ansible_ssh_private_key_file is defined
+
+    - name: Wait for the SSH Connection to Close Itself
+      wait_for: timeout=60
+      when: not is_run_from_conductor
+
+    - name: Remove the openbach User
+      user: user=openbach state=absent remove=yes
+      become: yes
+      when: not is_run_from_conductor
+
+
+- hosts: localhost
+  gather_facts: no
+  roles:
+    - teardown

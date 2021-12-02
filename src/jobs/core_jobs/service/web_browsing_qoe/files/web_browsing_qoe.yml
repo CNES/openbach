@@ -1,0 +1,122 @@
+---
+
+general:
+  name:            web_browsing_qoe
+  description: >
+      Monitors W3C Navigation Timing metrics of an HTTP Service using Firefox web browser (please go to config.yaml to check/modify the list of web sites to be visited).
+  job_version:     '1.6'
+  keywords:        [web, performance, HTTP, QoE, PLT]
+  persistent:      False
+
+platform_configuration:
+  - ansible_system: 'Debian'
+    ansible_distribution:  'Ubuntu'
+    ansible_distribution_version: '20.04'
+    command: '/usr/bin/env python3 /opt/openbach/agent/jobs/web_browsing_qoe/web_browsing_qoe.py'
+    command_stop:
+
+arguments:
+  required:
+    - name:        nb_runs
+      type:        'int'
+      count:        1
+      description: >
+          The number of fetches to perform for each website
+  optional:
+    - name:        nb_parallel_runs
+      type:        'int'
+      count:        1
+      flag:        '-p'
+      description: >
+          The number of fetches that can work simultaneously (default = 1)
+    - name:        no_compression
+      count:       0
+      flag:        '-nc'
+      type:        None
+      description: >
+          Prevent compression for transmission
+    - name:        proxy_address
+      type:        'str'
+      count:        1
+      flag:        '-Pa'
+      description: >
+          Set the proxy address (also needs a proxy port)
+    - name:        proxy_port
+      type:        'int'
+      count:        1
+      flag:        '-Pp'
+      description: >
+          Set the proxy port (also needs a proxy address)
+    - name:        urls
+      type:        'str'
+      count:        '+'
+      flag:        '-u'
+      description: >
+          URLs to fetch (uses config.yaml if not set)
+
+
+statistics:
+    - name: "dns_lookup_start_time"
+      description: >
+          The time elapsed between a request and when the browser starts the domain name lookup for the page, in ms.
+      frequency: 'every time a page is fetched'
+    - name: "dns_lookup_end_time"
+      description: >
+          The time elapsed between a request and when the browser finishes the domain name lookup for the page, in ms.
+      frequency: 'every time a page is fetched'
+    - name: "connect_start_time"
+      description: >
+          The time elapsed in ms, between a request and when the browser starts to connect to the server.
+      frequency: 'every time a page is fetched'
+    - name: "connect_end_time"
+      description: >
+          The time elapsed in ms, between a request and when the connection is established between the browser and the server.
+      frequency: 'every time a page is fetched'
+    - name: "request_start_time"
+      description: >
+          The time elapsed in ms, between a request and when the browser starts to request the page content.
+      frequency: 'every time a page is fetched'
+    - name: "response_start_time"
+      description: >
+          The time elapsed in ms, between a request and when the browser starts to receive the first byte of the response from the server.
+      frequency: 'every time a page is fetched'
+    - name: "response_end_time"
+      description: >
+          The time elapsed in ms, between a request and when the browser receives the last byte of the requested document.
+      frequency: 'every time a page is fetched'
+    - name: "page_interaction_time"
+      description: >
+          The time elapsed in ms, between a request and the moment when a user can click on links, type in text fields or scroll the page.
+      frequency: 'every time a page is fetched'
+    - name: "page_rendering_time"
+      description: >
+          The time elapsed in ms, between a user's request and the moment when content is completed and ready to be loaded in their browser.
+      frequency: 'every time a page is fetched'
+    - name: "page_load_time"
+      description: >
+          The time elapsed in ms, between a user's request and the moment when page is fully loaded in their browser.
+      frequency: 'every time a page is fetched'
+    - name: "transfer_size"
+      description: >
+          Size of the data transfered to load the page in Bytes (compressed, it includes http overhead).
+      frequency: 'every time a page is fetched'
+    - name: "bandwidth"
+      description: >
+          Bandwidth for the data transfer, in bps
+      frequency: 'every time a page is fetched'
+    - name: "decoded_body_size"
+      description: >
+          Size of the page decoded body in Bytes (i.e. not compressed).
+      frequency: 'every time a page is fetched'
+    - name: "encoded_body_size"
+      description: >
+          Size of the page encoded body in Bytes (i.e. compressed).
+      frequency: 'every time a page is fetched'
+    - name: "compression_savings"
+      description: >
+          Measurement of the relative reduction produced by the http compression algorithm.
+      frequency: 'every time a page is fetched'
+    - name: "overhead"
+      description: >
+          HTTP1.1/2.0 overhead in Bytes received by client (TLS overhead bytes are not taken into account).
+      frequency: 'every time a page is fetched'

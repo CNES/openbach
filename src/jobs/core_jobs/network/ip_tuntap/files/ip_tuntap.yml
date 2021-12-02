@@ -1,0 +1,74 @@
+#   OpenBACH is a generic testbed able to control/configure multiple
+#   network/physical entities (under test) and collect data from them. It is
+#   composed of an Auditorium (HMIs), a Controller, a Collector and multiple
+#   Agents (one for each network entity that wants to be tested).
+#   
+#   
+#   Copyright © 2016-2020 CNES
+#   
+#   
+#   This file is part of the OpenBACH testbed.
+#   
+#   
+#   OpenBACH is a free software : you can redistribute it and/or modify it under
+#   the terms of the GNU General Public License as published by the Free Software
+#   Foundation, either version 3 of the License, or (at your option) any later
+#   version.
+#   
+#   This program is distributed in the hope that it will be useful, but WITHOUT
+#   ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS
+#   FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+#   details.
+#   
+#   You should have received a copy of the GNU General Public License along with
+#   this program. If not, see http://www.gnu.org/licenses/.
+
+---
+
+general:
+  name: ip_tuntap
+  description: >
+      This Job runs ip-tuntap utilities. 
+  job_version: '1.0'
+  keywords:
+    - ip
+    - tun
+    - tap
+  persistent: no
+  need_privileges: yes
+
+platform_configuration:
+  - ansible_system: 'Debian'
+    ansible_distribution: 'Ubuntu'
+    ansible_distribution_version: '20.04'
+    command: '/usr/bin/env python3 /opt/openbach/agent/jobs/ip_tuntap/ip_tuntap.py'
+    command_stop:
+
+  - ansible_system: 'Debian'
+    ansible_distribution: 'Ubuntu'
+    ansible_distribution_version: '16.04'
+    command: '/usr/bin/env python3 /opt/openbach/agent/jobs/ip_tuntap/ip_tuntap.py'
+    command_stop:
+
+arguments:
+  required:
+    - name: command
+      type: str
+      count: 1
+      choices:
+         - 'add'
+         - 'delete'
+      description: The action to perform 
+    - name: mode
+      type: str
+      count: 1
+      choices:
+         - 'tun'
+         - 'tap'
+      description: The mode of the interface 
+    - name: name
+      type: str
+      count: 1
+      description: The name of the interface 
+  optional:
+

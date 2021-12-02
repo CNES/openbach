@@ -1,0 +1,109 @@
+#   OpenBACH is a generic testbed able to control/configure multiple
+#   network/physical entities (under test) and collect data from them. It is
+#   composed of an Auditorium (HMIs), a Controller, a Collector and multiple
+#   Agents (one for each network entity that wants to be tested).
+#   
+#   
+#   Copyright © 2016-2020 CNES
+#   
+#   
+#   This file is part of the OpenBACH testbed.
+#   
+#   
+#   OpenBACH is a free software : you can redistribute it and/or modify it under
+#   the terms of the GNU General Public License as published by the Free Software
+#   Foundation, either version 3 of the License, or (at your option) any later
+#   version.
+#   
+#   This program is distributed in the hope that it will be useful, but WITHOUT
+#   ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS
+#   FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+#   details.
+#   
+#   You should have received a copy of the GNU General Public License along with
+#   this program. If not, see http://www.gnu.org/licenses/.
+
+---
+
+general:
+  name: histogram
+  description: >
+      This job post-process statistics from other job instances. It computes/compares the histogram of different statistics.
+  job_version: '3.1'
+  keywords:
+    - post-processing
+    - histogram
+  persistent: no
+
+platform_configuration:
+  - ansible_system: Debian
+    ansible_distribution: Ubuntu
+    ansible_distribution_version: '20.04'
+    command: '/usr/bin/env python3 /opt/openbach/agent/jobs/histogram/histogram.py'
+    command_stop:
+
+arguments:
+  required:
+    - name: jobs
+      type: job
+      count: '+'
+      description: The job instances to plot data from
+    - name:  bins
+      type:  int
+      count: 1
+      description: Amount of equal-width intervals into which dividing the statistics values span.
+  optional:
+    - name: statistics
+      type: str
+      count: '+'
+      flag: '-s'
+      repeatable: yes
+      description: Plot only these stats on a figure
+    - name: no_suffix
+      type: None
+      count: 0
+      flag: '-w'
+      description: Do not plot statistics with suffixes
+    - name: label
+      type: str
+      count: 1
+      flag: '-y'
+      repeatable: yes
+      description: The label to write on the y-axis 
+    - name: title
+      type: str
+      count: 1
+      flag: '-t'
+      repeatable: yes
+      description: The title of the generated figure
+    - name: binary_output
+      type: None
+      count: 0
+      flag: '-p'
+      description: >
+        Allows to export figures as binary dumps instead
+        of images so they are replayed interactively.
+    - name: cumulative
+      type: None
+      count: 0
+      flag: '-c'
+      description: Allows to choose CDF instead of PDF.
+    - name: hide_legend
+      type: None
+      count: 0
+      flag: '-n'
+      description: Do not draw any legend on the graph
+    - name: legend
+      type: str
+      count: 1
+      flag: '-l'
+      repeatable: yes
+      description: The text to display in the legend
+    - name: filename
+      type: str
+      count: 1
+      flag: '-f'
+      repeatable: yes
+      description: The name of the generated file
+
+statistics:

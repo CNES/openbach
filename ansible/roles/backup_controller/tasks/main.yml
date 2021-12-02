@@ -1,0 +1,63 @@
+#   OpenBACH is a generic testbed able to control/configure multiple
+#   network/physical entities (under test) and collect data from them. It is
+#   composed of an Auditorium (HMIs), a Controller, a Collector and multiple
+#   Agents (one for each network entity that wants to be tested).
+#   
+#   
+#   Copyright © 2016-2020 CNES
+#   
+#   
+#   This file is part of the OpenBACH testbed.
+#   
+#   
+#   OpenBACH is a free software : you can redistribute it and/or modify it under
+#   the terms of the GNU General Public License as published by the Free Software
+#   Foundation, either version 3 of the License, or (at your option) any later
+#   version.
+#   
+#   This program is distributed in the hope that it will be useful, but WITHOUT
+#   ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS
+#   FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+#   details.
+#   
+#   You should have received a copy of the GNU General Public License along with
+#   this program. If not, see http://www.gnu.org/licenses/.
+
+---
+
+- name: Create the Temporary Files to Archive the Controller Into
+  tempfile:
+    prefix: openbach_controller_backup_
+    suffix: .sql
+    state: file
+  with_items:
+    - .tar.gz
+    - .sql
+  register: openbach_backup_archive_name
+
+- name: Backup Django's Database
+  command: python3 -c "import subprocess, os; os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.settings'); from django.conf import settings; db = settings.DATABASES['default']; s = subprocess.Popen(['pg_dump', '-U', db['USER'], db['NAME'], '-h', db['HOST'], '-p', db['PORT'], '-f', '{{ openbach_backup_archive_name.results[1].path }}']); s.communicate(db['PASSWORD'].encode()); s.wait()"
+  args:
+    chdir: /opt/openbach/controller/backend
+  become: yes
+
+- name: Backup the Controller Files
+  archive:
+    path:
+      - /opt/openbach/controller/src/jobs/private_jobs
+      - "{{ openbach_backup_archive_name.results[1].path }}"
+    dest: "{{ openbach_backup_archive_name.results[0].path }}"
+    format: gz
+  become: yes
+
+- name: Gather the Archive File in the Temporary Directory
+  fetch:
+    src: "{{ openbach_backup_archive_name.results[0].path }}"
+    dest: "{{ openbach_backup_folder }}/{{ inventory_hostname }}/openbach_controller.tar.gz"
+    flat: yes
+
+- name: Remove the Archive File on the Controller
+  file:
+    path: "{{ item }}"
+    state: absent
+  with_items: "{{ openbach_backup_archive_name.results | map(attribute='path') | list }}"

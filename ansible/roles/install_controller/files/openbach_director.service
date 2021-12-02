@@ -1,0 +1,14 @@
+[Unit]
+Description=Startup script for OpenBACH Director 
+Requires=network.target pgbouncer.service
+After=pgbouncer.service
+
+[Service]
+Type=simple
+User=openbach
+Group=openbach
+Environment="PYTHONPATH=/opt/openbach/controller/backend/"
+ExecStart=/usr/bin/python3 /opt/openbach/controller/conductor/openbach_director.py
+
+[Install]
+WantedBy=multi-user.target

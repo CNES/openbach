@@ -1,0 +1,114 @@
+{
+  "name": "If",
+  "description": "If scenario (for test)",
+  "arguments": {},
+  "constants": {
+    "agentA": "172.20.34.38",
+    "agentB": "172.20.34.37",
+    "agentC": "172.20.34.39"
+  },
+  "openbach_functions": [
+    {
+      "id": 1,
+      "status_agents": {
+        "addresses": [
+          "$agentA"
+        ],
+        "update": true
+      }
+    },
+    {
+      "id": 2,
+      "if": {
+        "condition": {
+          "type": "=",
+          "operand1": {
+            "type": "database",
+            "name": "Agent",
+            "key": "$agentA",
+            "attribute": "status"
+          },
+          "operand2": {
+            "type": "value",
+            "value": "Available"
+          }
+        },
+        "openbach_function_true_ids": [
+          3,
+          4
+        ],
+        "openbach_function_false_ids": [
+          5
+        ]
+      },
+      "wait": {
+        "launched_ids": [
+          1
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "start_job_instance": {
+        "agent_ip": "$agentA",
+        "fping": {
+          "destination_ip": "$agentB",
+          "duration": 60
+        },
+        "offset": 5
+      }
+    },
+    {
+      "id": 4,
+      "start_job_instance": {
+        "agent_ip": "$agentB",
+        "fping": {
+          "destination_ip": "$agentA",
+          "duration": 60
+        },
+        "offset": 5
+      }
+    },
+    {
+      "id": 5,
+      "start_job_instance": {
+        "agent_ip": "$agentB",
+        "fping": {
+          "destination_ip": "$agentC",
+          "duration": 60
+        },
+        "offset": 5
+      }
+    },
+    {
+      "id": 6,
+      "stop_job_instance": {
+        "openbach_function_ids": [
+          3,
+          4
+        ]
+      },
+      "wait": {
+        "time": 10,
+        "launched_ids": [
+          3,
+          4
+        ]
+      }
+    },
+    {
+      "id": 7,
+      "stop_job_instance": {
+        "openbach_function_ids": [
+          5
+        ]
+      },
+      "wait": {
+        "time": 10,
+        "launched_ids": [
+          5
+        ]
+      }
+    }
+  ]
+}

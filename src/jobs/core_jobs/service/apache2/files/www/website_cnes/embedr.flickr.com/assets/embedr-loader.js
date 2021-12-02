@@ -1,0 +1,1 @@
+!function(){var e=document.createElement("script"),t=document.getElementsByTagName("script")[0];e.async=1,e.src="/website_cnes/widgets.flickr.com/embedr/embedr-70c2e3e766deb8c8fd87b83c30e47332.js",t.parentNode.insertBefore(e,t)}();

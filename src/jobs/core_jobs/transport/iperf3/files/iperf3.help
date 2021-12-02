@@ -1,0 +1,69 @@
+=== Job Description ===
+
+This job executes iperf3 tool to perform network capacity measurements.
+
+Important Note : if the parameter 'transmitted_size' is used, its value has to be EQUAL OR HIGHER than 1 MByte. This limitation is due to the issues presented by iperf3 to send small sized files.
+
+=== Examples ===
+
+== Example 1 ==
+
+Generate 2 UDP parallel flows from Agent "client" to Agent "server" (IP address ''192.168.1.4'') during 30 seconds. Each flow must send 5Mb/s of traffic. The statistics must be collected every 2 seconds.
+
+In the web interface, set the following parameters:
+
+  * For Agent "server":
+    * **metrics_interval** = 2
+    * **num_flows** = 2
+    * **mode** = server
+    * **exit** = True
+  * For Agent "client":
+    * **metrics_interval** = 2
+    * **duration** = 60
+    * **num_flows** = 2
+    * **mode** = client
+    * **server_ip** = 192.168.1.4
+    * **duration** = 60
+    * **protocol** = udp
+    * **bandwidth** = 10M
+
+Or launch the job manually from the Agent as follows:
+
+From server Agent:
+<code>
+JOB_NAME=iperf3 sudo -E python3 /opt/openbach/agent/jobs/iperf3/iperf3.py -n 2 server -1
+</code>
+
+From client Agent:
+<code>
+JOB_NAME=iperf3 sudo -E python3 /opt/openbach/agent/jobs/iperf3/iperf3.py -n 2 client 192.168.1.4 -t 60.0 udp -b 10M
+</code>
+
+== Example 2 ==
+
+Generate 1 TCP flow from Agent "client" to Agent "server" (IP address ''192.168.1.4'') which sends a total amount of 10 Gbytes of data. The statistics must be collected every 1 seconds.
+
+In the web interface, set the following parameters:
+
+  * For Agent "server":
+    * **metrics_interval** = 1
+    * **mode** = server
+    * **exit** = True
+  * For Agent "client":
+    * **metrics_interval** = 1
+    * **transmitted_size** = 10G
+    * **mode** = client
+    * **server_ip** = 192.168.1.4
+    * **protocol** = tcp
+
+Or launch the job manually from the Agent as follows:
+
+From server Agent:
+<code>
+JOB_NAME=iperf3 sudo -E python3 /opt/openbach/agent/jobs/iperf3/iperf3.py -n 1 server -1
+</code>
+
+From client Agent:
+<code>
+JOB_NAME=iperf3 sudo -E python3 /opt/openbach/agent/jobs/iperf3/iperf3.py -n 1 client 192.168.1.4 -s 10G tcp
+</code>

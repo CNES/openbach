@@ -1,0 +1,229 @@
+# 
+#   OpenBACH is a generic testbed able to control/configure multiple
+#   network/physical entities (under test) and collect data from them. It is
+#   composed of an Auditorium (HMIs), a Controller, a Collector and multiple
+#   Agents (one for each network entity that wants to be tested).
+#   
+#   
+#   Copyright © 2016-2020 CNES
+#   
+#   
+#   This file is part of the OpenBACH testbed.
+#   
+#   
+#   OpenBACH is a free software : you can redistribute it and/or modify it under the
+#   terms of the GNU General Public License as published by the Free Software
+#   Foundation, either version 3 of the License, or (at your option) any later
+#   version.
+#   
+#   This program is distributed in the hope that it will be useful, but WITHOUT
+#   ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS
+#   FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+#   details.
+#   
+#   You should have received a copy of the GNU General Public License along with
+#   this program. If not, see http://www.gnu.org/licenses/.
+#   
+#   
+#   
+#   @file     install_apache2.yml
+#   @brief    Playbook that install the Job apache2
+#   @author   Francklin SIMO <francklin.simo@viveris.fr>
+#   @author   Bastien TAURAN <bastien.tauran@viveris.fr>
+
+
+
+---
+
+- name: Init global variables  
+  set_fact:
+    http_port: 8081
+    http2_port: 8082
+    domain: apache2.openbach.com
+    ServerName_http: http.apache2.openbach.com
+    ServerName_http2: http2.apache2.openbach.com
+    cacheable: yes
+
+- name: Install curl
+  apt:
+    name: curl
+    state: present
+  become: yes
+  environment: "{{ openbach_proxies }}"
+
+- name: Create the Apache2 job repository
+  file:
+    path: /opt/openbach/agent/jobs/{{ job_name }}
+    state: directory
+    mode: "0755"
+
+- name: Copy files into job repository
+  copy:
+    src: "{{ item.file }}"
+    dest: /opt/openbach/agent/jobs/{{ job_name }}/
+    mode: "{{ item.mode }}"
+  with_items:
+    - file: 'apache2.help'
+      mode: '0644'
+    - file: 'apache2_rstats_filter.conf'
+      mode: '0644'
+    - file: 'apache2.py'
+      mode: '0755'
+    - file: 'virtualhost_http.conf'
+      mode: '0644'
+    - file: 'virtualhost_http2.conf'
+      mode: '0644'
+    - file: 'download_video.sh'
+      mode: '0755'
+
+- name: Install mod_http2's dependencies
+  apt:
+    name: software-properties-common
+    state: present
+  become: yes
+  environment: "{{ openbach_proxies }}"
+
+- name: Add specified repository into sources list
+  apt_repository:
+    repo: ppa:ondrej/apache2
+    state: present
+    update_cache: yes
+  become: yes
+  environment: "{{ openbach_proxies }}"
+
+- name: Install apache2
+  apt:
+    name: apache2
+    state: latest
+  become: yes
+  environment: "{{ openbach_proxies }}"
+
+- name: Install pyOpenSSL
+  pip:
+    name: pyopenssl
+    executable: pip3
+    state: latest
+  become: yes
+  environment: "{{ openbach_proxies }}"
+
+- name: Generate an OpenSSL private key with the default values (4096 bits, RSA)
+  openssl_privatekey:
+    path: /etc/ssl/private/{{ domain }}.pem 
+  become: yes  
+
+- name: Generate an OpenSSL Certificate Signing Request
+  openssl_csr:
+    path: /etc/ssl/certs/{{ domain }}.csr
+    privatekey_path: /etc/ssl/private/{{ domain }}.pem
+    common_name: "{{ domain }}"
+  become: yes
+
+- name: Generate a Self Signed OpenSSL certificate
+  openssl_certificate:
+    path: /etc/ssl/certs/{{ domain }}.crt
+    privatekey_path: /etc/ssl/private/{{ domain }}.pem
+    csr_path: /etc/ssl/certs/{{ domain }}.csr
+    provider: selfsigned
+  become: yes
+
+- name: enabled modules
+  apache2_module:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - ssl
+    - http2
+    - proxy
+    - proxy_http
+    - proxy_wstunnel
+  become: yes
+
+- name: Test for {{ http_port }} in file
+  shell: grep -c "^Listen {{ http_port }}" /etc/apache2/ports.conf || true
+  register: test_port_http
+
+- name: Test for {{ http2_port }} in file
+  shell: grep -c "^Listen {{ http2_port }}" /etc/apache2/ports.conf || true
+  register: test_port_http2
+
+- name: apache2 listen on port {{ http_port }}
+  lineinfile: 
+    path: /etc/apache2/ports.conf
+    state: present 
+    insertafter: '^Listen ' 
+    line: Listen {{ http_port }}
+  when: test_port_http.stdout == "0"
+  become: yes
+
+- name: apache2 listen on port {{ http2_port }}
+  lineinfile: 
+    path: /etc/apache2/ports.conf
+    state: present 
+    insertafter: '^Listen ' 
+    line: Listen {{ http2_port }}
+  when: test_port_http2.stdout == "0"
+  become: yes
+
+- name: Add http virtual host
+  template:
+    src: files/virtualhost_http.conf
+    dest: /etc/apache2/sites-available/{{ ServerName_http }}.conf
+  become: yes
+
+- name: Add http2 virtual host
+  template:
+    src: files/virtualhost_http2.conf
+    dest: /etc/apache2/sites-available/{{ ServerName_http2 }}.conf
+  become: yes
+
+- name: a2ensite {{ ServerName_http }} and {{ ServerName_http2 }}
+  command: a2ensite {{ item }}
+  with_items:
+    - "{{ ServerName_http }}"
+    - "{{ ServerName_http2 }}"
+  become: yes
+
+- name: Install web files
+  openbach_synchronize:
+    src: "www/"
+    dest: "/var/www/{{ domain }}/"
+    recursive: yes
+    delete: yes
+    rsync_opts:
+      - --filter
+      - P dash_content
+  become: yes
+
+- name: Configure main.js
+  copy:
+    src: main.js
+    dest: /var/www/{{ domain }}/dash_content/app/main.js
+  become: yes
+
+- name: Create size specific files
+  shell: base64 /dev/urandom | head -c {{ item.size }} > /var/www/{{ domain }}/{{ item.size }}_file.txt
+  with_items:
+    - { size: '500K' }
+    - { size: '1M' }
+    - { size: '10M' }
+    - { size: '100M' }
+  become: yes
+
+- name: Download sample videos
+  command: /opt/openbach/agent/jobs/apache2/download_video.sh {{ item }}
+  args:
+    chdir: /var/www/{{ domain }}/dash_content/
+  with_items:
+    - "BigBuckBunny 2sec bunny_45652bps"
+    - "BigBuckBunny 2sec bunny_334349bps"
+    - "BigBuckBunny 2sec bunny_1546902bps"
+    - "BigBuckBunny 2sec bunny_4219897bps"
+  become: yes
+  environment: "{{ openbach_proxies }}"
+
+- name: Stop apache2 and Prevent it from Automatically Starting at Boot
+  systemd:
+    name: apache2
+    state: stopped
+    enabled: no
+  become: yes

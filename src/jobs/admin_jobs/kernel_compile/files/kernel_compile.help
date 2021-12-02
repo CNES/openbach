@@ -1,0 +1,44 @@
+=== Job Description ===
+
+This Job is used by OpenBACH to compile and install a kernel from a GIT source. 
+The Job does not currently allow an automatic reboot on the newly compiled kernel. 
+
+The Job needs the GIT URL of where the kernel to compile needs to be retrieved. 
+A folder can be specified to define where the GIT repository will be cloned 
+(default : /home/ubuntu/kernels/)
+A specific GIT branch can be specified
+(default: master) 
+A specific tag can be specified 
+(default : '')
+
+=== Examples ===
+
+== Example 1 ==
+
+In the following exemple, we propose to download and compile the Linux GITHUB repository.
+The target branch is master and the destination folder is /home/openbach/kernels/
+
+In the web interface, set the following parameters:
+  * **kernel_url** = https://github.com/torvalds/linux
+
+Or launch the job manually from the Agent as follows:
+<code>
+JOB_NAME=kernel_compile python3 /opt/openbach/agent/jobs/kernel_compile/kernel_compile.py https://github.com/torvalds/linux
+</code>
+
+== Example 2 ==
+
+In the following exemple, we propose to download and compile the MPTCP GITHUB v0.90 repository.
+The target branch is mptcp_v0.90 and the destination folder is /home/openbach/mptcp/
+
+In the web interface, set the following parameters:
+  * **kernel_url** = https://github.com/multipath-tcp/mptcp
+  * **target_folder** = /home/openbach/mptcp/
+  * **git_branch** = mptcp_v0.90
+
+Or launch the job manually from the Agent as follows:
+<code>
+JOB_NAME=kernel_compile python3 /opt/openbach/agent/jobs/kernel_compile/kernel_compile.py https://github.com/multipath-tcp/mptcp --target_folder /home/openbach/mptcp/ --git_branch mptcp_v0.90
+</code>
+
+

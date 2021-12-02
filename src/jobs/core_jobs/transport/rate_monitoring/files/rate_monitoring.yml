@@ -1,0 +1,121 @@
+#   OpenBACH is a generic testbed able to control/configure multiple
+#   network/physical entities (under test) and collect data from them. It is
+#   composed of an Auditorium (HMIs), a Controller, a Collector and multiple
+#   Agents (one for each network entity that wants to be tested).
+#   
+#   
+#   Copyright © 2016-2020 CNES
+#   
+#   
+#   This file is part of the OpenBACH testbed.
+#   
+#   
+#   OpenBACH is a free software : you can redistribute it and/or modify it under
+#   the terms of the GNU General Public License as published by the Free Software
+#   Foundation, either version 3 of the License, or (at your option) any later
+#   version.
+#   
+#   This program is distributed in the hope that it will be useful, but WITHOUT
+#   ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS
+#   FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+#   details.
+#   
+#   You should have received a copy of the GNU General Public License along with
+#   this program. If not, see http://www.gnu.org/licenses/.
+
+---
+
+general:
+  name: rate_monitoring
+  description: >
+      This Job measures the rate (b/s) of flows with specific
+      characteristics (e.g. dest/src IP/port, protocol,
+      interface) using iptables chains.
+  job_version: '2.1'
+  keywords:
+    - rate
+    - monitoring
+    - iptables
+  persistent: yes
+  need_privileges: yes
+
+platform_configuration:
+  - ansible_system: 'Debian'
+    ansible_distribution: 'Ubuntu'
+    ansible_distribution_version: '20.04'
+    command: '/usr/bin/env python3 /opt/openbach/agent/jobs/rate_monitoring/rate_monitoring.py'
+    command_stop:
+
+arguments:
+  required:
+    - name: sampling_interval
+      type: int
+      count: 1
+      description: The sampling time (in seconds) of the measured rate
+    - name: chain_name
+      type: str
+      count: 1
+      choices:
+        - INPUT
+        - OUTPUT
+        - FORWARD
+      description: The iptables chain to monitor
+  optional:
+    - name: source_ip
+      type: ip
+      count: 1
+      flag: '-s'
+      description: The source IPs to monitor (with or without mask[ip/mask])
+    - name: destination_ip
+      type: ip
+      count: 1
+      flag: '-d'
+      description: The destination IPs to monitor(with or without mask [ip/mask])
+    - name: in_interface
+      type: str
+      count: 1
+      flag: '-i'
+      description: The incomming interface of the packets to monitor
+    - name: out_interface
+      type: str
+      count: 1
+      flag: '-o'
+      description: The outgoing interface of the packets to monitor
+  subcommand:
+    - group_name: protocol
+      optional: yes
+      choices:
+        - name: tcp
+          required:
+          optional:
+            - name: destination_port
+              type: int
+              count: 1
+              flag: '--dport'
+              description: The destination port to monitor
+            - name: source_port
+              type: int
+              count: 1
+              flag: '--sport'
+              description: The source port to monitor
+        - name: udp
+          required:
+          optional:
+            - name: destination_port
+              type: int
+              count: 1
+              flag: '--dport'
+              description: The destination port to monitor
+            - name: source_port
+              type: int
+              count: 1
+              flag: '--sport'
+              description: The source port to monitor
+        - name: icmp
+          required:
+          optional:                     
+
+statistics:
+  - name: rate_monitoring
+    description: The mesured rate
+    frequency: configurable

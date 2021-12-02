@@ -1,0 +1,4 @@
+$template strtpl,"{ \"pri\": \"%pri%\", \"timestamp\": \"%timestamp%\", \"hostname\": \"%hostname%\", \"programname\": \"%programname%\", \"procid\": \"%procid%\", \"msg\": \"%msg%\" }\n"
+$template FileFormat,"/var/log/openbach/{{ job }}_%$now%T%$hour%0000.log"
+if $programname == '{{ job }}' and $syslogseverity <= '{{ syslogseverity_local }}' then \
+	-?FileFormat;strtpl

@@ -1,0 +1,100 @@
+R0: Openbach-Agent
+ | Initialisation des variables
+ Quand il reçoit un message du Controller :
+     | Traitement du message dans une nouvelle thread
+ Quand il est temps pour une tâche de s'executer :
+     | Execution de la Tâche
+ Quand il reçoit un 'Process kill' :
+     | Déprogrammer toutes les instances à lancer (vider le scheduler)
+     | Stopper toutes les instances en cour d'exectution
+     
+
+R1: Initialisation des variables
+ | Ouverture de la socket d'écoute (par laquelle il reçoit les commandes du Controller)
+ | Création et démarrage du scheduler
+ | Initialisation de la liste des jobs installés sur l'Agent
+
+
+R2: Initialisation de la liste des jobs installés sur l'Agent
+ | Création d'une liste vide et de son mutex (car elle sera utilisée dans potentiellement plusieurs thread)
+ Pour chaque fichier avec l'extention '.cfg' dans /opt/openbach-agent/jobs/ :
+     | Vérifier que le fichier de conf du job soit bien formé
+     | Ajouter le job à la liste de jobs installés
+
+
+R1: Traitement du message dans une nouvelle thread
+ | Parsage (et vérification du format) de la commande
+ Si la requête est 'install' :
+     | Ajouter le job à la liste de job installés
+ Sinon si la requête est 'uninstall' :
+     | Stopper les éventuelles instances du job
+     | Supprimer le job de la liste de job installés
+ Sinon si la requête est 'start' :
+     | Programmer le démarrage de la nouvelle instance du job
+ Sinon si la requête est 'stop' :
+     | Programmer l'arrêt de l'instance du job
+ Sinon si la requête est 'status' :
+     Si l'action est 'date' ou 'interval' :
+         | Programmer la récupération et l'envoie du status au Collector
+     Sinon si l'action est 'stop' :
+         | Déprogrammer la récupération et l'envoie du status au Collector
+ Sinon si la requête est 'ls' :
+     | Envoyer la liste de jobs installés au Collector
+ | Revoyer 'OK' au Controller
+
+ 
+R2 : Parsage (et vérification du format) de la commande
+ | Récupération du type de la requête
+ Si requête n'est pas 'ls' :
+     | Récupération du nom du job
+ Si requête est 'install' :
+     | Vérification de la non-existence d'un job avec le nom donné
+     | Vérifier que le fichier de conf du job soit bien formé (On suppose que le Controller a placé au bon endroit ce fichier de conf)
+ Sinon si requête est 'uninstall' :
+     Si le job n'est pas installé :
+         | Renvoyer 'OK' avec un message disant que le job n'était pas installé au Controller
+     | Vérifier qu'il n'y ai pas d'autres arguments inutiles
+ Sinon si requête est 'status' :
+     | Vérifier que le job est bien disponible dans la liste des jobs installés
+     | Vérifier qu'un id est bien donné
+     | Vérifier qu'il y ai bien une action ('date', 'interval' ou 'stop') et qu'il n'y ai que les arguments nécessaires à cette action
+ Sinon si requête est 'start' ou 'restart' :
+     | Vérifier que le job est bien disponible dans la liste des jobs installés
+     | Vérifier qu'un id est bien donné
+	 Si requête est 'start' :
+		 | Vérifier qu'une instance du job avec cet id ne soit pas déjà lancé
+     | Vérifier qu'il y ai bien une action ('date ou 'interval') et que la date ou l'intervalle soit donné
+     | Récupérer la date ou l'intervalle
+     | Vérifier que les arguments donnés correspondent à la commande à lancer
+ Sinon si requête est 'stop' :
+     | Vérifier que le job est bien disponible dans la liste des jobs installés
+     | Vérifier qu'un id est bien donné
+     | Vérifier que la date soit donnée et qu'il n'y ait pas d'autres arguments (car inutile)
+     | Récupérer la date à laquelle il faut stopper l'instance du job
+ Sinon si requête est 'ls' :
+     | Vérifier qu'il n'y a aucun argument (car inutile)
+ Sinon :
+     | Renvoyer un message d'erreur au Controller
+
+
+R2 : Executer la Tâche (démarrage d'une instance d'un job)
+ | Lancer la commande associé au job avec les arguments donnés
+ | Enregistrer le pid du process dans un fichier
+
+
+R2 : Exectuer la Tâche (arrêt d'une instance d'un job)
+ | Récupérer le pid du process
+ | Tuer le process
+
+
+R2 : Executer la Tâche (récupération du status d'une instance d'un job)
+ | Récupérer le pid du process
+ | Récupérer le status de l'instance
+ | Envoyer le status à Rstats (partie collecte de l'agent)
+
+
+R2 : Executer la Tâche (récupération de la liste des jobs installés)
+ | Récupérer la liste des jobs disponibles
+ | Envoyer la liste à Rstats (partie collecte de l'agent)
+
+

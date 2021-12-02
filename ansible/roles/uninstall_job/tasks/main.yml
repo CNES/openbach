@@ -1,0 +1,66 @@
+#   OpenBACH is a generic testbed able to control/configure multiple
+#   network/physical entities (under test) and collect data from them. It is
+#   composed of an Auditorium (HMIs), a Controller, a Collector and multiple
+#   Agents (one for each network entity that wants to be tested).
+#   
+#   
+#   Copyright © 2016-2020 CNES
+#   
+#   
+#   This file is part of the OpenBACH testbed.
+#   
+#   
+#   OpenBACH is a free software : you can redistribute it and/or modify it under
+#   the terms of the GNU General Public License as published by the Free Software
+#   Foundation, either version 3 of the License, or (at your option) any later
+#   version.
+#   
+#   This program is distributed in the hope that it will be useful, but WITHOUT
+#   ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS
+#   FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+#   details.
+#   
+#   You should have received a copy of the GNU General Public License along with
+#   this program. If not, see http://www.gnu.org/licenses/.
+
+---
+
+- name: Gather Jobs Metadata
+  local_action: jobs_metadata folders={{ ['../src/jobs/'] + (openbach_jobs_folders | default([])) }} limit={{ (default_jobs + default_collector_jobs) if 'collector' in group_names or ('controller' in group_names and ('collector' not in groups or not groups.collector)) else default_jobs }} platforms=yes
+  register: openbach_uninstall_default_jobs
+  when: jobs is not defined
+
+- name: Setup default Jobs
+  set_fact: jobs={{ openbach_uninstall_default_jobs.openbach_jobs }}
+  when: jobs is not defined
+
+- block:
+  - name: Execute the Job Uninstallation Playbook
+    include_tasks: "{{ job_item.path }}/uninstall_{{ job_item.name }}.yml"
+    vars:
+      job_name: "{{ job_item.name }}"
+    with_items: "{{ jobs }}"
+    loop_control:
+      loop_var: job_item
+    when: "'platforms' not in job_item or {'ansible_distribution': 'Ubuntu', 'ansible_distribution_version': '16.04', 'ansible_system': 'Linux'} in job_item.platforms"
+  remote_user: openbach
+
+- name: Remove the Job stats Folder
+  file: path=/var/openbach_stats/{{ item.name }} state=absent
+  become: yes
+  with_items: "{{ jobs }}"
+
+- name: Remove Default Logs Severity
+  file: path=/etc/rsyslog.d/{{ item.name }}.conf state=absent
+  become: yes
+  with_items: "{{ jobs }}"
+
+- name: Remove Default Logs Local Severity
+  file: path=/etc/rsyslog.d/{{ item.name }}_local.conf state=absent
+  become: yes
+  with_items: "{{ jobs }}"
+
+- name: Inform Agent that a Job is Uninstalled
+  file: path=/opt/openbach/agent/jobs/{{ item.name }}.yml state=absent
+  remote_user: openbach
+  with_items: "{{ jobs }}"

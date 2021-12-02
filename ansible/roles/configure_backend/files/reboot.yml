@@ -1,0 +1,18 @@
+---
+
+- hosts: all
+  tasks:
+    - block:
+      - name: Get the kernel index to boot
+        shell: "grep -P '\tmenuentry' /boot/grub/grub.cfg | grep -n \" {{ kernel }}'\" | cut -d: -f1 | head -1"
+        register: kernel_index
+
+      - name: Change kernel only for the next boot
+        shell: 'grub-editenv - set next_entry="1>{{ (kernel_index.stdout | int) - 1 }}"'
+        failed_when: kernel_index.stdout == ""
+        become: yes
+      when: kernel is defined
+
+    - name: Restart machine
+      reboot:
+      become: yes

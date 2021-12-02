@@ -1,0 +1,105 @@
+#   OpenBACH is a generic testbed able to control/configure multiple
+#   network/physical entities (under test) and collect data from them. It is
+#   composed of an Auditorium (HMIs), a Controller, a Collector and multiple
+#   Agents (one for each network entity that wants to be tested).
+#   
+#   
+#   Copyright © 2016-2020 CNES
+#   
+#   
+#   This file is part of the OpenBACH testbed.
+#   
+#   
+#   OpenBACH is a free software : you can redistribute it and/or modify it under
+#   the terms of the GNU General Public License as published by the Free Software
+#   Foundation, either version 3 of the License, or (at your option) any later
+#   version.
+#   
+#   This program is distributed in the hope that it will be useful, but WITHOUT
+#   ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS
+#   FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+#   details.
+#   
+#   You should have received a copy of the GNU General Public License along with
+#   this program. If not, see http://www.gnu.org/licenses/.
+
+---
+
+- name: Stop Collector Services
+  systemd: name={{ item }} state=stopped enabled=no daemon_reload=yes
+  with_items:
+    - elasticsearch
+    - logstash
+    - influxdb
+  become: yes
+
+- name: Remove Elasticsearch Config File
+  file: path=/etc/elasticsearch/elasticsearch.yml state=absent
+  become: yes
+
+- name: Remove Elasticsearch Data
+  file: path=/var/lib/elasticsearch state=absent
+  become: yes
+  when: openbach_clear_databases | default(False)
+
+- name: Remove Elasticsearch cronjob
+  cron: name=curator minute=0 hour=0 job=/etc/cron.daily/curator_cronjob.py state=absent
+  become: yes
+
+- name: Remove Elasticsearch cronjob script
+  file: path=/etc/cron.daily/curator_cronjob.py state=absent
+  become: yes
+
+- name: Remove Logstash Config Files
+  file: path=/etc/logstash/conf.d/{{ item }} state=absent
+  with_items:
+    - pattern
+    - collector.conf
+  become: yes
+
+- name: Remove Logstash Logs
+  file: path=/var/log/logstash state=absent
+  become: yes
+  when: openbach_clear_databases | default(False)
+
+- name: Remove InfluxDB Logs
+  file: path=/var/log/influxdb state=absent
+  become: yes
+  when: openbach_clear_databases | default(False)
+
+- name: Remove InfluxDB Data
+  file: path=/var/lib/influxdb state=absent
+  become: yes
+  when: openbach_clear_databases | default(False)
+
+- name: Check if X-Pack is already installed for Elasticsearch
+  shell: /usr/share/elasticsearch/bin/elasticsearch-plugin list
+  register: openbach_xpack_elasticsearch
+  become: yes
+
+- name: Uninstall X-Pack from Elasticsearch
+  shell: bin/elasticsearch-plugin remove x-pack --purge
+  args:
+    chdir: /usr/share/elasticsearch
+    executable: /bin/bash
+    removes: /usr/share/elasticsearch/plugins/x-pack
+  become: yes
+  when: "'x-pack' in openbach_xpack_elasticsearch.stdout"
+
+- name: Remove Collector Packages
+  apt:
+    name:
+      - elasticsearch
+      - influxdb
+      - logstash
+    state: absent
+    purge: yes
+  become: yes
+
+- name: Remove Leftovers of Logstash Plugins
+  file: path=/usr/share/logstash state=absent
+  become: yes
+
+- name: Remove Collector Repository
+  file: path=/opt/openbach/collector state=absent
+  become: yes

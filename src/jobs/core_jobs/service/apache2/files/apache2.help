@@ -1,0 +1,23 @@
+=== Job description ===
+
+This job starts a web server apache2 in both HTTP/2 (port 8082) and HTTP/1.1 (port 8081). The jobs deploys web page examples and DASH videos, available on /var/www/*. You can add more web pages in the directory. The following jobs need an Apache2 server deployed to work:
+ * web_browsing_qoe
+ * dashjs_client
+
+=== Examples ===
+
+== Example 1 ==
+
+  * In the web interface, just run the job within a scenario (no parameters needed)
+  * Or launch the job manually from the CLI of the Agent as follows: JOB_NAME=apache2 sudo -E python3 /opt/openbach/agent/jobs/apache2/apache2.py
+
+=== Additional information ===
+
+Note that, apache2 daemon will start listening for HTTP requests on ports 8081 and 8082 of your agent-server for http/1.1 and http/2 respectively. Client must specify protocol http or https in url like follows:
+  * For http/1.1: http://server_ip:8081
+  * For http/2: https://server_ip:8082
+
+The available web page examples are "website_openbach/www.openbach.org/content/home.php", "website_opensand/www.opensand.org/content/home.php" and "website_cnes/cnes.fr/fr/index.html". To download them in HTTP/2, you can open any web browser and specify the following web address: https://server_ip:8082/website_openbach/www.openbach.org/content/home.php
+
+To download size specific file from the server, four files exist: 500K_file.txt, 1M_file.txt, 10M_file.txt and 100M_file.txt. 
+You can download them at the following web address: http://server_ip:port/[500K_file.txt/1M_file.txt/10M_file.txt/100M_file.txt]

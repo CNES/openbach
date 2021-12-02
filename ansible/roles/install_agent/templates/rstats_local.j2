@@ -1,0 +1,4 @@
+$template strtpl,"{ \"pri\": \"%pri%\", \"timestamp\": \"%timestamp%\", \"hostname\": \"%hostname%\", \"programname\": \"%programname%\", \"procid\": \"%procid%\", \"msg\": \"%msg%\" }\n"
+$template FileFormat,"/var/log/openbach/rstats_%$now%T%$hour%0000.log"
+if $programname == 'rstats' and $syslogseverity <= '4' then \
+	-?FileFormat;strtpl

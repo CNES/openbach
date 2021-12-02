@@ -1,0 +1,12 @@
+[Unit]
+Description=Startup script for OpenBACH Agent
+Requires=network.target rstats.service
+After=rstats.service
+
+[Service]
+Type=simple
+Environment=JOB_NAME=openbach_agent
+ExecStart=/usr/bin/python3 /opt/openbach/agent/openbach_agent.py
+
+[Install]
+WantedBy=multi-user.target

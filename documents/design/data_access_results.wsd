@@ -1,0 +1,55 @@
+@startuml
+
+class Scenario {
+  __init__(instance_id: Integer, owner: Scenario)
+  get_or_create_subscenario(instance_id: Integer)
+  get_or_create_job(name: String, instance_id: Integer, agent: String)
+  owner_instance_id
+  own_jobs
+  jobs
+  own_scenarios
+  scenarios
+  own_agents
+  agents
+  json
+  load(scenario_data: Dictionary)
+}
+
+class Agent {
+  __init__(name: String, scenario: Scenario)
+  get_or_create_job(name: String, instance_id: Integer)
+  json
+}
+
+class Job {
+  __init__(name: String, instance_id: Integer, agent: String)
+  get_or_create_statistics(suffix: String)
+  statistics
+  stats
+  json
+  logs
+  load(job_data: Dictionary)
+}
+
+class Statistic {
+  __init__()
+  add_statistic(timestamp: Integer, **kwargs: Dictionary)
+  json
+  load(statistics_data: Dictionary)
+}
+
+class Log {
+  __init__()
+  add_log(_id, _type, _index, _timestamp, _version, facility, facility_label, host, message, pid, priority, severity, severity_label, source)
+  json
+  load(logs_data: Dictionary)
+}
+
+Scenario *- Job
+Scenario . Agent
+Agent .. Job
+Job *- Statistic
+Job *- Log
+Statistic -[hidden]- Log
+
+@enduml

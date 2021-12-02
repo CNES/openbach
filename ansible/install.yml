@@ -1,0 +1,120 @@
+#   OpenBACH is a generic testbed able to control/configure multiple
+#   network/physical entities (under test) and collect data from them. It is
+#   composed of an Auditorium (HMIs), a Controller, a Collector and multiple
+#   Agents (one for each network entity that wants to be tested).
+#   
+#   
+#   Copyright © 2016-2020 CNES
+#   
+#   
+#   This file is part of the OpenBACH testbed.
+#   
+#   
+#   OpenBACH is a free software : you can redistribute it and/or modify it under
+#   the terms of the GNU General Public License as published by the Free Software
+#   Foundation, either version 3 of the License, or (at your option) any later
+#   version.
+#   
+#   This program is distributed in the hope that it will be useful, but WITHOUT
+#   ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS
+#   FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+#   details.
+#   
+#   You should have received a copy of the GNU General Public License along with
+#   this program. If not, see http://www.gnu.org/licenses/.
+
+---
+
+- hosts: localhost
+  gather_facts: no
+  tags:
+    - tests
+  roles:
+    - role: setup_restore
+      when: openbach_restore_archive is defined
+    - setup
+
+- name: Ask Questions
+  hosts: controller
+  gather_facts: no
+  tags:
+    - questions
+  roles:
+    - questions
+
+- name: Pre-configure Agents and Auditoriums
+  hosts:
+    - agent
+    - auditorium
+  gather_facts: no
+  tags:
+    - tests
+  roles:
+    - setup_remotes
+
+- name: Install Agents
+  hosts: agent
+  pre_tasks:
+    - name: Configure Default OpenBACH Name
+      set_fact: openbach_name={{ openbach_name | default(ansible_hostname + ' ' + ansible_default_ipv4.address) }}
+  roles:
+    - install_agent
+
+- name: Install Collectors
+  hosts: collector
+  roles:
+    - install_collector
+
+- name: Install Controllers
+  hosts: controller
+  roles:
+    - install_controller
+
+- name: Configure Agents
+  hosts: agent
+  gather_facts: no
+  roles:
+    - configure_ssh_keys
+
+- name: Setup Backend's Database
+  hosts: controller
+  gather_facts: no
+  roles:
+    - configure_backend
+
+- name: Install Auditoriums
+  hosts: auditorium
+  roles:
+    - install_auditorium
+
+- name: Install Default Jobs
+  hosts: agent
+  gather_facts: no
+  roles:
+    - install_job
+
+- name: Run Various Tests
+  hosts: controller
+  gather_facts: no
+  tags:
+    - never
+    - tests
+  roles:
+    - test_controller
+
+- name: Cleanup Generated Files
+  hosts:
+    - agent
+    - auditorium
+  gather_facts: no
+  tags:
+    - always
+  roles:
+    - teardown_remotes
+
+- hosts: localhost
+  gather_facts: no
+  tags:
+    - always
+  roles:
+    - teardown

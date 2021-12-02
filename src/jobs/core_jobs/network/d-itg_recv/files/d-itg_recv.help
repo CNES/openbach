@@ -1,0 +1,19 @@
+=== Job Description ===
+
+This job launches the Receiver Component (ITGRecv) from the D-ITG platform. It can be assimilated to
+a daemon running on the server host listening to a TCP socket for incoming traffic reception requests.
+A new thread is created each time a request is made.
+
+=== Examples ===
+
+== Example 1 ==
+
+Launch the ITGRecv on the agent, with a number of packets to push to the log at once equals to 500.
+
+In the web interface, set the following parameters:
+  * **log_buffer_size** = 500
+
+Or launch the job manually from the Agent as follows:
+<code>
+JOB_NAME=d-itg_recv sudo -E python3 /opt/openbach/agent/jobs/d-itg_recv/d-itg_recv.py -q 500
+</code>

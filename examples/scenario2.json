@@ -1,0 +1,145 @@
+{
+  "name": "Congestion tests",
+  "description": "Two Iperf servs queried by 2 iperf clients",
+  "arguments": {},
+  "constants": {},
+  "openbach_functions": [
+    {
+      "id": 1,
+      "start_job_instance": {
+        "agent_ip": "192.168.0.2",
+        "pep": {
+          "sat_network": "opensand",
+          "pep_port": 3000
+        },
+        "offset": 0
+      }
+    },
+    {
+      "id": 2,
+      "start_job_instance": {
+        "agent_ip": "192.168.0.7",
+        "iperf": {
+          "mode": "-s",
+          "udp": true,
+          "port": 5000
+        },
+        "offset": 0
+      }
+    },
+    {
+      "id": 3,
+      "start_job_instance": {
+        "agent_ip": "192.168.0.7",
+        "iperf": {
+          "mode": "-s",
+          "port": 5001
+        },
+        "offset": 0
+      }
+    },
+    {
+      "id": 4,
+      "start_job_instance": {
+        "agent_ip": "192.168.0.7",
+        "cwnd_monitoring": {
+          "port": 5001,
+          "interval": 10,
+          "path": "/tcp/tcpprobe.out"
+        },
+        "offset": 0
+      }
+    },
+    {
+      "id": 5,
+      "start_job_instance": {
+        "agent_ip": "192.168.0.7",
+        "rate_monitoring": {
+          "interval": 1,
+          "chain": "-A INPUT",
+          "jump": "ACCEPT",
+          "in_interface": "eth0",
+          "protocol": "tcp",
+          "source_port": 5001
+        },
+        "offset": 0
+      }
+    },
+    {
+      "id": 6,
+      "start_job_instance": {
+        "agent_ip": "192.168.0.5",
+        "iperf": {
+          "mode": "-c 192.168.0.7",
+          "udp": true,
+          "port": 5000
+        },
+        "offset": 0
+      },
+      "wait": {
+        "time": 5,
+        "launched_ids": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      }
+    },
+    {
+      "id": 7,
+      "start_job_instance": {
+        "agent_ip": "192.168.0.5",
+        "iperf": {
+          "mode": "-c 192.168.0.7",
+          "port": 5001
+        },
+        "offset": 0
+      },
+      "wait": {
+        "time": 5,
+        "launched_ids": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      }
+    },
+    {
+      "id": 8,
+      "stop_job_instance": {
+        "openbach_function_ids": [
+          6,
+          7
+        ]
+      },
+      "wait": {
+        "time": 500,
+        "launched_ids": [
+          6,
+          7
+        ]
+      }
+    },
+    {
+      "id": 9,
+      "stop_job_instance": {
+        "openbach_function_ids": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      },
+      "wait": {
+        "finished_ids": [
+          8
+        ]
+      }
+    }
+  ]
+}

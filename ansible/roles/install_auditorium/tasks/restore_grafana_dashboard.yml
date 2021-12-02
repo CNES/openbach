@@ -1,0 +1,32 @@
+---
+
+- name: Load Dashboard JSON into Memory
+  set_fact:
+    openbach_grafana_dashboard_json: "{{ lookup('file', openbach_grafana_dashboard_filename) }}"
+
+- name: Restore Grafana Dashboard
+  uri:
+    url: "{{ openbach_grafana_url }}"
+    method: POST
+    body: "{{ openbach_grafana_dashboard_json }}"
+    status_code: 200, 404
+    body_format: json
+    headers:
+      Cookie: "{{ openbach_grafana_cookies }}"
+  register: openbach_grafana_restore
+
+- block:
+  - name: Erase Dashboard ID
+    set_fact:
+      openbach_grafana_dashboard_json: "{{ openbach_grafana_dashboard_json | combine({'dashboard': openbach_grafana_dashboard_json.dashboard | combine({'id': None})}) }}"
+
+  - name: Recreate Grafana Dashboard
+    uri:
+      url: "{{ openbach_grafana_url }}"
+      method: POST
+      body: "{{ openbach_grafana_dashboard_json }}"
+      body_format: json
+      headers:
+        Cookie: "{{ openbach_grafana_cookies }}"
+
+  when: openbach_grafana_restore.status == 404

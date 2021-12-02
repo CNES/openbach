@@ -1,0 +1,29 @@
+---
+
+- hosts: all
+  tasks:
+    - name: Create Final Folder
+      file:
+        path: "{{ item.destination | dirname }}"
+        state: directory
+        group: "{{ item.group | default(item.user | default(omit)) }}"
+        owner: "{{ item.user | default(omit) }}"
+      with_items: "{{ copy_parameters }}"
+      become: yes
+
+    - name: Copy File to the Remote Host
+      copy:
+        src: "{{ item.source }}"
+        dest: "{{ item.destination }}"
+        group: "{{ item.group | default(item.user | default(omit)) }}"
+        owner: "{{ item.user | default(omit) }}"
+      with_items: "{{ copy_parameters }}"
+      become: yes
+
+    - name: Restart Service
+      systemd:
+        name: rstats
+        state: restarted
+        enabled: yes
+      become: yes
+      when: restart_services

@@ -1,0 +1,28 @@
+---
+
+- hosts: all
+  tasks:
+    - name: Create temporary archive name
+      tempfile:
+        state: file
+        prefix: "{{ archive_prefix }}."
+        suffix: ".tar.gz"
+      register: temporary_archive_name
+
+    - name: Archive files on remote host
+      archive: 
+        path: "{{ remote_paths }}"
+        dest: "{{ temporary_archive_name.path }}"
+        format: gz
+        force_archive: yes
+
+    - name: Fetch archive from the remote host
+      fetch:
+        src: "{{ temporary_archive_name.path }}"
+        dest: "{{ local_path }}"
+        flat: yes
+
+    - name: Delete temporary archive
+      file:
+        path: "{{ temporary_archive_name.path }}"
+        state: absent

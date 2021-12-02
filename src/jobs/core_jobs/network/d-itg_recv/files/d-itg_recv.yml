@@ -1,0 +1,37 @@
+---
+
+general:
+  name:            d-itg_recv
+  description: >
+      This Job principaly launches the receiver of D-ITG.
+      It can be assimilated to a daemon running on the host.
+      It is possible to launch multiple instances of the job at the same time.
+  job_version:     '0.5'
+  keywords:        [D-ITG]
+  persistent:      True
+  need_privileges: False
+
+platform_configuration:
+  - ansible_system: 'Debian'
+    ansible_distribution: 'Ubuntu'
+    ansible_distribution_version: '20.04'
+    command: '/usr/bin/env python3 /opt/openbach/agent/jobs/d-itg_recv/d-itg_recv.py'
+    command_stop:
+
+arguments:
+  required:
+  optional:
+    - name:        log_buffer_size
+      type:        'int'
+      count:       1
+      flag:        '-q'
+      description: >
+          Number of packets to push to the log at once.
+          Default: 50.
+    - name:        signal_port
+      type:        'int'
+      count:       1
+      flag:        '-P'
+      description: >
+          Set port for signal transmission (default = 9000)
+statistics:

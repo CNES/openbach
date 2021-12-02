@@ -1,0 +1,72 @@
+#   OpenBACH is a generic testbed able to control/configure multiple
+#   network/physical entities (under test) and collect data from them. It is
+#   composed of an Auditorium (HMIs), a Controller, a Collector and multiple
+#   Agents (one for each network entity that wants to be tested).
+#   
+#   
+#   Copyright © 2016-2020 CNES
+#   
+#   
+#   This file is part of the OpenBACH testbed.
+#   
+#   
+#   OpenBACH is a free software : you can redistribute it and/or modify it under
+#   the terms of the GNU General Public License as published by the Free Software
+#   Foundation, either version 3 of the License, or (at your option) any later
+#   version.
+#   
+#   This program is distributed in the hope that it will be useful, but WITHOUT
+#   ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS
+#   FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+#   details.
+#   
+#   You should have received a copy of the GNU General Public License along with
+#   this program. If not, see http://www.gnu.org/licenses/.
+
+---
+
+- name: Create the Temporary Files and Folders to Backup the Auditorium Into
+  tempfile:
+    prefix: openbach_auditorium_backup_
+    suffix: "{{ item.suffix }}"
+    state: "{{ item.state }}"
+  with_items:
+    - suffix: .tar.gz
+      state: file
+    - suffix: _grafana
+      state: directory
+  register: openbach_backup_archive_name
+
+- name: List the Available Dashboards
+  uri:
+    url: http://localhost:{{ grafana_port }}/api/search?limit=100000
+    method: GET
+    headers:
+      Cookie: "{{ openbach_grafana_backup_cookies | default(omit) }}"
+  register: response
+
+- name: Export Dashboards as JSON
+  uri:
+    url: http://localhost:{{ grafana_port }}/api/dashboards/uid/{{ item }}
+    method: GET
+    dest: "{{ openbach_backup_archive_name.results[1].path }}/{{ item }}.json"
+    headers:
+      Cookie: "{{ openbach_grafana_backup_cookies | default(omit) }}"
+  with_items: "{{ response.json | map(attribute='uid') | list }}"
+
+- name: Archive the Exported Dashboards
+  archive:
+    path: "{{ openbach_backup_archive_name.results[1].path }}"
+    dest: "{{ openbach_backup_archive_name.results[0].path }}"
+
+- name: Gather the Archive File in the Temporary Directory
+  fetch:
+    src: "{{ openbach_backup_archive_name.results[0].path }}"
+    dest: "{{ openbach_backup_folder }}/{{ inventory_hostname }}/openbach_auditorium.tar.gz"
+    flat: yes
+
+- name: Remove the Archive File on the Auditorium
+  file:
+    path: "{{ item }}"
+    state: absent
+  with_items: "{{ openbach_backup_archive_name.results | map(attribute='path') | list }}"

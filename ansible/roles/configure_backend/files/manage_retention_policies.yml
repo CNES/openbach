@@ -1,0 +1,33 @@
+---
+
+- hosts: all
+  tasks:
+  - name: Retrieve retention policies
+    influxdb_rp:
+      database_name: "{{ openbach_influx_database }}"
+      policy_name:
+      state: show
+    register: default_retention_policy
+
+  - name: Remove default
+    influxdb_rp:
+      database_name: "{{ openbach_influx_database }}"
+      policy_name: "{{ default_retention_policy.name }}"
+      state: absent
+  
+  - name: Restart Influxdb
+    systemd:
+      name: influxdb
+      state: restarted
+    become: yes
+ 
+  - name: Wait for Influxdb to start
+    wait_for: port={{ influxdb_port }} timeout=60
+
+  - name: Recreate Retention Policy
+    influxdb_retention_policy:
+      database_name: "{{ openbach_influx_database }}"
+      policy_name: "{{ default_retention_policy.name }}"
+      duration: "{{ default_retention_policy.duration }}"
+      default: yes
+      replication: "{{ default_retention_policy.replicaN }}"

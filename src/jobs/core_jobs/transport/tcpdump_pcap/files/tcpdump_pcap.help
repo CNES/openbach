@@ -1,0 +1,20 @@
+=== Job description ===
+
+This job launches tcpdump tool in order to capture IP packets.
+If a packets filter is specified, only filtered packets will be captured.
+The captured traffic is saved to an output file.
+
+=== Example ===
+
+Capture packets from the network interface //ens3// of a given Agent and save them to ''/tmp/test.pcap'', during 20 seconds.
+
+In the web interface, set the following parameters:
+  * **out_file** = /tmp/test.pcap
+  * **interface** = ens3
+  * **duration** = 20
+
+Or launch the job manually from the Agent as follows:
+<code>
+JOB_NAME=tcpdump_pcap sudo -E python3.6 /opt/openbach/agent/jobs/tcpdump_pcap/tcpdump_pcap.py '/tmp/test.pcap' -i ens3 -t 20
+</code>
+

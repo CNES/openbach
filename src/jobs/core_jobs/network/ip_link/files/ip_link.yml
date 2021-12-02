@@ -1,0 +1,191 @@
+#   OpenBACH is a generic testbed able to control/configure multiple
+#   network/physical entities (under test) and collect data from them. It is
+#   composed of an Auditorium (HMIs), a Controller, a Collector and multiple
+#   Agents (one for each network entity that wants to be tested).
+#   
+#   
+#   Copyright © 2016-2020 CNES
+#   
+#   
+#   This file is part of the OpenBACH testbed.
+#   
+#   
+#   OpenBACH is a free software : you can redistribute it and/or modify it under
+#   the terms of the GNU General Public License as published by the Free Software
+#   Foundation, either version 3 of the License, or (at your option) any later
+#   version.
+#   
+#   This program is distributed in the hope that it will be useful, but WITHOUT
+#   ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS
+#   FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+#   details.
+#   
+#   You should have received a copy of the GNU General Public License along with
+#   this program. If not, see http://www.gnu.org/licenses/.
+
+---
+
+general:
+  name: ip_link
+  description: >
+      This Job runs ip-link utilities. 
+  job_version: '1.0'
+  keywords:
+    - ip
+    - link
+    - interface
+    - device
+    - bridge
+  persistent: no
+  need_privileges: yes
+
+platform_configuration:
+  - ansible_system: 'Debian'
+    ansible_distribution: 'Ubuntu'
+    ansible_distribution_version: '20.04'
+    command: '/usr/bin/env python3 /opt/openbach/agent/jobs/ip_link/ip_link.py'
+    command_stop:
+
+arguments:
+  required:
+  optional:
+  subcommand:
+    - group_name: command
+      optional: no
+      choices:
+        - name: add
+          required:
+            - name: name 
+              type: str
+              count: 1
+              description: the name of the new virtual device.
+          optional:
+            - name: link
+              type: str
+              count: 1
+              flag: '--link'
+              description: the physical device to act operate on.
+            - name: txqueuelen
+              type: int
+              count: 1
+              flag: '--txqueuelen'
+              description: the transmit queue length of the device
+            - name: address
+              type: str
+              count: 1
+              flag: '--address'
+              description: the link layer address of the interface
+            - name: broadcast
+              type: str
+              count: 1
+              flag: '--broadcast'
+              description: the link layer broadcast address of the interface'
+            - name: mtu
+              type: int
+              count: 1
+              flag: '--mtu'
+              description: the mtu of the device
+          subcommand:       
+            - group_name: type
+              choices:
+                - name: bridge
+                  required:
+                  optional:
+                - name: dummy
+                  required:
+                  optional:
+        - name: delete
+          required:
+          optional:
+            - name: device
+              type: str
+              count: 1
+              flag: '--dev'
+              description: network device to delete (at least device or group is required)
+            - name: group
+              type: str
+              count: 1
+              flag: '--group'
+              description: group of devices to delete (at least device or group is required) 
+        - name: set
+          required:
+          optional:
+            - name: device
+              type: str
+              count: 1
+              flag: '--dev'
+              description: network device to delete (at least device or group is required)
+            - name: group
+              type: str
+              count: 1
+              flag: '--group'
+              description: group of devices to delete (at least device or group is required) 
+            - name: state
+              type: str
+              count: 1
+              flag: '--state'
+              choices:
+                 - 'up'
+                 - 'down'
+              description: set the state of the device to UP or DOWN 
+            - name: arp
+              type: str
+              count: 1
+              flag: '--arp'
+              choices:
+                 - 'on'
+                 - 'off'
+              description: change the NOARP flag on the device 
+            - name: dynamic
+              type: str
+              count: 1
+              flag: '--dynamic'
+              choices:
+                 - 'on'
+                 - 'off'
+              description: change the DYNAMIC flag on the device 
+            - name: multicast
+              type: str
+              count: 1
+              flag: '--multicast'
+              choices:
+                 - 'on'
+                 - 'off'
+              description: change the MULTICAST flag on the device 
+            - name: txqueuelen
+              type: int
+              count: 1
+              flag: '--txqueuelen'
+              description: the transmit queue length of the device
+            - name: address
+              type: str
+              count: 1
+              flag: '--address'
+              description: the link layer address of the interface
+            - name: broadcast
+              type: str
+              count: 1
+              flag: '--broadcast'
+              description: the link layer broadcast address of the interface'
+            - name: mtu
+              type: int
+              count: 1
+              flag: '--mtu'
+              description: the mtu of the device
+            - name: netns
+              type: str
+              count: 1
+              flag: '--netns'
+              description: move the device to the network namespace associated with name NETNSNAME or process PID 
+            - name: master
+              type: str
+              count: 1
+              flag: '--master'
+              description: set master device of the device (enslave device) 
+            - name: nomaster
+              type: None
+              count: 0
+              flag: '--nomaster'
+              description: unset master device of the device (release device) 
+                              
+

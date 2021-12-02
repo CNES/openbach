@@ -1,0 +1,46 @@
+=== Examples ===
+
+== Example 1 ==
+
+On an agent, add a route to ''172.20.5.0/24'' via ''10.10.0.1'' and set initial congestion window size equals 10 for connections to this destination.
+
+In the web interface, set parameters as follows:
+  * **operation** = add
+  * **destination** = destination_ip
+  * **network_ip** = 172.20.5.0/24
+  * **gateway_ip** = 10.10.0.1
+  * **initcwnd** = 10
+
+Or launch the job manually from CLI on the agent as follows:
+<code>
+JOB_NAME=ip_route sudo -E python3 /opt/openbach/agent/jobs/ip_route/ip_route.py add -gw 10.10.0.1 -icwnd 10 destination_ip 172.20.5.0/24
+</code>
+
+== Example 2 ==
+
+On an agent, add a route to ''172.20.5.0/24'' via //eth0// and set initial receive window size equals 10 for connections to this destination.
+
+In the web interface, set parameters as follows:
+  * **operation** = add
+  * **destination** = destination_ip
+  * **network_ip** = 172.20.5.0/24
+  * **device** = eth0
+  * **initrwnd** = 10
+
+Or launch the job manually from CLI on the agent as follows:
+<code>
+JOB_NAME=ip_route sudo -E python3 /opt/openbach/agent/jobs/ip_route/ip_route.py add -dev eth0 -irwnd 10 destination_ip 172.20.5.0/24
+</code>
+
+== Example 3 ==
+
+On an agent, delete default route.
+
+In the web interface, set parameters as follows:
+  * **operation** = delete
+  * **destination** = default
+
+Or launch the job manually from CLI on the agent as follows:
+<code>
+JOB_NAME=ip_route sudo -E python3 /opt/openbach/agent/jobs/ip_route/ip_route.py delete default
+</code>

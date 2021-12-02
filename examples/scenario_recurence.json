@@ -1,0 +1,82 @@
+{
+  "name": "Recurence",
+  "description": "Recurence scenario (for test)",
+  "arguments": {
+    "scenario": "Name of the scenario to call"
+  },
+  "constants": {
+    "agentA": "172.20.34.38",
+    "agentB": "172.20.34.37",
+    "agentC": "172.20.34.39"
+  },
+  "openbach_functions": [
+    {
+      "id": 1,
+      "status_agents": {
+        "addresses": [
+          "$agentA"
+        ],
+        "update": true
+      }
+    },
+    {
+      "id": 2,
+      "while": {
+        "condition": {
+          "type": "=",
+          "operand1": {
+            "type": "database",
+            "name": "Agent",
+            "key": "$agentA",
+            "attribute": "status"
+          },
+          "operand2": {
+            "type": "value",
+            "value": "Available"
+          }
+        },
+        "openbach_function_while_ids": [
+          3
+        ],
+        "openbach_function_end_ids": [
+          4
+        ]
+      },
+      "wait": {
+        "launched_ids": [
+          1
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "start_scenario_instance": {
+        "scenario_name": "$scenario",
+        "args": {}
+      }
+    },
+    {
+      "id": 4,
+      "status_agents": {
+        "addresses": [
+          "$agentA"
+        ],
+        "update": true
+      }
+    },
+    {
+      "id": 5,
+      "status_agents": {
+        "addresses": [
+          "$agentB"
+        ],
+        "update": true
+      },
+      "wait": {
+        "launched_ids": [
+          3
+        ]
+      }
+    }
+  ]
+}

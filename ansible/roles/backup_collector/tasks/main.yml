@@ -1,0 +1,110 @@
+#   OpenBACH is a generic testbed able to control/configure multiple
+#   network/physical entities (under test) and collect data from them. It is
+#   composed of an Auditorium (HMIs), a Controller, a Collector and multiple
+#   Agents (one for each network entity that wants to be tested).
+#   
+#   
+#   Copyright © 2016-2020 CNES
+#   
+#   
+#   This file is part of the OpenBACH testbed.
+#   
+#   
+#   OpenBACH is a free software : you can redistribute it and/or modify it under
+#   the terms of the GNU General Public License as published by the Free Software
+#   Foundation, either version 3 of the License, or (at your option) any later
+#   version.
+#   
+#   This program is distributed in the hope that it will be useful, but WITHOUT
+#   ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS
+#   FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+#   details.
+#   
+#   You should have received a copy of the GNU General Public License along with
+#   this program. If not, see http://www.gnu.org/licenses/.
+
+---
+
+- name: Create the Temporary File and Folders to Archive the Collector Into
+  tempfile:
+    prefix: openbach_collector_backup_
+    suffix: "{{ item.suffix }}"
+    state: "{{ item.state }}"
+  with_items:
+    - suffix: .tar.gz
+      state: file
+    - suffix: _influxdb
+      state: directory
+    - suffix: _elasticsearch
+      state: directory
+  register: openbach_backup_archive_name
+
+- name: Backup InfluxDB Database
+  command: influxd backup -portable {{ openbach_backup_archive_name.results[1].path }}
+
+- name: Prepare ElasticSearch Backup Folder
+  file:
+    path: "{{ openbach_backup_archive_name.results[2].path }}"
+    mode: 0755
+    group: elasticsearch
+    owner: elasticsearch
+  become: yes
+
+- name: Create ElasticSearch Snapshot
+  uri:
+    url: http://localhost:{{ elasticsearch_port }}/_snapshot/openbach_backup
+    method: PUT
+    body:
+      type: fs
+      settings:
+        location: "{{ openbach_backup_archive_name.results[2].path }}"
+        compress: true
+    body_format: json
+    user: "elastic"
+    password: "elastic"
+
+- name: Start ElasticSearch Snapshot Process
+  uri:
+    url: http://localhost:{{ elasticsearch_port }}/_snapshot/openbach_backup/backup
+    method: PUT
+    user: "elastic"
+    password: "elastic"
+
+- name: Monitor ElasticSearch for the End of the Snapshot Process
+  uri:
+    url: http://localhost:{{ elasticsearch_port }}/_snapshot/openbach_backup/backup
+    method: GET
+    user: "elastic"
+    password: "elastic"
+  register: response
+  until: "'IN_PROGRESS' not in (response.json.snapshots | map(attribute='state') | unique)"
+  retries: 360
+  delay: 10
+  failed_when: response.json.snapshots | map(attribute='state') | unique | difference(['SUCCESS'])
+
+- name: Delete ElasticSearch Snapshot
+  uri:
+    url: http://localhost:{{ elasticsearch_port }}/_snapshot/openbach_backup
+    method: DELETE
+    user: "elastic"
+    password: "elastic"
+
+- name: Backup the Collector Files
+  archive:
+    path:
+      - "{{ openbach_backup_archive_name.results[1].path }}"
+      - "{{ openbach_backup_archive_name.results[2].path }}"
+    dest: "{{ openbach_backup_archive_name.results[0].path }}"
+
+- name: Gather the Archive File in the Temporary Directory
+  fetch:
+    src: "{{ openbach_backup_archive_name.results[0].path }}"
+    dest: "{{ openbach_backup_folder }}/{{ inventory_hostname }}/openbach_collector.tar.gz"
+    flat: yes
+
+- name: Remove the Archive File on the Collector
+  file:
+    path: "{{ item }}"
+    state: absent
+  with_items: "{{ openbach_backup_archive_name.results | map(attribute='path') | list }}"
+  become: yes

@@ -1,0 +1,45 @@
+{
+  "name": "Ping",
+  "description": "First scenario (for test)",
+  "arguments": {
+    "duration": "duree des pings"
+  },
+  "constants": {
+    "agentA": "172.20.42.167",
+    "agentB": "172.20.42.90"
+  },
+  "openbach_functions": [
+    {
+      "id": 1,
+      "start_job_instance": {
+        "agent_ip": "$agentA",
+        "ping": {
+          "destination_ip": "$agentB",
+          "duration": [
+            "$duration"
+          ]
+        },
+        "offset": 5
+      }
+    },
+    {
+      "id": 2,
+      "start_job_instance": {
+        "agent_ip": "$agentB",
+        "ping": {
+          "destination_ip": "$agentA",
+          "duration": [
+            "$duration"
+          ]
+        },
+        "offset": 0
+      },
+      "wait": {
+        "time": 10,
+        "finished_ids": [
+          0
+        ]
+      }
+    }
+  ]
+}

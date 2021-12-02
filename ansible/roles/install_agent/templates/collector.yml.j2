@@ -1,0 +1,11 @@
+---
+
+address: {{ collector_ip }}
+logs:
+  port: {{ logstash_logs_port }}
+  query: {{ elasticsearch_port }}
+stats:
+  port: {{ logstash_stats_port }}
+  query: {{ influxdb_port }}
+  database: {{ influxdb_database_name }}
+  precision: {{ influxdb_database_precision }}

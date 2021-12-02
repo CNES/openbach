@@ -1,0 +1,46 @@
+=== Job Description ===
+
+This Job executes the ip address command in order to configure IP address of network interfaces.
+
+=== Examples ===
+
+== Example 1 ==
+
+On an agent, add the address ''10.42.0.1/24'' to the interface //ens4//.
+
+In the web interface, set parameters as follows:
+  * **interface** = ens4
+  * **operation** = add
+  * **address_mask** = 10.42.0.1/24 or 10.42.0.0.1/255.255.255.0
+
+Or launch the job manually from CLI on the agent as follows:
+<codeW
+JOB_NAME=ip_address sudo -E python3 /opt/openbach/agent/jobs/ip_address/ip_address.py ens4 add 10.42.0.1/24
+</code>
+
+== Example 2 ==
+
+On an agent, remove the address ''10.42.0.1/24'' from the interface //ens4//.
+
+In the web interface, set parameters as follows:
+  * **interface** = ens4
+  * **operation** = delete
+  * **address_mask** = 10.42.0.1/24 or 10.42.0.0.1/255.255.255.0
+
+Or launch the job manually from CLI on the agent as follows:
+<code>
+JOB_NAME=ip_address sudo -E python3 /opt/openbach/agent/jobs/ip_address/ip_address.py ens4 delete 10.42.0.1/24
+</code>
+
+== Example 3 ==
+
+On an agent, remove all addresses from the interface //ens4//.
+
+In the web interface, set parameters as follows:
+  * **interface** = ens4
+  * **operation** = flush
+
+Or launch the job manually from CLI on the agent as follows:
+<code>
+JOB_NAME=ip_address sudo -E python3 /opt/openbach/agent/jobs/ip_address/ip_address.py ens4 flush
+</code>

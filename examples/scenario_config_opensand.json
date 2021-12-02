@@ -1,0 +1,71 @@
+{
+  "name": "OpenSAND Config",
+  "description": "OpenSAND configuration scenario (for test)",
+  "arguments": {},
+  "constants": {
+    "manager": "172.20.34.36",
+    "sat": "172.20.34.36",
+    "st1": "172.20.34.38",
+    "gw0": "172.20.34.41",
+    "service_type": "_p2_opensand._tcp",
+    "service_interface": "eth0",
+    "network-emulation-interface": "eth1",
+    "network-lan-interface": "eth2"
+  },
+  "openbach_functions": [
+    {
+      "id": 1,
+      "start_job_instance": {
+        "agent_ip": "$manager",
+        "opensand_requirements": {
+        	"service-type": "$service_type",
+        	"service-interface": "$service_interface"
+        },
+        "offset": 0
+      }
+    },
+    {
+      "id": 2,
+      "start_job_instance": {
+        "agent_ip": "$sat",
+        "opensand_sat_configuration": {
+        	"service-type": "$service_type",
+        	"service-interface": "$service_interface",
+        	"network-emulation-interface": "$network-emulation-interface",
+        	"network-emulation-ipv4": "192.170.18.15/24"
+        },
+        "offset": 0
+      }
+    },
+    {
+      "id": 3,
+      "start_job_instance": {
+        "agent_ip": "$gw0",
+        "opensand_gw_configuration": {
+        	"service-type": "$service_type",
+        	"service-interface": "$service_interface",
+        	"network-emulation-interface": "$network-emulation-interface",
+        	"network-emulation-ipv4": "192.170.18.42/24",
+        	"network-lan-interface": "$network-lan-interface",
+        	"network-lan-ipv4": "192.170.42.1/24"
+        },
+        "offset": 0
+      }
+    },
+    {
+      "id": 5,
+      "start_job_instance": {
+        "agent_ip": "$st1",
+        "opensand_st_configuration": {
+        	"service-type": "$service_type",
+        	"service-interface": "$service_interface",
+        	"network-emulation-interface": "$network-emulation-interface",
+        	"network-emulation-ipv4": "192.170.18.1/24",
+        	"network-lan-interface": "$network-lan-interface",
+        	"network-lan-ipv4": "192.170.19.1/24"
+        },
+        "offset": 0
+      }
+    }
+  ]
+}

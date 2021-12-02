@@ -1,0 +1,47 @@
+=== Job description ===
+
+This job applies or clears configuration on the network interface. It uses ip link, netem and qdisc.
+
+=== Examples ===
+
+== Example 1 ==
+
+Apply on the interface ens4 of the agent Agent-1 a delay (200ms), a maximum bandwith (20Mb/s) and a buffer size of 50000 packets, only on egress.
+
+In the web interface, set the following parameters:
+  * **interface_name** = ens4
+  * **operation** = apply
+  * **mode** = egress
+  * **bandwidth** = 20M
+  * **delay** = 200
+  * **buffer_size** = 50000
+
+Or launch the job manually from the Agent as follows:
+<code>
+JOB_NAME=tc_configure_link sudo -E python3 /opt/openbach/agent/jobs/tc_configure_link/tc_configure_link.py ens4 apply -m egress -b 20M -d 200 --buffer_size 50000
+</code>
+
+== Example 2 ==
+
+Clear all change apply on ingress on the interface ens3 and ens4.
+
+In the web interface, set the following parameters:
+  * **interface_name** = ens3,ens4
+  * **operation** = clear
+  * **mode** = ingress
+
+Or launch the job manually from the Agent as follows:
+<code>
+JOB_NAME=tc_configure_link sudo -E python3 /opt/openbach/agent/jobs/tc_configure_link/tc_configure_link.py ens3,ens4 clear -m ingress
+</code>
+
+=== Additional information ===
+
+<note important>
+This job may encounter performance issues when it operates on the machine that is generating traffic.
+It is recommended to launch this job on a separate machine.
+</note>
+
+<note important>
+There may be issues when the configurations are applied on the ingress. As an example, problems were encountered when the //buffer_size// of the ingress is large. Whenever it is possible, it is recommended to apply the configuration on the network interface on the egress.
+</note>

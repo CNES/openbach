@@ -1,0 +1,127 @@
+@import "../node_modules/chartist/dist/scss/settings/chartist-settings";
+
+/* roboto-300 */
+@font-face {
+  font-family: 'Roboto';
+  font-style: normal;
+  font-weight: 300;
+  src: url('assets/fonts/roboto-300.eot'); /* IE9 Compat Modes */
+  src: local('Roboto Light'), local('Roboto-Light'),
+       url('assets/fonts/roboto-300.eot?#iefix') format('embedded-opentype'), /* IE6-IE8 */
+       url('assets/fonts/roboto-300.woff2') format('woff2'), /* Super Modern Browsers */
+       url('assets/fonts/roboto-300.woff') format('woff'), /* Modern Browsers */
+       url('assets/fonts/roboto-300.ttf') format('truetype'), /* Safari, Android, iOS */
+       url('assets/fonts/roboto-300.svg#Roboto') format('svg'); /* Legacy iOS */
+}
+
+/* roboto-regular */
+@font-face {
+  font-family: 'Roboto';
+  font-style: normal;
+  font-weight: 400;
+  src: url('assets/fonts/roboto-regular.eot'); /* IE9 Compat Modes */
+  src: local('Roboto'), local('Roboto-Regular'),
+       url('assets/fonts/roboto-regular.eot?#iefix') format('embedded-opentype'), /* IE6-IE8 */
+       url('assets/fonts/roboto-regular.woff2') format('woff2'), /* Super Modern Browsers */
+       url('assets/fonts/roboto-regular.woff') format('woff'), /* Modern Browsers */
+       url('assets/fonts/roboto-regular.ttf') format('truetype'), /* Safari, Android, iOS */
+       url('assets/fonts/roboto-regular.svg#Roboto') format('svg'); /* Legacy iOS */
+}
+
+/* roboto-500 */
+@font-face {
+  font-family: 'Roboto';
+  font-style: normal;
+  font-weight: 500;
+  src: url('assets/fonts/roboto-500.eot'); /* IE9 Compat Modes */
+  src: local('Roboto Medium'), local('Roboto-Medium'),
+       url('assets/fonts/roboto-500.eot?#iefix') format('embedded-opentype'), /* IE6-IE8 */
+       url('assets/fonts/roboto-500.woff2') format('woff2'), /* Super Modern Browsers */
+       url('assets/fonts/roboto-500.woff') format('woff'), /* Modern Browsers */
+       url('assets/fonts/roboto-500.ttf') format('truetype'), /* Safari, Android, iOS */
+       url('assets/fonts/roboto-500.svg#Roboto') format('svg'); /* Legacy iOS */
+}
+
+
+html {
+    font-family: 'Roboto', sans-serif;
+    padding: 0;
+}
+
+body {
+    font-size: 13px;
+    line-height: 20px;
+    margin: 0;
+}
+
+h1, h2, h3, h4 {
+    font-weight: 400;
+}
+
+h5, h6 {
+    margin: 24px 0 16px;
+}
+
+p {
+    font-size: 1.3em;
+    margin-left: 2px;
+    margin-right: 2px;
+}
+
+.ct-chart svg {
+    font-family: sans-serif;
+}
+
+.Select-menu-outer {
+  z-index: 100;
+}
+
+.ct-legend {
+    position: relative;
+    z-index: 10;
+		list-style-image: none;
+		list-style-position: outside;
+		list-style-type: none;
+		text-align: center;
+
+    li {
+				display: inline-block;
+        position: relative;
+				cursor: pointer;
+        padding-left: 23px;
+        margin-bottom: 3px;
+				margin-right: 10px;
+    }
+
+    li:before {
+        width: 12px;
+        height: 12px;
+        position: absolute;
+        left: 0;
+        content: '';
+        border: 3px solid transparent;
+        border-radius: 2px;
+    }
+
+    li.inactive:before {
+        background: transparent;
+    }
+
+    &.ct-legend-inside {
+        position: absolute;
+        top: 0;
+        right: 0;
+    }
+
+    @for $i from 0 to length($ct-series-colors) {
+        .ct-series-#{$i}:before {
+            background-color: nth($ct-series-colors, $i + 1);
+            border-color: nth($ct-series-colors, $i + 1);
+        }
+    }
+}
+
+.ct-stddev {
+    stroke: black;
+    stroke-width: 1;
+}

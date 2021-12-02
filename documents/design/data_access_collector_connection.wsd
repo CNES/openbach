@@ -1,0 +1,16 @@
+@startuml
+
+class CollectorConnection {
+  agent_names(job_name: String, scenario_instance_id: Integer, job_instance_id: Integer, suffix: String, timestamp: Integers)
+  job_names(scenario_instance_id: Integer, agent_name: String, job_instance_id: Integer, suffix: String, timestamp: Integers)
+  job_instance_ids(job_name: String, scenario_instance_id: Integer, agent_name: String, suffix: String, timestamp: Integers)
+  scenario_instance_ids(job_name: String, agent_name: String, job_instance_id: Integer, suffix: String, timestamp: Integers)
+  timestamps(job_name: String, scenario_instance_id: Integer, agent_name: String, job_instance_id: Integer, suffix: String, condition: Condition, only_bounds: Boolean)
+  suffixes(job_name: String, scenario_instance_id: Integer, agent_name: String, job_instance_id: Integer)
+  scenarios(job_name: String, scenario_instance_id: Integer, agent_name: String, job_instance_id: Integer, suffix: String, fields: Strings, condition: Condition, timestamps: Integers)
+  import_scenario(scenario_instance: Scenario)
+  remove_statistics(job_name: String, scenario_instance_id: Integer, agent_name: String, job_instance_id: Integer, suffix: String, condition: Condition, timestamps: Integers)
+  orphans(timestamps: Integers, condition: Condition)
+}
+
+@enduml

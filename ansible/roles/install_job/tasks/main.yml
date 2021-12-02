@@ -1,0 +1,184 @@
+#   OpenBACH is a generic testbed able to control/configure multiple
+#   network/physical entities (under test) and collect data from them. It is
+#   composed of an Auditorium (HMIs), a Controller, a Collector and multiple
+#   Agents (one for each network entity that wants to be tested).
+#   
+#   
+#   Copyright © 2016-2020 CNES
+#   
+#   
+#   This file is part of the OpenBACH testbed.
+#   
+#   
+#   OpenBACH is a free software : you can redistribute it and/or modify it under
+#   the terms of the GNU General Public License as published by the Free Software
+#   Foundation, either version 3 of the License, or (at your option) any later
+#   version.
+#   
+#   This program is distributed in the hope that it will be useful, but WITHOUT
+#   ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS
+#   FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+#   details.
+#   
+#   You should have received a copy of the GNU General Public License along with
+#   this program. If not, see http://www.gnu.org/licenses/.
+
+---
+
+- block:
+    - name: Gather Jobs Metadata
+      local_action:
+        module: jobs_metadata
+        folders: "{{ ['../src/jobs/'] + (openbach_jobs_folders | default([])) }}"
+        limit: "{{ (default_jobs + default_collector_jobs) if 'collector' in group_names or ('controller' in group_names and ('collector' not in groups or not groups.collector)) else default_jobs }}"
+        platforms: yes
+      register: openbach_install_default_jobs
+      when: jobs is not defined
+
+    - name: Setup Default Jobs
+      set_fact:
+        jobs: "{{ openbach_install_default_jobs.openbach_jobs }}"
+      when: jobs is not defined
+
+    - name: Gather Metadata for Filtering Purposes
+      set_fact:
+        openbach_ansible_platform:
+          ansible_distribution: "{{ ansible_distribution | default(ansible_os_family) }}"
+          ansible_distribution_version: "{{ ansible_distribution_version | default('') }}"
+          ansible_system: "{{ ansible_os_family }}"
+
+    - block:
+        - name: Execute the Job Installation Playbook
+          include_tasks: "{{ job_item.path }}/install_{{ job_item.name }}.yml"
+          vars:
+            job_name: "{{ job_item.name }}"
+            openbach_proxies: "{{ openbach_proxy_env }}"
+          with_items: "{{ jobs }}"
+          loop_control:
+            loop_var: job_item
+          when: "'platforms' not in job_item or openbach_ansible_platform in job_item.platforms"
+          register: openbach_job_install_results
+      remote_user: openbach
+
+    - name: Filter out Uninstalled Jobs
+      set_fact:
+        jobs: "{{ openbach_job_install_results.results | rejectattr('skipped', 'defined') | map(attribute='job_item') | list }}"
+
+    - block:
+      - name: Authentify into the Backend Database
+        uri:
+          url: http://{{ openbach_controller }}:{{ django_port }}/login/
+          method: POST
+          body_format: json
+          body:
+            login: "{{ hostvars[openbach_controller].openbach_backend_admin_name | mandatory }}"
+            password: "{{ hostvars[openbach_controller].openbach_backend_admin_password | mandatory }}"
+        register: openbach_backend_login
+        when: session_cookie is not defined
+
+      - name: Store Connection Cookie
+        set_fact:
+          openbach_backend_cookie: "{{ session_cookie if session_cookie is defined else openbach_backend_login.cookies.sessionid }}"
+
+      - name: Register the Jobs in the Backend Database
+        include_tasks: register_jobs.yml
+        vars:
+          session_id: "{{ openbach_backend_cookie }}"
+          controller_api_url: http://{{ openbach_controller }}:{{ django_port }}
+          address: "{{ inventory_hostname }}"
+          job_names: "{{ jobs | map(attribute='name') | list }}"
+          run_playbook: no
+      when: openbach_controller is defined and (session_cookie is defined or hostvars[openbach_controller] is defined)
+
+  when: openbach_restore_host is not defined
+
+- block:
+    - name: Authentify into the Backend Database
+      uri:
+        url: http://{{ openbach_controller }}:{{ django_port }}/login/
+        method: POST
+        body_format: json
+        body:
+          login: "{{ hostvars[openbach_controller].openbach_backend_admin_name | mandatory }}"
+          password: "{{ hostvars[openbach_controller].openbach_backend_admin_password | mandatory }}"
+      register: openbach_backend_login
+
+    - name: List Jobs from the Backend Database
+      uri:
+        url: http://{{ openbach_controller }}:{{ django_port }}/job/?address={{ inventory_hostname }}
+        method: GET
+        headers:
+          Cookie: "sessionid={{ openbach_backend_login.cookies.sessionid }}"
+      register: openbach_install_default_jobs
+
+    - name: Setup Default Jobs
+      set_fact:
+        jobs: "{{ openbach_install_default_jobs.json.installed_jobs }}"
+
+    - name: Execute the Job Installation Playbook
+      include_tasks: install_job.yml
+      vars:
+        session_id: "{{ openbach_backend_login.cookies.sessionid }}"
+        controller_api_url: http://{{ openbach_controller }}:{{ django_port }}
+        address: "{{ inventory_hostname }}"
+        job_name: "{{ item }}"
+      with_items: "{{ jobs | map(attribute='name') | list }}"
+
+  when: openbach_restore_host is defined
+  tags:
+    - rerun_jobs_install_playbooks
+
+- name: Create the Job stats Folder
+  file:
+    path: /var/openbach_stats/{{ item.name }}
+    state: directory
+    mode: 0755
+    owner: openbach
+    group: openbach
+  become: yes
+  with_items: "{{ jobs | default([]) }}"
+
+- name: Set Default Logs Severity
+  template:
+    src: roles/configure_backend/files/rsyslog_job.j2
+    dest: /etc/rsyslog.d/{{ item.name }}.conf
+  vars:
+    job: "{{ item.name }}"
+    syslogseverity: 4
+    collector_ip: "{{ openbach_collector }}"
+  become: yes
+  with_items: "{{ jobs | default([]) }}"
+  notify: restart rsyslog
+  when: openbach_collector is defined
+
+- name: Set Default Logs Local Severity
+  template:
+    src: roles/configure_backend/files/rsyslog_job_local.j2
+    dest: /etc/rsyslog.d/{{ item.name }}_local.conf
+  vars:
+    job: "{{ item.name }}"
+    syslogseverity_local: 4
+  become: yes
+  with_items: "{{ jobs | default([]) }}"
+  notify: restart rsyslog
+
+- name: Inform Agent that a new Job is Installed
+  job_description:
+    src: "{{ item.path }}/files/{{ item.name }}.yml"
+    dest: /opt/openbach/agent/jobs/
+    mode: 0644
+    os_family: "{{ ansible_os_family }}"
+    os_distribution: "{{ ansible_distribution }}"
+    os_distribution_version: "{{ ansible_distribution_version }}"
+  remote_user: openbach
+  with_items: "{{ jobs }}"
+  when: openbach_restore_host is not defined
+
+- name: Restart Agent so that new Jobs are Taken Into Account
+  systemd:
+    name: openbach_agent
+    state: restarted
+    enabled: yes
+    daemon_reload: yes
+  become: yes
+  when: not is_run_from_conductor

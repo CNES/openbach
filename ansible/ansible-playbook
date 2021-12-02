@@ -1,0 +1,52 @@
+#!/bin/bash
+
+# OpenBACH is a generic testbed able to control/configure multiple
+# network/physical entities (under test) and collect data from them. It is
+# composed of an Auditorium (HMIs), a Controller, a Collector and multiple
+# Agents (one for each network entity that wants to be tested).
+#
+#
+# Copyright © 2016-2020 CNES
+#
+#
+# This file is part of the OpenBACH testbed.
+#
+#
+# OpenBACH is a free software : you can redistribute it and/or modify it under
+# the terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# This program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+# details.
+#
+# You should have received a copy of the GNU General Public License along with
+# this program. If not, see http://www.gnu.org/licenses/.
+
+
+PWD=$(pwd)
+SCRIPT_DIR=$(dirname -- "$0")
+ACTIVATE_VENV=.ansible_venv/bin/activate
+
+if [ ! -f "${SCRIPT_DIR}/.ansible_venv/bin/ansible-playbook" ]
+then
+  python3 -c "import ensurepip" 2> /dev/null
+  if [ $? -ne 0 ]
+  then
+    echo "You are missing some dependencies to install ansible locally. Asking APT to install them for you..."
+    sudo apt-get install build-essential libffi-dev python3-dev python3-venv
+  fi
+  cd -P -- "${SCRIPT_DIR}"
+  python3 -m venv .ansible_venv
+  source "${ACTIVATE_VENV}"
+  pip install -U pip wheel > /dev/null
+  pip install ansible==2.7.6 > /dev/null
+  deactivate
+  cd -P -- "${PWD}"
+fi
+
+source "${SCRIPT_DIR}/${ACTIVATE_VENV}"
+ansible-playbook $*
+deactivate

@@ -1,0 +1,78 @@
+#   OpenBACH is a generic testbed able to control/configure multiple
+#   network/physical entities (under test) and collect data from them. It is
+#   composed of an Auditorium (HMIs), a Controller, a Collector and multiple
+#   Agents (one for each network entity that wants to be tested).
+#   
+#   
+#   Copyright © 2016-2020 CNES
+#   
+#   
+#   This file is part of the OpenBACH testbed.
+#   
+#   
+#   OpenBACH is a free software : you can redistribute it and/or modify it under
+#   the terms of the GNU General Public License as published by the Free Software
+#   Foundation, either version 3 of the License, or (at your option) any later
+#   version.
+#   
+#   This program is distributed in the hope that it will be useful, but WITHOUT
+#   ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS
+#   FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+#   details.
+#   
+#   You should have received a copy of the GNU General Public License along with
+#   this program. If not, see http://www.gnu.org/licenses/.
+
+---
+
+- name: Change the Database Used by OpenBACH Services
+  lineinfile:
+    path: /opt/openbach/controller/backend/backend/local_settings.py
+    line: "DATABASES['default'] = DATABASES['test']"
+    insertafter: EOF
+    state: present
+  remote_user: openbach
+
+- name: Restart OpenBACH Services
+  systemd: name={{ item }} state=restarted
+  with_items:
+    - openbach_backend
+    - openbach_conductor
+    - openbach_director
+    - postgresql
+  become: yes
+
+- name: Wait for the OpenBACH Conductor to Start
+  wait_for: port={{ item }} timeout=60
+  with_items:
+    - 1113
+    - 5432
+
+- name: Run Django's Unit Tests
+  shell: /opt/openbach/controller/backend/manage.py test --no-input --keepdb
+  args:
+    chdir: /opt/openbach/controller/backend/
+  remote_user: openbach
+  ignore_errors: yes
+
+- name: Run Django's Functional Tests
+  shell: /opt/openbach/controller/backend/manage.py test --no-input --keepdb openbach_django.functional_tests
+  args:
+    chdir: /opt/openbach/controller/backend/
+  remote_user: openbach
+  ignore_errors: yes
+
+- name: Restore the Database Used by OpenBACH Services
+  lineinfile:
+    path: /opt/openbach/controller/backend/backend/local_settings.py
+    regexp: '^DATABASES\S'
+    state: absent
+  remote_user: openbach
+
+- name: Restart OpenBACH Services
+  systemd: name={{ item }} state=restarted
+  with_items:
+    - openbach_backend
+    - openbach_conductor
+    - openbach_director
+  become: yes

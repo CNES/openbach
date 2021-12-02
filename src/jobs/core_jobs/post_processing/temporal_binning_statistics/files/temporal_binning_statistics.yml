@@ -1,0 +1,147 @@
+#   OpenBACH is a generic testbed able to control/configure multiple
+#   network/physical entities (under test) and collect data from them. It is
+#   composed of an Auditorium (HMIs), a Controller, a Collector and multiple
+#   Agents (one for each network entity that wants to be tested).
+#   
+#   
+#   Copyright © 2016-2020 CNES
+#   
+#   
+#   This file is part of the OpenBACH testbed.
+#   
+#   
+#   OpenBACH is a free software : you can redistribute it and/or modify it under
+#   the terms of the GNU General Public License as published by the Free Software
+#   Foundation, either version 3 of the License, or (at your option) any later
+#   version.
+#   
+#   This program is distributed in the hope that it will be useful, but WITHOUT
+#   ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS
+#   FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+#   details.
+#   
+#   You should have received a copy of the GNU General Public License along with
+#   this program. If not, see http://www.gnu.org/licenses/.
+
+---
+
+general:
+  name: temporal_binning_statistics
+  description: >
+      This job post-process data of other jobs. It allows to performs statistics analysis of jobs metrics.
+  job_version: '1.1'
+  keywords:
+    - post-processing
+    - temporal-binning
+    - statistics
+    - average
+    - median
+    - percentiles
+    - min
+    - max
+    - mean
+    - aggregation
+  persistent: no
+
+platform_configuration:
+  - ansible_system: Debian
+    ansible_distribution: Ubuntu
+    ansible_distribution_version: '20.04'
+    command: '/usr/bin/env python3 /opt/openbach/agent/jobs/temporal_binning_statistics/temporal_binning_statistics.py'
+    command_stop:
+
+arguments:
+  required:
+  optional:
+    - name: jobs
+      type: job
+      count: '+'
+      flag: '-j'
+      repeatable: yes
+      description: The job instances to plot data from
+    - name: statistics
+      type: str
+      count: '+'
+      flag: '-s'
+      repeatable: yes
+      description: Plot only these stats on a figure
+    - name: aggregations
+      type: str
+      count: '+'
+      flag: '-a'
+      repeatable: yes
+      choices:
+        - second
+        - minute
+        - hour
+        - day
+        - month
+        - year
+      description: The time criteria for values aggregation
+    - name: percentiles
+      type: int
+      count: 2
+      flag: '--percentiles'
+      repeatable: yes
+      description: Percentiles as boundaries for color filling
+    - name: no_suffix
+      type: None
+      count: 0
+      flag: '-w'
+      description: Do not plot statistics with suffixes
+    - name: ylabel
+      type: str
+      count: '+'
+      flag: '-y'
+      repeatable: yes
+      description: The label to write on the y-axis 
+    - name: title
+      type: str
+      count: '+'
+      flag: '-t'
+      repeatable: yes
+      description: The title of the generated figure
+    - name: binary_output
+      type: None
+      count: 0
+      flag: '-p'
+      description: >
+        Allows to export figures as binary dumps instead
+        of images so they are replayed interactively.
+    - name: hide_legend
+      type: None
+      count: 0
+      flag: '-n'
+      description: Do not draw any legend on the graph
+    - name: hide_median
+      type: None
+      count: 0
+      flag: '--hide-median'
+      description: Do not draw median on the graph
+    - name: hide_average
+      type: None
+      count: 0
+      flag: '--hide-average'
+      description: Do not draw average the graph
+    - name: hide_percentiles
+      type: None
+      count: 0
+      flag: '--hide-percentiles'
+      description: Do not draw nor fill color between percentiles on the graph
+    - name: hide_deviation
+      type: None
+      count: 0
+      flag: '--hide-deviation'
+      description: Do not draw deviation on the graph
+    - name: hide_boundaries
+      type: None
+      count: 0
+      flag: '--hide-boundaries'
+      description: Do not draw boundaries on the graph
+    - name: hide_min_max
+      type: None
+      count: 0
+      flag: '--hide-min-max'
+      description: Do not fill color between boundaries on the graph
+
+statistics:

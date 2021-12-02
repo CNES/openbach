@@ -1,0 +1,53 @@
+@startuml
+
+state "Not Scheduled" as NotScheduled
+NotScheduled : default state of a job on
+NotScheduled : an Agent. When the Agent
+NotScheduled : starts or the Job is just
+NotScheduled : installed on the Agent.
+
+state Scheduled
+Scheduled : when a start job instance
+Scheduled : has been correctly received
+Scheduled : by the Agent.
+
+state Running
+Running : when a job has been scheduled
+Running : and its starting date has been
+Running : reached. If the job is
+Running : persistent it is "running"
+Running : until a user stops it.
+Running : Otherwise it can be running if
+Running : the job is executing or its
+Running : scheduling is recurent.
+
+state "Not Running" as NotRunning
+NotRunning : when a job has been scheduled
+NotRunning : and stopped executing by itself.
+NotRunning : A return code of 0 has been
+NotRunning : collected for this job.
+
+state Error
+Error : when a job has been scheduled
+Error : and stopped executing by itself.
+Error : A non-zero status code has been
+Error : collected for this job.
+
+state Stopped
+Stopped : when the execution of the job
+Stopped : has been canceled by user request.
+
+
+[*] --> NotScheduled : Job is added or Agent started
+NotScheduled --> Scheduled : A job instance is pending
+Scheduled --> Stopped : User canceled a job before its launch
+Scheduled --> Running : Scheduled date of the job reached
+Running --> Stopped : User canceled the job
+Running --> NotRunning : Job finished its execution
+Running --> Error : Job exited with a non-zero status code
+
+Stopped --> [*]
+NotRunning --> [*]
+Error --> [*]
+
+@enduml

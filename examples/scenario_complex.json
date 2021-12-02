@@ -1,0 +1,214 @@
+{
+  "name": "Complex",
+  "description": "Complex scenario (for test)",
+  "arguments": {},
+  "constants": {
+    "agentA": "172.20.34.38",
+    "agentB": "172.20.34.37",
+    "agentC": "172.20.34.39"
+  },
+  "openbach_functions": [
+    {
+      "id": 1,
+      "status_agents": {
+        "addresses": [
+          "$agentA"
+        ],
+        "update": true
+      }
+    },
+    {
+      "id": 2,
+      "while": {
+        "condition": {
+          "type": "=",
+          "operand1": {
+            "type": "database",
+            "name": "Agent",
+            "key": "$agentA",
+            "attribute": "status"
+          },
+          "operand2": {
+            "type": "value",
+            "value": "Available"
+          }
+        },
+        "openbach_function_while_ids": [
+          3
+        ],
+        "openbach_function_end_ids": [
+          4
+        ]
+      },
+      "wait": {
+        "launched_ids": [
+          1
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "status_agents": {
+        "addresses": [
+          "$agentB"
+        ],
+        "update": true
+      }
+    },
+    {
+      "id": 4,
+      "status_agents": {
+        "addresses": [
+          "$agentB"
+        ],
+        "update": true
+      }
+    },
+    {
+      "id": 5,
+      "if": {
+        "condition": {
+          "type": "=",
+          "operand1": {
+            "type": "database",
+            "name": "Agent",
+            "key": "$agentB",
+            "attribute": "status"
+          },
+          "operand2": {
+            "type": "value",
+            "value": "Available"
+          }
+        },
+        "openbach_function_true_ids": [
+          6
+        ],
+        "openbach_function_false_ids": [
+          7
+        ]
+      },
+      "wait": {
+        "launched_ids": [
+          3
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "start_job_instance": {
+        "agent_ip": "$agentA",
+        "fping": {
+          "destination_ip": "$agentB",
+          "duration": 60
+        },
+        "offset": 5
+      }
+    },
+    {
+      "id": 7,
+      "status_agents": {
+        "addresses": [
+          "$agentA"
+        ],
+        "update": true
+      },
+      "wait": {
+        "launched_ids": [
+          6
+        ]
+      }
+    },
+    {
+      "id": 8,
+      "if": {
+        "condition": {
+          "type": "=",
+          "operand1": {
+            "type": "database",
+            "name": "Agent",
+            "key": "$agentB",
+            "attribute": "status"
+          },
+          "operand2": {
+            "type": "value",
+            "value": "Available"
+          }
+        },
+        "openbach_function_true_ids": [
+          9
+        ],
+        "openbach_function_false_ids": [
+          12
+        ]
+      },
+      "wait": {
+        "launched_ids": [
+          4
+        ]
+      }
+    },
+    {
+      "id": 9,
+      "status_agents": {
+        "addresses": [
+          "$agentC"
+        ],
+        "update": true
+      }
+    },
+    {
+      "id": 10,
+      "if": {
+        "condition": {
+          "type": "=",
+          "operand1": {
+            "type": "database",
+            "name": "Agent",
+            "key": "$agentC",
+            "attribute": "status"
+          },
+          "operand2": {
+            "type": "value",
+            "value": "Available"
+          }
+        },
+        "openbach_function_true_ids": [
+          11
+        ],
+        "openbach_function_false_ids": [
+          12
+        ]
+      },
+      "wait": {
+        "launched_ids": [
+          9
+        ]
+      }
+    },
+    {
+      "id": 11,
+      "start_job_instance": {
+        "agent_ip": "$agentB",
+        "fping": {
+          "destination_ip": "$agentC",
+          "duration": 60
+        },
+        "offset": 5
+      }
+    },
+    {
+      "id": 12,
+      "status_agents": {
+        "addresses": [
+          "$agentA"
+        ],
+        "update": true
+      },
+      "wait": {
+        "launched_ids": [
+          11
+        ]
+      }
+    }
+  ]
+}

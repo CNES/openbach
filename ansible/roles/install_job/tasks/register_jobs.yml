@@ -1,0 +1,54 @@
+#   OpenBACH is a generic testbed able to control/configure multiple
+#   network/physical entities (under test) and collect data from them. It is
+#   composed of an Auditorium (HMIs), a Controller, a Collector and multiple
+#   Agents (one for each network entity that wants to be tested).
+#   
+#   
+#   Copyright © 2016-2020 CNES
+#   
+#   
+#   This file is part of the OpenBACH testbed.
+#   
+#   
+#   OpenBACH is a free software : you can redistribute it and/or modify it under
+#   the terms of the GNU General Public License as published by the Free Software
+#   Foundation, either version 3 of the License, or (at your option) any later
+#   version.
+#   
+#   This program is distributed in the hope that it will be useful, but WITHOUT
+#   ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS
+#   FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+#   details.
+#   
+#   You should have received a copy of the GNU General Public License along with
+#   this program. If not, see http://www.gnu.org/licenses/.
+
+---
+
+- name: Register the Jobs in the Backend Database
+  uri:
+    url: "{{ controller_api_url }}/job/"
+    method: POST
+    body_format: json
+    body:
+      action: install
+      names: "{{ job_names }}"
+      addresses:
+        - "{{ address }}"
+      skip_playbook: yes
+    status_code: 202
+    headers:
+      Cookie: "sessionid={{ session_id }}"
+
+- name: Wait for the End of the Installation Playbook
+  uri:
+    url: "{{ controller_api_url }}/job/{{ item }}/state?address={{ address }}"
+    method: GET
+    headers:
+      Cookie: "sessionid={{ session_id }}"
+  register: openbach_install_job_state
+  failed_when: openbach_install_job_state.json.install.returncode not in (200, 204)
+  until: openbach_install_job_state.json.install.returncode != 202
+  retries: 360
+  delay: 10
+  with_items: "{{ job_names }}"

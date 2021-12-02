@@ -1,0 +1,603 @@
+:sectnums:
+:sectnumlevels: 2
+
+= OpenBACH Software Specifications
+:toc:
+:imagesdir: images
+:doctype: book
+:source-highlighter: coderayz
+:listing-caption: Listing
+// Uncomment next line to set page size (default is Letter)
+:pdf-page-size: A4
+
+
+== Terms specifications
+
+==== TERM_01
+A job shall be defined as a number of individual tasks (one or more) with a common purpose and to be executed in a sole Agent. A job might be able to launch/configure other software tools (e.g. ping/iperf) and OS tools (e.g. iptables), configure OS parameters, collect information/stats from tools/OS, etc.
+
+== Architecture design specifications
+
+==== ARCH_01
+OpenBACH shall implement four types of components: a centralized Controller, a centralized Collector, an Auditorium and distributed Agents.
+
+==== ARCH_02
+The Controller shall centralize and deploy the configuration functionalities of OpenBACH as well as the jobs/scenarios to be launched.
+
+==== ARCH_03
+The Auditorium component shall centralize the different frontend interfaces for configuring and monitoring (logs and statistics) the benchmark.
+
+==== ARCH_04
+The Collector shall be able of collecting all the statistics, data, logs/errors and other messages requested for supervising the benchmark in a centralized way.
+
+
+==== ARCH_05
+The Agents shall control (schedule/launch/stop) the jobs within a network entity according to the Controller commands, and collect the local stats/logs sent by these jobs.
+
+==== ARCH_06
+OpenBACH shall propose two main functionalities: the configuration of the benchmark (including the available jobs) and the collection of relevant data.
+
+==== ARCH_07
+A distributed “network entity” shall have:
+
+* An Agent :
+** A Control-Agent
+** A Collecting agent
+* Jobs (deployed) and Instances of Jobs (running/scheduled)
+* A path towards an available data storage: it shall allow to locally store data/logs. It is useful for offline scenarios where the network entity is not accessible during the tests (e.g.: when a management network is not available).
+
+NOTE: The offline mode is used when the network entity is no able to communicate with the Controller (e.g. in case the physical or management network is not available, or in case there is not coverage, or in case the Controller is shutdown).
+
+
+==== ARCH_08
+A “Collector entity” shall have:
+
+* A Collector daemon for statistics and status information.
+* A Collector daemon for log messages
+* A data base for storing logs.
+* A data base for storing statistics/data.
+
+==== ARCH_09
+A “Controller entity” shall have:
+
+* A backend (web server)
+* A daemon (openbach-conductor).
+* A data Storage managed by the backend for storing information related to the benchmark (available agents and entities information, information of jobs available, status of Jobs instances, scenarios, etc).
+
+
+==== ARCH_10
+An “Auditorium entity” shall have several frontends: one per type of display (configuration of benchmark, statistics display and logs display). In particular:
+
+* A frontend of configuration (web interface)
+* A python scripts interface
+* A dashboard frontend for real-time statistics dashboard (web interface)
+* A dashboard frontend for real-time log messages (web interface)
+* A frontend for plotting offline and post-processed data (web interface).
+
+==== ARCH_11
+A “User entity” entity shall dispose of:
+
+* A web browser (Chrome/Firefox) client to access the different available frontends.
+* Linux/Unix shell terminals for jobs/scenarios configuration (related to the Python script frontend).
+
+== Global specifications
+
+==== GLOBAL_01
+The benchmark shall be based as much as possible on open-source components
+
+==== GLOBAL_02
+The benchmark shall be able to be implemented for different types of equipment, applications, servers, clients, hardware and software, with minimal adaptation effort.
+
+==== GLOBAL_03
+The benchmark shall be easily scalable to allow:
+
+* the adaptation to new network architectures and services
+* the integration of new components
+* the integration of new metrology functions.
+
+==== GLOBAL_04
+OpenBACH shall have a modular structure to facilitate the addition of new software tools.
+
+==== GLOBAL_05
+The Agent-Job interface shall be easily expandable in order to add new monitoring parameters to be collected and/or new tasks to be performed.
+
+==== GLOBAL_06
+All components and entities of the benchmark shall be synchronized by means of a time server with a precision of at least 10ms.
+
+
+== Components specifications
+=== Controller specifications
+
+==== CONTROLLER_01
+By means of the configuration frontends, the user shall be able to ask for different types of information regarding Agents and Jobs, in particular, the user shall be able to ask for:
+
+* the list of Agents installed and their status (running/not running)
+* the list of Jobs that might be installed in an Agent (i.e. available for installation in OpenBACH). This might help a user decide the jobs that can be installed.
+* the list of jobs available in each Agent (not necessarily running, only available)
+* the list of job instances1 per Job that are scheduled/started for each Agent.
+* The scenarios available.
+* The list of scenario instances scheduled/started and their status.
+
+
+
+==== CONTROLLER_02
+The tasks that a user shall be able to carry out are:
+
+* Install/uninstall Agents in the network entities.
+* Install/remove a job to/from an Agent
+* Schedule/start/stop a job instance in an Agent with different configuration parameters.
+* Create/delete/modify scenarios.
+* Start/stop a scenario instance over different Agents.
+* After the implementation of a new Job performed by a user, the user shall be able to make the Job available for installation.
+
+==== CONTROLLER_03
+The benchmark shall implement two different configuration frontends, one for basic users, which will perform different tasks through the web interface, and a second frontend, based on python scripts, allowing for more flexibility and implemented for advanced users
+
+==== CONTROLLER_04
+Both frontends shall be able to call/use with the same functions implemented in the backend.
+
+==== CONTROLLER_05
+The communication between the Backend and the configuration frontends shall be carried out via an HTTP Restful API.
+
+==== CONTROLLER_06
+All the responses of the backend shall be implemented in JSON format.
+
+==== CONTROLLER_07
+The web interface dedicated to configuration of the benchmark shall:
+
+* Display the status of the registered network entities (with Agents) and the collector.
+* Display the available jobs per Agent and their status.
+* Be able to configure, launch/schedule/stop the Jobs.
+* Configure, display and launch/schedule/stop the available scenarios/job instances (by means of the openbach-function of the backend).
+* Be able to activate/deactivate the available statistics.
+* Be able to activate/deactivate the logs (and change the log level).
+
+==== CONTROLLER_08
+A user shall be able to launch a sole python function in the CLI (Command Line Interface)
+
+==== CONTROLLER_09
+The user shall be also able to write a script python with a certain level of flexibility, i.e.:
+
+* Configure/Schedule different jobs over different Agents (by means of calling the backend function)
+* Allow conditional sentences (if/else), loops, breaks, etc.
+
+==== CONTROLLER_10
+The user shall be able to execute the function or the script by different means:
+
+* By logging into the Controller entity (via a SSH session or directly).
+* By sending the HTTP requests to the port 80 of the Controller-backend (webserver).
+
+
+==== CONTROLLER_11
+OpenBACH shall use the following date/time format (1ms precision):
+YYYY-MM-DD hh:mm:ss.msmsms
+
+==== CONTROLLER_12
+The backend design shall follow the Model-View-Controller (MVC) architectural pattern.
+
+==== CONTROLLER_13
+A webserver shall be set up in front of the MVC pattern in order to handle the user requests (from frontend).
+
+==== CONTROLLER_14
+The controller (of the MVC architecture) shall be in charge of receiving inputs and data from user and convert them to commands for the views.
+
+==== CONTROLLER_15
+The model shall be in charge of managing and accessing the database.
+
+==== CONTROLLER_16
+The view shall contain the ways to set, compute or manipulate information in order to send an output representation of required data.
+
+==== CONTROLLER_17
+The backend views shall be able to:
+
+* add/install (delete/remove) Agents and Jobs to/from the benchmark
+* list the available Agents and the available jobs per Agent.
+* create/modify/delete a scenario.
+* configure/launch/stop scenario instances.
+* List the available scenario and scenario instances and their status.
+* send commands of schedule/start/stop of Jobs instances to the corresponding Agents .
+* list the scheduled/started job instances and their status.
+
+==== CONTROLLER_18
+The model shall handle one database that belongs to the backend, to save user information, agents status, a jobs list per Agent, job instances status, scenarios (and scenario instances) information and status, etc
+
+==== CONTROLLER_19
+Backend shall implement two types of functions allowing to update the database:
+
+* Request status: allowing to request to an Agent the status of itself, a job or an instance. The Agent shall send this information to the Collector (via the collecting functionalities of OpenBACH).
+* Pull status from Collector database: allowing to query the Collector database in order to get the required information of an Agent/Job/Job instance.
+
+==== CONTROLLER_20
+The backend shall implement the following openbach-functions:
+
+* install_agent
+* uninstall_agent
+* list_agents
+* status_agents
+* add_job
+* del_job
+* list_jobs
+* get_job_help
+* install_job
+* uninstall_job
+* status_jobs
+* list_installed_jobs
+* start_job_instance
+* stop_job_instance
+* restart_job_instance
+* status_job_instance
+* list_job_instances
+
+==== CONTROLLER_21
+The JSON output format of a list of job instances shall be as follows:
+
+[source,json,numbered]
+----
+{'agents': [{'address': '172.20.0.81',
+             'name': '',
+             'status': 'Available',
+             'update_status': '2016-04-12T14:56:55.145Z'}]}
+----
+
+==== CONTROLLER_22
+The JSON output format of a list of Jobs shall be as follows:
+
+[source,json,numbered]
+----
+{'jobs': ['rate_monitoring',
+          'cwnd_monitoring',
+          'ping',
+          'http2_client',
+          'http2_server']}
+----
+
+==== CONTROLLER_23
+The JSON output format of a list of installed jobs shall be as follows:
+
+[source,json,numbered]
+----
+{'agent': '172.20.0.81',
+ 'installed_jobs': [{'name': 'rate_monitoring',
+                     'update_status': '2016-04-12T15:03:40.034Z'},
+                    {'name': 'http2_client',
+                     'update_status': '2016-04-13T13:01:19.623Z'},
+                    {'name': 'ping',
+                     'update_status': '2016-04-13T13:01:28.537Z'}]}
+----
+
+==== CONTROLLER_24
+The JSON output format of a list of Instances shall be as follows:
+
+[source,json,numbered]
+----
+{'instances': [{'address': '172.20.0.81',
+                'installed_job': [{'instances': [{'arguments': '2 OUTPUT -p tcp --dport 5001 -d 172.20.0.83',
+                                                  'id': 7,
+                                                  'status': 'started',
+                                                  'update_status': '2016-04-13T13:04:41.516Z'}],
+                                   'job_name': 'rate_monitoring'},
+                                  {'instances': [],
+                                   'job_name': 'http2_client'},
+                                  {'instances': [{'arguments': '172.20.0.83',
+                                                  'id': 8,
+                                                  'status': 'started',
+                                                  'update_status': '2016-04-13T13:05:30.724Z'},
+                                                 {'arguments': '172.20.0.84',
+                                                  'id': 9,
+                                                  'status': 'started',
+                                                  'update_status': '2016-04-13T13:05:38.638Z'}],
+                                   'job_name': 'ping'}]}]}
+
+----
+
+==== CONTROLLER_28
+The JSON message between the configuration frontends and the backend for describing a scenario shall follow the format below:
+
+[source,json,numbered]
+----
+{ "name": "Ping",
+  "description": "First scenario (for test)",
+  "args": [ { "name": "duration", "type": "int", "description": "duree des pings" } ],
+  "body": { "parameters": [ { "name": "agentA", "value": "172.20.42.167", "type": "ip" },
+                            { "name": "agentB", "value": "172.20.42.90", "type": "ip" },
+                            { "name": "job", "value": "ping", "type": "str" },
+                            { "name": "duration", "value": "duration", "type": "arg" } ],
+            "openbach_functions": [ { "name": "start_job_instance",
+                                      "args": [ { "name": "agent_ip", "value": "agentA", "type": "parameter" },
+                                                { "name": "job_name", "value": "job", "type": "parameter",
+                                                  "args": [ { "name": "destination_ip", "value": ["agentB"], "type": ["parameter"] },
+                                                            { "name": "duration", "value": ["duration"], "type": ["parameter"] } ] },
+                                                { "name": "delta", "value": 5, "type": "int" } ],
+                                      "wait": [ { "type": "launch", "id": [], "time": 0 },
+                                                { "type": "finished", "id": [], "time": 0 } ],
+                                      "id": 1 },
+                                    { "name": "start_job_instance",
+                                      "args": [ { "name": "agent_ip", "value": "agentB", "type": "parameter" },
+                                                { "name": "job_name", "value": "job", "type": "parameter",
+                                                  "args": [ { "name": "destination_ip", "value": ["agentA"], "type": ["parameter"] },
+                                                            { "name": "duration", "value": ["duration"], "type": ["parameter"] } ] },
+                                                { "name": "delta", "value": 10, "type": "int" } ],
+                                      "wait": [ { "type": "launch", "id": [], "time": 0 },
+                                                { "type": "finished", "id": [1], "time": 0 } ],
+                                      "id": 2 }
+                                  ]
+          }
+}
+----
+
+
+==== CONTROLLER_29
+It shall be possible to replay stored scenarios/test campaigns by simply changing the starting reference date/time.
+
+==== CONTROLLER_30
+It shall also be possible to copy an existing scenario and modify it.
+
+
+=== Collector specifications
+
+==== COLLECTOR_01
+The Collector shall be able to receive two types of stream messages: logs and stats/metrics. Each type of stream shall implement its own daemon and its own database.
+
+==== COLLECTOR_02
+The Collector shall implement a daemon listening for new messages and a data base with efficient search mechanisms an access features.
+
+==== COLLECTOR_03
+The Collector daemon shall listen on a UDP/TCP socket for new incoming messages from the Agents.
+
+==== COLLECTOR_04
+The Collector database shall implement an HTTP API for writing/querying new data.
+
+=== Agent specifications
+
+==== AGENT_01
+The Agent shall implement two main functions:
+
+* Control and configuration of the Agent (and its jobs), named Control-Agent.
+* Collection of statistics and log messages, Named Collect-Agent.
+
+==== AGENT_02
+A reliable communication protocol shall be used to receive the commands and configuration from the Controller.
+
+==== AGENT_03
+The Control-Agent shall be in charge of scheduling, executing, checking and stopping the Job instances available in the network entity.
+
+==== AGENT_04
+The Control-Agent shall implement:
+
+* A daemon for centralizing the tasks/jobs control (“openbach-agent”),
+* a generic small bash script (“openbach-baton”) that the Controller uses to communicate with the daemon, and
+* a scheduler (integrated in the daemon “openbach-agent” and based on the Python library “apscheduler”) for launching/scheduling the tasks of the daemon.
+
+
+==== AGENT_05
+The Control-Agent shall implement the following features:
+
+* The Agent shall be based on a request-to-do policy, i.e. it shall perform tasks only when the Controller asks for.
+* The Agent is designed to be able to receive different types of commands (related to the “openbach-function”) from the Controller.
+* Within the command, the Agent may receive start/stop date/time information from the Controller, so that it will know when to execute the “agent-function” associated to.
+* Depending on the command type, other options can be used as described below.
+* The Agent shall manage the scheduler locally, so that it will be able to control the whole execution/status of the agent-actions.
+* The Agent scheduler shall be able to execute the agent-actions with one millisecond accuracy.
+
+
+==== AGENT_06
+The Control-Agent shall accept the following commands from the Collector:
+
+* add_job_agent *job_name* …
+* start_job_instance_agent *job_name* …
+* status_job_instance_agent *job_name* …
+* stop_job_instance_agent *job_name* …
+* restart_job_instance_agent *job_name* …
+* del_job_instance_agent *job_name* …
+* list_jobs_agent …
+
+==== AGENT_07
+A configuration file for each job shall be implemented. This configuration file shall be used for verification purposes
+(e.g. check arguments/parameters/options accepted by the job) and making a job persistent (once it has been installed). The configuration file
+format shall include 4 sections (general information, the os requirements, the accepted arguments and the to be produced statistics):[source,json]
+----
+---
+general:
+  name:            fping
+  description: >
+      This Job executes the fping ...
+  job_version:     0.1
+  keywords:        [ping, fping, rate, rtt, round, trip, time]
+  persistent:      true # <1>
+
+os:
+  linux:
+    requirements:  'Ubuntu 14.04/16.04'
+    command:       '/opt/openbach-jobs/fping/fping.py'  # <2>
+    command_stop:
+
+  windows:
+    requirements:  'Windows 2010'
+    command:       '...'
+    command_stop:
+
+arguments:  # <3>
+  required:
+    - name:        destination_ip
+      type:        'ip'
+      count:       1
+      description: >
+          The destination ip of the fping
+  optional:
+    - name:        count
+      type:        'int'
+      count:       1
+      flag:        '-c'
+      description: >
+          Stop after sending count ECHO_REQUEST packets. Default is 3.
+    - name:        interval
+      type:        'int'
+      count:       1
+      flag:        '-i'
+      description: >
+          Wait interval seconds between sending each packet.
+
+statistics:  # <4>
+    - name:        rtt
+      description: >
+          The Round trip time of ICMP packets.
+      frequency:   'every *count x interval* sent packets or every *duration* time'
+
+----
+<1> The persistent variable should be a Boolean. It indicates if the job shall run on background or if it will only execute some tasks and finish.
+<2> Command to be executed by the “openbach-agent” daemon on the agent when starting the job instance. (i.e. the path to the job script)
+<4> Accepted "required" and "optional" arguments
+<3> Procuced statistics
+
+==== AGENT_08
+The Collect-Agent shall implement two different daemons for collecting/transmitting statistics (Rstats) and logs (Rsyslog).
+
+* Rsyslog shall perform the logs collection
+* Rstats shall perform the stats collection
+
+==== AGENT_09
+Two jobs shall be dedicated to the collecting tasks:
+
+* Rsyslog job:  allowing to start/stop/restart/reload the Rsyslog daemon
+* Rstats job:  allowing to start/stop/restart/reload the Rstats daemon
+
+==== AGENT_10
+Each Job shall be in charge of sending its own logs/statistics to the two corresponding daemons of the Collect-Agent (rsyslog or rstats).
+
+==== AGENT_11
+Rsyslog and Rstats shall use UDP/TCP socket to send the aggregated logs and stats to the Collector
+
+==== AGENT_12
+Each job shall have a rsyslog configuration file allowing to set the following parameters:
+
+* Collector IP Address
+* Logstash port:10514 (default port)
+* Local log severity level (to locally store in the network entity)
+* Remote log severity level (to send to the collector)
+* Job Name
+
+==== AGENT_13
+The number and types of severity levels shall be the ones defined for Syslog standard messages, i.e.: Error, Warning, Informational and Debug.
+
+==== AGENT_14
+Rstats shall fulfill the following requirements:
+
+* Aggregate the statistics/metrics sent from the available jobs.
+* Time stamp each collected statistics with one millisecond accuracy.
+* Relay the statistics to the Collector, and allow to activate/deactivate this option for each statistic.
+* Locally store all statistics.
+
+
+==== AGENT_15
+Jobs shall use the following messages for communicating to Rstats:
+* REGISTER_stat (init a new stat connection): “1 conf_file [database_name]”
+* SEND_stat (send new value/s of a stat): to send: “2  id_stat  stat_name  timestamp  value_name  value  [value_name  value]*”
+* RELOAD_stat (reload configuration file): “3  id_stat”
+
+==== AGENT_16
+The rstats job shall be able to reload all configuration files for updating the activation status of several statistics at once.
+
+===  Interfaces specifications
+
+
+==== INTERFACES_01
+The components, databases, HMI, and different functional blocks shall use the following interface protocols/APIs for allowing robust and reliable communications:
+
+* HTTP API for communicating to/from frontends and for accessing data bases.
+* UNIX socket and TCP/UDP sockets for log/statistics transmission between Agents and Collector daemons, and between Jobs and Agents.
+* SSH/SFTP sessions for communication between the Controller and the Agents.
+* Bash commands for local communication without data transfer.
+
+==== INTERFACES_02
+The frontends (both for logs and statistics) for displaying the logs and statistics shall use a HTTP API provided by the stats/logs databases for getting the data to be displayed
+
+==== INTERFACES_03
+The Controller backend shall be able to query information stored in the statistics database regarding jobs status (scheduled/started/finished) by means of a proposed HTTP API.
+
+== Frontend-display specifications
+
+==== DISPLAY_01
+OpenBACH shall offer a web interface (via Firefox/Google Chrome web browsers) for visualizing log messages on real-time.
+
+==== DISPLAY_02
+The Log messages displayed shall at least contain the following information:
+
+* Time/date of log message collection
+* Log level
+* ID of the network entity (e.g. hostname)
+* Name of the Job sending the log message
+* Scenario ID and job instance ID (if they are generated by a job instance)
+* The message
+
+==== DISPLAY_03
+The logs web interface shall propose tools allowing to perform:
+
+* Logs research
+* Logs filtering (e.g. filters for host machine, IP, job, log level, etc.)
+* Different auto refresh intervals, from 5 seconds to several hours.
+* Calculation of number of statistics per applied filter, per time window.
+
+==== DISPLAY_04
+OpenBACH shall offer a web interface (via Firefox/Google Chrome web browsers) for visualizing statistics/metrics on real-time.
+
+==== DISPLAY_05
+The statistics name shown in the web interface shall be able to be chosen depending on:
+
+* The statistic name (Job name)
+* The ID of the network entity (e.g. hostname)
+* The time/date of data sample
+* Scenario ID and job instance ID
+* The data
+
+
+==== DISPLAY_06
+The stats web interface shall propose tools allowing to perform:
+
+* Statistics research per host and per job.
+* Simple calculation such as maximum/minimum/average values.
+* Different auto refresh intervals, from 5 seconds to several hours.
+* Snapshot of the graphics (in order to share them or use them in documents.
+
+
+==  Roles specifications
+
+==== ROLE_01
+OpenBACH shall implement different types of user profiles.
+
+==== ROLE_02
+A basic user shall be able to configure, schedule and check the status of the already installed Agents/Jobs of OpenBACH from the web interface
+
+==== ROLE_03
+An advanced user shall be able to install/configure/schedule Agents/Jobs from the web interface and from the Python scripts frontend.
+
+==== ROLE_04
+An admin user shall be able to create other user profiles, to install/reinstall the Controller/Collector and Agents, and perform all the other tasks of an advanced user.
+
+
+== Operational specifications
+
+==== OPERATIONAL_01
+The benchmark shall be able to control and monitor at least 10 network entities (i.e. 10 Agents).
+
+==== OPERATIONAL_02
+The benchmark shall be able to display different groups of entities identified with a specific service type.
+Note: A service type defines a group of network entities that allow to carry out the same test or group of tests (scenario).
+
+==== OPERATIONAL_03
+The benchmark shell be able to control at least 3 groups of entities (at the same time) identified by a service type.
+
+==== OPERATIONAL_04
+The Agent component (and all its functional blocks) shall keep the use of entity resources (CPU, RAM) to a minimum while fulfilling the benchmark requirements.
+
+
+== Installation specifications
+
+
+==== INSTALL_01
+OpenBACH shall propose a user-friendly installation method on the wished network entities.
+
+==== INSTALL_02
+An already deployed OpenBACH shall be able to easily add new features (and consequently new Agents).
+
+==== INSTALL_03
+OpenBACH shall be able to add new Jobs without affecting the performance of other Jobs and entities.

@@ -1,0 +1,37 @@
+=== Job description ===
+
+This job uses Firefox web browser to retrieve web pages, and computes QoE metrics (W3C: https://www.w3.org/TR/navigation-timing/).
+The job uses the file "config.yaml" in order detail:
+  * How to parse W3C metrics in javascript
+  * The list of pages that should be visited (the job will visit all the pages sequentially, and then repeat the procedure *nb_runs** times).
+The user can set the URLs to fetch by means of the "-u"/"--urls" parameter. It will overwrite the URLs listed in the file "config.yaml" .
+  
+
+=== Examples ===
+
+== Example 1 (using file "config.yaml") ==
+
+Fetch/visit several web pages, two times each page. Each webpage is listed at section //web_pages_to_fetch// in //config.yaml// and compute W3C metrics as statistics.
+
+In the web interface, set the following parameters:
+  * **nb_runs** = 2
+
+Or launch the job manually from the Agent as follows:
+<code>
+JOB_NAME=web_browsing_qoe sudo -H python3 /opt/openbach/agent/jobs/web_browsing_qoe/web_browsing_qoe.py 2
+</code>
+
+
+== Example 2 (using "--urls" parameter) ==
+
+Fetch/visit several web pages, two times each page and compute W3C metrics as statistics.
+
+In the web interface, set the following parameters:
+  * **nb_runs** = 2
+  * **urls** = https://www.google.com
+  * **urls** = https://www.youtube.com
+
+Or launch the job manually from the Agent as follows:
+<code>
+JOB_NAME=web_browsing_qoe sudo -H python3 /opt/openbach/agent/jobs/web_browsing_qoe/web_browsing_qoe.py 2 --urls "https://www.google.com" "https://www.youtube.com"
+</code>

@@ -1,0 +1,42 @@
+---
+
+- hosts: all
+  tasks:
+    - name: Change Logs Severity
+      template:
+        src: rsyslog_job.j2
+        dest: /etc/rsyslog.d/{{ job }}.conf
+        owner: root
+        group: root
+      become: yes
+      when: syslogseverity is defined
+
+    - name: Remove Logs Severity
+      file:
+        path: /etc/rsyslog.d/{{ job }}.conf
+        state: absent
+      become: yes
+      when: syslogseverity is not defined
+
+    - name: Change Logs Local Severity
+      template:
+        src: rsyslog_job_local.j2
+        dest: /etc/rsyslog.d/{{ job }}_local.conf
+        owner: root
+        group: root
+      become: yes
+      when: syslogseverity_local is defined
+
+    - name: Remove Logs Local Severity
+      file:
+        path: /etc/rsyslog.d/{{ job }}_local.conf
+        state: absent
+      become: yes
+      when: syslogseverity_local is not defined
+
+    - name: Restart Service
+      systemd:
+        name: rsyslog
+        state: restarted
+        enabled: yes
+      become: yes

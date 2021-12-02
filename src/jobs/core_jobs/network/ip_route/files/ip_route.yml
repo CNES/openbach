@@ -1,0 +1,94 @@
+#   OpenBACH is a generic testbed able to control/configure multiple
+#   network/physical entities (under test) and collect data from them. It is
+#   composed of an Auditorium (HMIs), a Controller, a Collector and multiple
+#   Agents (one for each network entity that wants to be tested).
+#   
+#   
+#   Copyright © 2016-2020 CNES
+#   
+#   
+#   This file is part of the OpenBACH testbed.
+#   
+#   
+#   OpenBACH is a free software : you can redistribute it and/or modify it under
+#   the terms of the GNU General Public License as published by the Free Software
+#   Foundation, either version 3 of the License, or (at your option) any later
+#   version.
+#   
+#   This program is distributed in the hope that it will be useful, but WITHOUT
+#   ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS
+#   FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+#   details.
+#   
+#   You should have received a copy of the GNU General Public License along with
+#   this program. If not, see http://www.gnu.org/licenses/.
+
+---
+
+general:
+  name: ip_route
+  description: >
+      This Job executes the ip route command in order
+      to allow packet/flow routing capabilities to reach
+      the desired destination.
+  job_version: '2.2'
+  keywords:
+    - ip_route
+  persistent: no
+  need_privileges: yes
+
+platform_configuration:
+  - ansible_system: 'Debian'
+    ansible_distribution: 'Ubuntu'
+    ansible_distribution_version: '20.04'
+    command: '/usr/bin/env python3 /opt/openbach/agent/jobs/ip_route/ip_route.py'
+    command_stop:
+
+arguments:
+  required:
+    - name: operation
+      type: str
+      count: 1
+      description: select the operation to apply
+      choices:
+        - add
+        - change
+        - replace
+        - delete 
+  optional:
+    - name: gateway_ip 
+      type: str
+      count: 1
+      flag: '-gw'
+      description: The gateway ip address (This or output device is required when adding/changing/replacing route)
+    - name: device
+      type: str
+      count: 1
+      flag: '-dev'
+      description: The output device name (This or gateway_ip is required when adding/changing/replacing route)
+    - name: initcwnd
+      type: int
+      count: 1 
+      flag: '-icwnd'
+      description: The initial congestion window size for connections to this destination
+    - name: initrwnd
+      type: int
+      count: 1 
+      flag: '-irwnd'
+      description: The initial receive window size for connections to this destination
+  subcommand:
+    - group_name: destination
+      optional: no
+      choices:
+        - name: default
+          required:
+          optional: 
+        - name: destination_ip
+          required:
+            - name: network_ip
+              type: str
+              count: 1
+              description: The ip address/mask of the destination network
+          optional:
+
+statistics:

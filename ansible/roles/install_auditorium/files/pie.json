@@ -1,0 +1,12 @@
+{
+    "attributes": {
+        "title": "pie_program",
+        "visState": """{"title":"pie_program","type":"pie","params":{"addLegend":true,"addTooltip":true,"isDonut":false,"legendPosition":"right","type":"pie"},"aggs":[{"id":"1","enabled":true,"type":"count","schema":"metric","params":{}},{"id":"2","enabled":true,"type":"terms","schema":"segment","params":{"field":"program.keyword","size":5,"order":"desc","orderBy":"_term"}}],"listeners":{}}""",
+        "uiStateJSON": "{}",
+        "description": "",
+        "version": 1,
+        "kibanaSavedObjectMeta": {
+            "searchSourceJSON": """{"index":"default_logstash_index","query":{"match_all":{}},"filter":[]}"""
+        }
+    }
+}

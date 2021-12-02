@@ -1,0 +1,102 @@
+# See https://www.w3.org/TR/navigation-timing-2/ to know the different metrics released in the context of navigation
+# timing by the W3C
+
+driver:
+  binary_type: FirefoxBinary
+  binary_path: /usr/bin/firefox
+  
+qos_metrics:
+  page_load_time:
+    id: page_load_time
+    pretty_name: Page Load Time
+    js: return window.performance.timing.loadEventEnd - window.performance.timing.navigationStart
+    unit: ms
+  page_rendering_time:
+    id: page_rendering_time
+    pretty_name: Page Rendering Time
+    js: return window.performance.timing.domComplete - window.performance.timing.navigationStart
+    unit: ms
+  page_interaction_time:
+    id: page_interaction_time
+    pretty_name: Page Interaction Time
+    js: return window.performance.timing.domInteractive - window.performance.timing.navigationStart
+    unit: ms
+  response_end_time:
+    id: response_end_time
+    pretty_name: Response End Time
+    js: return window.performance.timing.responseEnd - window.performance.timing.navigationStart
+    unit: ms
+  response_start_time:
+    id: response_start_time
+    pretty_name: Response Start Time
+    js: return window.performance.timing.responseStart - window.performance.timing.navigationStart
+    unit: ms
+  request_start_time:
+    id: request_start_time
+    pretty_name: Request Start Time
+    js: return window.performance.timing.requestStart - window.performance.timing.navigationStart
+    unit: ms
+  connect_end_time:
+    id: connect_end_time
+    pretty_name: Connect End Time
+    js: return window.performance.timing.connectEnd - window.performance.timing.navigationStart
+    unit: ms
+  connect_start_time:
+    id: connect_start_time
+    pretty_name: Connect Start Time
+    js: return window.performance.timing.connectStart - window.performance.timing.navigationStart
+    unit: ms
+  dns_lookup_end_time:
+    id: dns_lookup_end_time
+    pretty_name: DNS Lookup End Time
+    js: return window.performance.timing.domainLookupEnd - window.performance.timing.navigationStart
+    unit: ms
+  dns_lookup_start_time:
+    id: dns_lookup_start_time
+    pretty_name: DNS Lookup Start Time
+    js: return window.performance.timing.domainLookupStart - window.performance.timing.navigationStart
+    unit: ms
+  transfer_size:
+    id: transfer_size
+    pretty_name: Transfer Size
+    js: return performance.getEntriesByType("navigation")[0].transferSize
+    unit: Bytes
+  decoded_body_size:
+    id: decoded_body_size
+    pretty_name: Decoded Body Size
+    js: return performance.getEntriesByType("navigation")[0].decodedBodySize
+    unit: Bytes
+  encoded_body_size:
+    id: encoded_body_zize
+    pretty_name: Encoded Body Size
+    js: return performance.getEntriesByType("navigation")[0].encodedBodySize
+    unit: Bytes
+  bandwidth:
+    id: bandwidth
+    pretty_name: Bandwidth
+    js: return Math.round((performance.getEntriesByType("navigation")[0].transferSize * 8000) / (performance.getEntriesByType("navigation")[0].responseEnd - performance.getEntriesByType("navigation")[0].responseStart))
+    unit: bps
+   
+web_pages_to_fetch:
+  - https://www.google.com
+  - https://www.youtube.com
+  - https://www.facebook.com
+  - http://www.baidu.com
+  - https://fr.wikipedia.org/wiki/Wikip%C3%A9dia:Accueil_principal
+  - https://www.reddit.com/
+  - https://fr.yahoo.com/?p=us&guccounter=1
+  - http://www.qq.com
+  - https://world.taobao.com
+  - https://www.amazon.com
+  - https://www.google.co.in/?gws_rd=ssl
+  - https://twitter.com
+  - https://www.tmall.com
+  - https://www.instagram.com
+  - https://outlook.live.com/owa
+  - https://vk.com
+  - http://www.jd.com
+  - https://www.weibo.com/overseas
+  - http://info.cern.ch
+  - https://en.wikipedia.org/wiki/Web_content
+  - http://www.sina.com.cn
+  - http://www.sohu.com

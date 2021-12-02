@@ -1,0 +1,28 @@
+@startuml
+
+class Agent
+Agent : ip_address
+Agent : hostname
+
+class AgentScheduler
+
+class Job
+Job : job_name
+Job : description
+
+class JobInstance
+JobInstance : id
+JobInstance : date
+JobInstance : arguments
+
+class ScenarioInstanceContext
+ScenarioInstanceContext : scenario_id
+ScenarioInstanceContext : owner_scenario_id
+
+Agent *- "1" AgentScheduler
+Agent *-- "*" Job
+AgentScheduler *-- "*" JobInstance
+Job "1" -o JobInstance
+JobInstance *- "1" ScenarioInstanceContext
+
+@enduml

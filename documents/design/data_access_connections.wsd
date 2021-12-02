@@ -1,0 +1,56 @@
+@startuml
+
+!include data_access_collector_connection.wsd
+
+class AsyncCollectorConnection
+
+class ElasticSearchCommunicator {
+  __init__(ip: String, port: Integer)
+  search_query(body: Dictionnary, **query: Dictionnary)
+  delete_query(query: Dictionnary)
+  data_write(body: String, first_time_request: Boolean)
+}
+
+class ElasticSearchConnection {
+  agent_names(job: String, scenario: Integer, job_instance: Integer, timestamps: Integers)
+  job_names(scenario: Integer, agent: String, job_instance: Integer, timestamps: Integers)
+  job_instance_ids(job: String, scenario: Integer, agent: String, timestamps: Integers)
+  scenario_instance_ids(job: String, agent: String, job_instance: String, timestamps: Integers)
+  timestamps(job: String, scenario: Integer, agent: String, job_instance: Integer)
+  logs(job: String, scenario: Integer, agent: String, job_instance: Integer, timestamps: Integers)
+  orphans(timestamps: Integers)
+  remove_logs(job: String, scenario: Integer, agent: String, job_instance: Integer, timestamps: Integers)
+  import_job(scenario_id: Integer, owner_id: Integer, job: Job)
+}
+
+class InfluxDBCommunicator {
+  __init__(ip: String, port: Integer, db_name: String, precision: String)
+  sql_query(query: String)
+  data_write(data: String)
+}
+
+
+class InfluxDBConnection {
+  agent_names(job: String, scenario: Integer, job_instance: Integer, suffix: String)
+  job_names(scenario: Integer, agent: String, job_instance: Integer, suffix: String)
+  job_instance_ids(job: String, scenario: Integer, agent: String, suffix: String)
+  scenario_instance_ids(job: String, agent: String, job_instance: String, suffix: String)
+  timestamps(job: String, scenario: Integer, agent: String, job_instance: Integer, suffix: String, condition: Condition)
+  origin(job: String, scenario: Integer, agent: String, job_instance: Integer, suffix: String, condition: Condition)
+  suffixes(job: String, scenario: Integer, agent: String, job_instance: Integer)
+  raw_statistics(job: String, scenario: Integer, agent: String, job_instance: Integer, suffix: String, fields: Strings, condition: Condition)
+  statistics(job: String, scenario: Integer, agent: String, job_instance: Integer, suffix: String, fields: Strings, condition: Condition)
+  orphans(condition: Condition, timestamps: Integers)
+  remove_statistics(job: String, scenario: Integer, agent: String, job_instance: Integer, suffix: String, condition: Condition)
+  import_job(scenario_id: Integer, owner_id: Integer, job: Job)
+  get_field_keys()
+}
+
+AsyncCollectorConnection ..|> CollectorConnection
+ElasticSearchCommunicator <|-- ElasticSearchConnection
+CollectorConnection *- ElasticSearchConnection
+InfluxDBConnection --|> InfluxDBCommunicator
+CollectorConnection *- InfluxDBConnection
+ElasticSearchConnection -[hidden]- InfluxDBConnection
+
+@enduml

@@ -1,0 +1,78 @@
+#   OpenBACH is a generic testbed able to control/configure multiple
+#   network/physical entities (under test) and collect data from them. It is
+#   composed of an Auditorium (HMIs), a Controller, a Collector and multiple
+#   Agents (one for each network entity that wants to be tested).
+#   
+#   
+#   Copyright © 2016-2020 CNES
+#   
+#   
+#   This file is part of the OpenBACH testbed.
+#   
+#   
+#   OpenBACH is a free software : you can redistribute it and/or modify it under
+#   the terms of the GNU General Public License as published by the Free Software
+#   Foundation, either version 3 of the License, or (at your option) any later
+#   version.
+#   
+#   This program is distributed in the hope that it will be useful, but WITHOUT
+#   ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS
+#   FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+#   details.
+#   
+#   You should have received a copy of the GNU General Public License along with
+#   this program. If not, see http://www.gnu.org/licenses/.
+
+---
+
+- name: Drop installed Jobs and Entities from the Backend Database
+  command: ./manage.py shell
+  args:
+    chdir: /opt/openbach/controller/backend
+    stdin: "from openbach_django.models import *; Job.objects.all().delete(); Entity.objects.all().delete(); Agent.objects.all().delete(); Collector.objects.all().delete()"
+  become: yes
+  become_user: openbach
+  when: not (openbach_clear_databases | default(False))
+
+- name: Stop Controller Services
+  systemd: name={{ item }} state=stopped enabled=no daemon_reload=yes
+  with_items:
+    - pgbouncer
+    - rsyslog
+    - openbach_backend
+    - openbach_conductor
+    - openbach_director
+  become: yes
+
+- name: Drop the Backend Database
+  postgresql_db: name=openbach_db state=absent
+  become: yes
+  become_user: postgres
+  when: openbach_clear_databases | default(False)
+
+- name: Stop PostgreSQL Server
+  systemd: name=postgresql state=stopped enabled=no
+  become: yes
+
+- name: Remove Controller Services Files
+  file: path=/etc/systemd/system/{{ item }}.service state=absent
+  with_items:
+    - openbach_backend
+    - openbach_conductor
+    - openbach_director
+  become: yes
+
+- name: Remove Rsyslog Configuration
+  file: path=/etc/rsyslog.d/{{ item }}.conf state=absent
+  with_items:
+    - openbach_backend
+    - openbach_backend_local
+    - openbach_conductor
+    - openbach_conductor_local
+    - openbach_director
+    - openbach_director_local
+  become: yes
+
+- name: Remove Controller Repository
+  file: path=/opt/openbach/controller state=absent
+  become: yes

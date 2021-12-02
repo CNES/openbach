@@ -1,0 +1,58 @@
+@startuml
+
+abstract class Condition {
+  is_timestamp(): Boolean
+  __str__()
+}
+
+abstract class BooleanCondition {
+  __init__(*conditions: Conditions)
+}
+
+class ConditionAnd {
+  KEYWORD: String = 'AND'
+}
+
+class ConditionOr {
+  KEYWORD: String = 'OR'
+}
+
+enum Operator {
+  Equal
+  NotEqual
+  Different
+  GreaterThan
+  GreaterOrEqual
+  LessThan
+  LessOrEqual
+  Matches
+  DoesNotMatch
+}
+
+abstract class ComparatorCondition {
+  __init__(name: String, operator: Operator, value)
+}
+
+class ConditionTag {
+  escaped_value
+}
+
+class ConditionField {
+  escaped_value
+}
+
+class ConditionTimestamp {
+  __init__(operator: Operator, value: Integer, unit: String, from_now: Boolean)
+  escaped_value
+  is_timestamp()
+}
+
+Condition <|-- BooleanCondition
+Condition <|-- ComparatorCondition
+BooleanCondition <|-- ConditionAnd
+BooleanCondition <|-- ConditionOr
+ComparatorCondition <|-- ConditionTag
+ComparatorCondition <|-- ConditionField
+ComparatorCondition <|-- ConditionTimestamp
+
+@enduml

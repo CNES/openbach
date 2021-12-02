@@ -1,0 +1,25 @@
+=== Job description ===
+
+This job analyzes a pcap file in order to get the average packet length, average inter packets delay, bitrate, etc.
+If a filter is specified, only filtered packets will be considered.
+
+Please note that the install of this job may require that you delete the following folder '/tmp/collect-agent' .
+
+Warning: the analyze of pcap files might be slow and/or crash when your agent is limited in terms of RAM ressources, e.g. the job might crash when the file size >40MB and the RAM <2GB. 
+
+== Example ==
+
+Analyze IP packets from a capture file ''test.pcap'' which is located in root user's home directory on a given Agent and compute statistics every 100 ms. Packets filter rule includes packet fields set as follows : src_ip = ''192.168.1.1'', src_port = ''80'', dst_ip = ''172.20.0.1'', dst_port = ''63006''.
+
+In the web interface, set the following parameters:
+  * **capture_file** = ~/test.pcap
+  * **metrics_interval** = 100
+  * **src_ip** = 192.168.1.1
+  * **src_port** = 80
+  * **dst_ip** = 172.20.0.1
+  * **dst_port** = 63006
+
+Or launch the job manually from the Agent as follows:
+<code>
+JOB_NAME=pcap_postprocessing sudo -E python3.6 /opt/openbach/agent/jobs/pcap_postprocessing/pcap_postprocessing.py ~/test.pcap -A 192.168.1.1 -a 172.20.0.1 -D 80 -d 63006 -T 100
+</code>

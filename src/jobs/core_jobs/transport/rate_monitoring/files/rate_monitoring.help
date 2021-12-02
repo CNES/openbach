@@ -1,0 +1,40 @@
+=== Job description ===
+
+This Job measures the rate (b/s) of a flow. It uses an //iptable// entry to measure the number of packets and the size of data of a chain.
+
+=== Statistics ===
+
+The job collects the rate (b/s) measured in the applied chain. The name of the statistic is //rate_monitoring// and it is collected every *sampling_interval* seconds (the parameter of the job).
+
+=== Examples ===
+
+== Example 1 ==
+
+Measure every 2 seconds the rate of the outgoing TCP connexions on the port ''5001'' and the destination address ''172.20.0.83''.
+
+In the web interface, set the following parameters:
+  * **sampling_interval** = 2
+  * **chain_name** = OUTPUT
+  * **destination_ip** = 172.20.0.83
+  * **protocol** = tcp
+  * **destination_port** = 5001
+
+Or launch the job manually from the Agent as follows:
+<code>
+JOB_NAME=rate_monitoring sudo -E python3 /opt/openbach/agent/jobs/rate_monitoring/rate_monitoring.py 2 OUTPUT -d 172.20.0.83 tcp --dport 5001
+</code>
+
+== Example 2 ==
+
+Measure every 1 second the rate of the incoming ICMP packets from source address ''172.20.0.83''.
+
+In the web interface, set the following parameters:
+  * **sampling_interval** = 1
+  * **chain_name** = INPUT
+  * **destination_ip** = 172.20.0.83
+  * **protocol** = icmp
+
+Or launch the job manually from the Agent as follows:
+<code>
+JOB_NAME=rate_monitoring sudo -E python3 /opt/openbach/agent/jobs/rate_monitoring/rate_monitoring.py 1 INPUT -s 172.20.0.83 icmp
+</code>

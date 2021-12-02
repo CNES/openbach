@@ -1,0 +1,21 @@
+=== Job description ===
+
+This Job executes the fping command to measure the RTT delay of a group of ICMP packets (with a frequency of count*interval sec. or count packets).
+
+=== Examples ===
+
+== Example 1 ==
+
+Generate 1000 ICMP packets of size 500 bytes (508 bytes with ICMP header) with 200ms of interval between packets, from your Agent to ''8.8.8.8'' address. The RTT measurement must be collected every 10 packets (i.e. every 2 seconds).
+
+In the web interface, set the following parameters:
+  * **destination_ip** = 8.8.8.8
+  * **count** = 1000
+  * **interval** = 200
+  * **mean** = 10
+  * **packetsize** = 500
+
+Or launch the job manually from the Agent as follows:
+<code>
+JOB_NAME=fping sudo -E python3 /opt/openbach/agent/jobs/fping/fping.py 8.8.8.8 -m 10 -i 200 -c 1000 -s 500
+</code>

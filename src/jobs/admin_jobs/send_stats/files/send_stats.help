@@ -1,0 +1,18 @@
+=== Job Description ===
+
+This Job will resend the statistics produce by the named Job since the date.
+
+=== Examples ===
+
+== Example 1 ==
+
+Send the stats generate by the job ''rate_monitoring'' after ''2016-10-05 10:00:00.000''.
+
+In the web interface, set the following parameters:
+  * **date** = 2016-10-05 10:00:00.000
+  * **job_name** = rate_monitoring
+
+Or launch the job manually from the Agent as follows:
+<code>
+JOB_NAME=send_stats sudo -E python3 /opt/openbach/agent/jobs/send_stats/send_stats.py -j rate_monitoring 2016-10-05 10:00:00.000
+</code>
