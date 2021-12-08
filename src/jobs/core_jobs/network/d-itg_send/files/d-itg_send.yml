@@ -109,23 +109,48 @@ arguments:
           - owdm
           - rttm
 statistics:
-    - name:        bitrate
+    - name:        bitrate_receiver
       description: >
-          Bitrate of the receiver/sender
+          Bitrate of the receiver
       frequency:   'Only one time, once the D-ITGDec task is finished'
-    - name:        delay
+    - name:        bitrate_sender
       description: >
-          One Way Delay or Round Trip Time
+          Bitrate of the sender
       frequency:   'Only one time, once the D-ITGDec task is finished'
-    - name:        jitter
+    - name:        owd_receiver
       description: >
-          Jitter of the receiver/sender
+          One Way Delay of the receiver
       frequency:   'Only one time, once the D-ITGDec task is finished'
-    - name:        packetloss
+    - name:        owd_return
       description: >
-          Packetloss of the receiver/sender
+          One Way Delay return
       frequency:   'Only one time, once the D-ITGDec task is finished'
-    - name:        packetloss_rate
+    - name:        rtt_sender
       description: >
-          Packetloss Rate of the receiver/sender
+          Round Trip Time delay
+      frequency:    'Only one time, once the D-ITGDec task is finished'
+    - name:        jitter_receiver
+      description: >
+          Jitter of the receiver
       frequency:   'Only one time, once the D-ITGDec task is finished'
+    - name:        jitter_sender
+      description: >
+          Jitter of the sender
+      frequency:   'Only one time, once the D-ITGDec task is finished'
+    - name:        packetloss_receiver
+      description: >
+          Packetloss of the receiver
+      frequency:   'Only one time, once the D-ITGDec task is finished'
+    - name:        packetloss_sender
+      description: >
+          Packetloss of the sender
+      frequency:   'Only one time, once the D-ITGDec task is finished'
+    - name:        packetloss_rate_receiver
+      description: >
+          Packetloss Rate of the receiver
+      frequency:   'Only one time, once the D-ITGDec task is finished'
+    - name:        packetloss_rate_sender
+      description: >
+          Packetloss Rate of the sender
+      frequency:   'Only one time, once the D-ITGDec task is finished'
+

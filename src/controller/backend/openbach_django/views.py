@@ -572,6 +572,7 @@ class JobView(BaseJobView):
                 name=name, address=address, 
                 config_file=self.request.JSON.get('config_file'),
                 stat_name=self.request.JSON.get('stat_name'),
+                path=self.request.JSON.get('path'),
                 local=self.request.JSON.get('local'),
                 storage=self.request.JSON.get('storage'),
                 broadcast=self.request.JSON.get('broadcast'))

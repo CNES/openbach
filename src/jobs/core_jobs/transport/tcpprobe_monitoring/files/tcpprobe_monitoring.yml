@@ -69,18 +69,18 @@ arguments:
       description: Path to a temporary results file (default=/tcp/tcpprobe.out)
 
 statistics:
-  - name: cwnd_monitoring.*port*
+  - name: cwnd_monitoring
     description: The congestion windows of a TCP connection
     frequency: 'every *packet_sampling_interval* received packet'
-  - name: ssthresh_monitoring.*port*
+  - name: ssthresh_monitoring
     description: The Slow-Start Threshold of a TCP connection
     frequency: 'every *packet_sampling_interval* received packet'
-  - name: sndwnd_monitoring.*port*
+  - name: sndwnd_monitoring
     description: The sent TCP window size 
     frequency: 'every *packet_sampling_interval* received packet'
-  - name: rtt_monitoring.*port*
+  - name: rtt_monitoring
     description: The Round-Trip Time of a TCP connection
     frequency: 'every *packet_sampling_interval* received packet'
-  - name: rcvwnd_monitoring.*port*
+  - name: rcvwnd_monitoring
     description: The received TCP window size
     frequency: 'every *packet_sampling_interval* received packet'

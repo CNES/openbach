@@ -116,6 +116,6 @@ arguments:
           optional:                     
 
 statistics:
-  - name: rate_monitoring
+  - name: rate
     description: The mesured rate
     frequency: configurable
