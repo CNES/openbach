@@ -320,7 +320,7 @@ class Scenario(models.Model):
                 except Job.DoesNotExist:
                     raise Scenario.MalformedError(
                             error_hierarchy,
-                            override_error='No such job in the database')
+                            override_error='No such job in the controller database: {}'.format(job_name))
 
                 arguments = function[function_name][job_name]
                 subcommand = job.subcommands.get(name=None, group=None)
