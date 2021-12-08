@@ -25,6 +25,18 @@
 
 ---
 
+- name: Register resources from hosts
+  hosts:
+    - agent
+    - controller
+  roles:
+    - register_resources
+
+- name: Check resources
+  hosts: localhost
+  roles:
+    - check_resources
+
 - hosts: localhost
   gather_facts: no
   tags:
