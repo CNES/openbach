@@ -87,7 +87,7 @@ def main(destination_ip, count, interval, interface, packetsize, ttl, n_mean):
     cmd.extend(command_line_flag_for_argument(packetsize, '-b'))
     cmd.extend(command_line_flag_for_argument(ttl, '-t'))
 
-    pattern = re.compile(r'\[(\d+\.\d+)\] {} : \[\d+\], \d+ bytes, (\d+\.\d+) '.format(destination_ip))
+    pattern = re.compile(r'\[(\d+\.\d+)\] {} : \[\d+\], \d+ bytes, (\d+\.?\d*) '.format(destination_ip))
     measurements = []
 
     # launch command
