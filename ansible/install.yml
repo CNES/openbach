@@ -105,6 +105,11 @@
   roles:
     - install_job
 
+- name: Create Openbach project
+  hosts: controller
+  roles:
+    - { role: "create_project", when: project_name is defined }
+
 - name: Run Various Tests
   hosts: controller
   gather_facts: no
