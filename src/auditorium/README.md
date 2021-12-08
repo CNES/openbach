@@ -1,8 +1,14 @@
 # Administrator Manual
 
 This manual will detail administrative action of your OpenBACH platform that you can perform
-through the Web Interface. Details of others capabilities of the Web Interface can be found
-in the [user manual](ihm/README.md); you can also find the Command-Line Administrator Manual
+through the Web Interface, such as:
+- List, Add, and Remove agents;
+- List, Add, and Remove jobs from the controller database;
+- List, Add, and Remove collectors;
+- Manage Users rights.
+
+ Details of others capabilities of the Web Interface can be found
+in the [user manual](ihm/README.md). You can also find the Command-Line Administrator Manual
 in the [OpenBACH-extra project][1].
 
 ## Manage agents
@@ -51,7 +57,7 @@ When you click on a registered jobs, you can select/unselect the Agents where yo
 to install/uninstall the job.
 
 When jobs are already registered/added, this page automatically detects if a new version
-of the jobs is available on [the openbach-extra gitlab][2] and/or on [the openbach gitlab][3].
+of the jobs is available on [the openbach-extra project][2] and/or on [the openbach project][3].
 If this is the case, when you select the job, you can update the version of the controller,
 and then update/install the version on your Agents. Check [the developer manual](/src/jobs/README.md)
 for more information on jobs versions.
@@ -81,6 +87,6 @@ On top of the regular actions of a user and these administrative actions, as an 
 user, you will be able to see and interact with projects owned by other users.
 
 
-[1]: https://forge.net4sat.org/openbach/openbach-extra/blob/master/apis/auditorium_scripts/README.md
-[2]: https://forge.net4sat.org/openbach/openbach-extra/tree/master/externals_jobs/stable_jobs
-[3]: https://forge.net4sat.org/openbach/openbach/tree/master/src/jobs/core_jobs
+[1]: https://github.com/CNES/openbach-extra/blob/master/apis/auditorium_scripts/README.md
+[2]: https://github.com/CNES/openbach-extra/tree/master/externals_jobs/stable_jobs
+[3]: https://github.com/CNES/openbach/tree/master/src/jobs/core_jobs

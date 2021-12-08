@@ -9,15 +9,14 @@ For specific requirements of each kind of machine, see the
 
 ### Target machines (your future agents/controller/collector/auditorium)
 
-  * Ubuntu 16.04 LTS for the target machines;
+  * Ubuntu 20.04 LTS for the target machines;
   * Recommended 2Gb of RAM on the target machines.
-  * Recommended Python3.5.2
   * The machines need to have a default route (check ip route) and Internet access.
 
 ### Installation machine
 
   * Any Linux flavor with Ansible (at least version 2.10) and
-    Python 3.5 or newer on the installation machine;
+    Python 3.8.5 or newer on the installation machine;
   * The installation machine needs to have access to all target
     machines (could e.g. be one of the target machines);
   * Matplotlib and Panda (if you need to launch executors that generate
@@ -30,23 +29,23 @@ and **not** Python 2. If this is not the case please refer to the
 
 ```
 $ ansible --version
-ansible 2.7.6
-  config file = /home/exploit/openbach/ansible/ansible.cfg
-  configured module search path = ['/home/exploit/.ansible/plugins/modules', '/usr/share/ansible/plugins/modules']
-  ansible python module location = /usr/lib/python3.7/site-packages/ansible
-  executable location = /usr/bin/ansible
-  python version = 3.7.2 (default, Jan 10 2019, 23:51:51) [GCC 8.2.1 20181127]
+ansible 2.10.5
+  config file = None
+  configured module search path = ['/home/ubuntu/.ansible/plugins/modules', '/usr/share/ansible/plugins/modules']
+  ansible python module location = /usr/local/lib/python3.8/dist-packages/ansible
+  executable location = /usr/local/bin/ansible
+  python version = 3.8.5 (default, Jul 28 2020, 12:59:40) [GCC 9.3.0]
 ```
 
 ## Getting OpenBACH
 
 Before being able to deploy an OpenBACH platform, you must acquire the sources files
-hosted on the [Net4Sat forge](https://forge.net4sat.org/openbach/openbach
+hosted on [CNES GITHUB page](https://github.com/CNES/openbach
 "To be fair, you might already know that if you're reading this").
 
 You can either:
   * Download an [archive file of the repository][1];
-  * Or clone the repository using `git`: `git clone --depth 1 --single-branch https://forge.net4sat.org/openbach/openbach.git`
+  * Or clone the repository using `git`: `git clone --depth 1 --single-branch https://github.com/CNES/openbach/openbach.git`
 
 > :warning: Developpers that want to contribute to the OpenBACH repository should clone
 the whole history (i.e.: dropping the `depth` and `single-branch` options)
@@ -131,5 +130,5 @@ More information on the uninstall can be found in the [using Ansible manual](/do
   * [Backup and Restoration guide](/documents/installation/Backup.md);
 
 
-[1]: https://forge.net4sat.org/openbach/openbach/repository/archive.tar.gz?ref=master
+[1]: https://github.com/CNES/openbach/repository/archive.tar.gz?ref=master
 [2]: https://docs.ansible.com/ansible/latest/index.html

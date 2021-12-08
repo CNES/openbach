@@ -1,6 +1,10 @@
 OpenBACH
 ========
 
+OpenBACH is funded and promoted by CNES (French Space Center) as a reference
+open-source software tool within its research and development studies and
+activities in the domain of satellite communication systems and networks.
+
 OpenBACH is a user-friendly and efficient benchmark to configure, supervise and
 control your network under test (e.g. terrestrial networks, satellite networks,
 WAN, LAN, etc.). It provides an efficient modular structure to facilitate the
@@ -8,18 +12,8 @@ additions of new software tools, monitoring parameters, tasks, etc. The
 benchmark is able to be integrated in different types of equipments, servers,
 clients, hardware and software with minimal adaptation effort.
 
-This platform has been promoted by CNES (French Space Center) as a reference
-open-source software tool within its research and development studies and
-activities in the domain of satellite network communications systems. OpenBACH
-has been developped in order to be complementary to OpenSAND, the satellite
-network emulator.
-
 The documentation is scattered in this repository through README files at
 appropriate places, a table of content is available below.
-
-OpenBACH is funded and promoted by CNES (French Space Center) as a reference
-open-source software tool within its research and development studies and
-activities in the domain of satellite communication systems and networks.
 
 Design Principles
 =================
@@ -44,11 +38,6 @@ Various manuals are available in this repository:
   * [Administrator manual](src/auditorium/README.md)
   * [Developer manual](src/README.md)
 
-Exploitation
-============
-
-This section gathers:
-
 Get Involved
 ============
 
@@ -61,7 +50,6 @@ Examples of project using OpenBACH
 ==================================
 
   * A simple example chaining reference scenarios in python is available [here][1]
-  * A project that let you install, set up and run OpenBACH basic scenarios is available [here][2]
 
 Project Partners
 ================
@@ -101,5 +89,4 @@ The OpenBACH core uses third-party software components. Below, we list their lic
   * Nginx: BSD 2-clauses
 
 
-[1]: https://forge.net4sat.org/openbach/openbach-extra/tree/master/executors/examples
-[2]: https://forge.net4sat.org/kuhnn/openbach-example-simple
+[1]: https://github.com/CNES/openbach-extra/tree/master/executors/examples

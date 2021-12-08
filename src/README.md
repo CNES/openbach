@@ -4,9 +4,9 @@ There are multiple developer manuals that are detailed in this page.
 
 If you want to contribute to OpenBACH, you will have to follow some guidelines. This document
 will guide through various development processes.
-  * Introduction to OpenBACH-extra and [OpenBACH API][1]
+  * Introduction to [OpenBACH-extra][1] and [OpenBACH API][2]
   * [Job Developer Manual](jobs/README.md)
-  * [Scenario Developer Manual][2]
+  * [Scenario Developer Manual][3]
   * [Core Developer Manual](controller/README.md)
   * [Agent Developer Manual](agent/README.md)
 
@@ -19,30 +19,30 @@ If you have developed your own jobs/helpers/scenarios/executors and wish to have
 them included as reference and maintained by the OpenBach team, please follow these steps:
   * Test your contributions on an OpenBACH platform;
   * Include the standard licence header in your contributed files;
-  * Agree to and sign the [INDIVIDUAL CONTRIBUTOR AGREEMENT FOR OpenBACH][4];
-  * Create a git branch off the [dev branch][5] and commit your work there;
+  * Agree to and sign the [INDIVIDUAL CONTRIBUTOR AGREEMENT FOR OpenBACH][5];
+  * Create a git branch off the [dev branch][6] and commit your work there;
   * Create a merge request of this branch into `dev`.
 
-Do not hesitate to contact the OpenBACH team through the [mailing list][3] to ensure the
+Do not hesitate to contact the OpenBACH team through the [mailing list][4] to ensure the
 correct localization of your contributions.
 
 ## Contributing to the core of OpenBACH
 
-Please get in touch with the maintainers using the [mailing list][3] before being able to create a merge request.
+Please get in touch with the maintainers using the [mailing list][4] before being able to create a merge request.
 
 ## Modifying Django's Models
 
-When changing Django's models, do not forget to [create migrations][6] so the install process
+When changing Django's models, do not forget to [create migrations][7] so the install process
 is aware of the changes. Pay extra attention to how you create your fields as the database
 may already contain some data.
 
 For instance, if you are creating a required field on a model, you must either:
   * provide a default value for the field; or
-  * populate the field from other values in the database using a [data migration][7].
+  * populate the field from other values in the database using a [data migration][8].
 
 When creating a data migration, it is a 3 step process:
   * create an initial migration with your field allowing empty values (`null=True`);
-  * write the data migration as a function to be passed to [RunPython][8];
+  * write the data migration as a function to be passed to [RunPython][9];
   * alter the field to disallow empty values (remove `null=True`) and squash the 3 migrations into a single file.
 
 An example of this use case can be found in
@@ -105,12 +105,12 @@ You can launch the agent in debug mode using:
 $ python3 /opt/openbach/agent/openbach_agent.py
 ```
 
-
-[1]: https://forge.net4sat.org/openbach/openbach-extra/tree/master/apis
-[2]: https://forge.net4sat.org/openbach/openbach-extra/tree/master/apis/scenario_builder/scenarios
-[3]: http://openbach.org/content/mail.php
-[4]: http://openbach.org/content/agreement.php
-[5]: https://forge.net4sat.org/openbach/openbach-extra/tree/dev
-[6]: https://docs.djangoproject.com/en/3.0/topics/migrations/
-[7]: https://docs.djangoproject.com/en/3.0/topics/migrations/#data-migrations
-[8]: https://docs.djangoproject.com/en/3.0/ref/migration-operations/#django.db.migrations.operations.RunPython
+[1]: https://github.com/CNES/openbach-extra
+[2]: https://github.com/CNES/openbach-extra/tree/master/apis
+[3]: https://github.com/CNES/openbach-extra/tree/master/apis/scenario_builder/scenarios
+[4]: http://openbach.org/content/mail.php
+[5]: http://openbach.org/content/agreement.php
+[6]: https://github.com/openbach-extra/tree/dev
+[7]: https://docs.djangoproject.com/en/3.0/topics/migrations/
+[8]: https://docs.djangoproject.com/en/3.0/topics/migrations/#data-migrations
+[9]: https://docs.djangoproject.com/en/3.0/ref/migration-operations/#django.db.migrations.operations.RunPython

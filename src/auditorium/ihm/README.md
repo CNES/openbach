@@ -1,11 +1,7 @@
 # User Manual
 
-This manual will detail how to use OpenBACH through the Web Interface, you can find the
-Command-Line User Manual in the [OpenBACH-extra project][1].
-
-You can also find the following projects using OpenBACH:
-  * A simple example [chaining reference scenarios][2] in python
-  * A project that let you [install, set up and run OpenBACH][3] basic scenarios
+This manual will detail how to use OpenBACH through the Web Interface.
+OpenBACH can also be used through Command-Line. More details on the Command-Line User Manual can be found in the [OpenBACH-extra project][1].
 
 Using the Web Interface of OpenBACH, you can:
   * List, Create, and Delete projects;
@@ -106,8 +102,8 @@ By clicking on the **SCENARIO** tab, you will be able to see a list of all defin
 
 From there, you can do the following actions:
   * **Create** a new, empty, scenario
-  * **Import** an existing scenario form a JSON file (if you want to use [reference scenarios][4],
-    it is advised to build a JSON file with the [executors][5])
+  * **Import** an existing scenario form a JSON file (if you want to use [reference scenarios][2],
+    it is advised to build a JSON file with the [executors][3])
   * Manage existing scenarios:
     * **Launch** a scenario by clicking on the green arrow on the left of its name
     * **Delete** a scenario by clicking on the red trash icon on the right of its name
@@ -212,8 +208,6 @@ When clicking on a scenario instance, you will be able to perform 4 distinct act
     are displayed. You will be prompted beforehand for the data that you are interested in.
 
 
-[1]: https://forge.net4sat.org/openbach/openbach-extra/blob/master/apis/auditorium_scripts/README.md
-[2]: https://forge.net4sat.org/openbach/openbach-extra/tree/master/executors/examples
-[3]: https://forge.net4sat.org/kuhnn/openbach-example-simple
-[4]: https://forge.net4sat.org/openbach/openbach-extra/tree/master/apis/scenario_builder/scenarios
-[5]: https://forge.net4sat.org/openbach/openbach-extra/tree/master/executors/references
+[1]: https://github.com/CNES/openbach-extra
+[2]: https://github.com/CNES/openbach-extra/tree/master/apis/scenario_builder/scenarios
+[3]: https://github.com/CNES/openbach-extra/tree/master/executors/references
