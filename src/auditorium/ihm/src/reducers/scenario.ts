@@ -1,13 +1,15 @@
 import {
+    CLEAR_FILTERED_SCENARIO_INSTANCES,
+    CLEAR_SCENARIO_INSTANCE_ERROR,
+    CLEAR_SCENARIO_INSTANCES,
     DELETE_SCENARIO_INSTANCES_SUCCESS,
+    GET_FILTERED_SCENARIO_INSTANCES_SUCCESS,
     GET_SCENARIO_INSTANCE_SUCCESS,
     GET_SCENARIO_INSTANCES_SUCCESS,
-    CLEAR_SCENARIO_INSTANCES,
-    CLEAR_FILTERED_SCENARIO_INSTANCES,
-    GET_FILTERED_SCENARIO_INSTANCES_SUCCESS,
+    START_SCENARIO_INSTANCE_ERROR,
 } from "../utils/constants";
 
-import {IScenarioInstanceState, IScenarioInstance} from "../interfaces/scenarioInstance.interface";
+import {IScenarioInstance, IScenarioInstanceState, IStartScenarioError} from "../interfaces/scenarioInstance.interface";
 
 const INITIAL_STATE: IScenarioInstanceState = {
     all: [],
@@ -24,7 +26,7 @@ function scenarioReducer(state: IScenarioInstanceState = INITIAL_STATE, action =
             const id = instance.scenario_instance_id;
             const index = state.all.findIndex((i: IScenarioInstance) => i.scenario_instance_id === id);
             let currentIndex = -1;
-            const currentScenario: {[name: string]: boolean;} = {};
+            const currentScenario: { [name: string]: boolean; } = {};
             state.current.forEach((i: IScenarioInstance, idx: number) => {
                 currentScenario[i.scenario_name] = true;
                 if (i.scenario_instance_id === id) {
@@ -97,6 +99,22 @@ function scenarioReducer(state: IScenarioInstanceState = INITIAL_STATE, action =
                 ...state,
                 current: [],
                 moreCurrent: true,
+            };
+
+        case START_SCENARIO_INSTANCE_ERROR:
+            const error: IStartScenarioError = action.payload;
+            if (!error.hasOwnProperty("entities")) {
+                return state;
+            }
+            return {
+                ...state,
+                startError: error,
+            };
+
+        case CLEAR_SCENARIO_INSTANCE_ERROR:
+            return {
+                ...state,
+                startError: undefined,
             };
 
         default:

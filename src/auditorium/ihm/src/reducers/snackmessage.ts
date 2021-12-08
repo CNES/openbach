@@ -101,11 +101,15 @@ function snackReducer(state = INITIAL_STATE, action = {payload: null, message: n
         case REFRESH_TOPOLOGY_ERROR:
         case REMOVE_SCENARIO_ERROR:
         case RESERVE_AGENT_ERROR:
-        case START_SCENARIO_INSTANCE_ERROR:
         case UPDATE_PROJECT_ERROR:
         case UPDATE_PROJECTS_ERROR:
         case UPDATE_SCENARIO_ERROR:
             return buildMessage("Something went wrong: " + action.payload.message);
+
+        case START_SCENARIO_INSTANCE_ERROR:
+            if (!action.payload.hasOwnProperty("entities")) {
+                return buildMessage("Something went wrong: " + action.payload.error);
+            }
 
         default:
             return state;
