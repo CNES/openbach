@@ -89,12 +89,12 @@ arguments:
           required:
           optional:
             - name: destination_port
-              type: int
+              type: str
               count: 1
               flag: '--dport'
               description: The destination port to monitor
             - name: source_port
-              type: int
+              type: str
               count: 1
               flag: '--sport'
               description: The source port to monitor
@@ -102,12 +102,12 @@ arguments:
           required:
           optional:
             - name: destination_port
-              type: int
+              type: str
               count: 1
               flag: '--dport'
               description: The destination port to monitor
             - name: source_port
-              type: int
+              type: str
               count: 1
               flag: '--sport'
               description: The source port to monitor
@@ -116,6 +116,6 @@ arguments:
           optional:                     
 
 statistics:
-  - name: rate_monitoring
+  - name: rate
     description: The mesured rate
     frequency: configurable

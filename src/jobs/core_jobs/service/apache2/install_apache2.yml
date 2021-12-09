@@ -201,7 +201,7 @@
   become: yes
 
 - name: Create size specific files
-  shell: base64 /dev/urandom | head -c {{ item.size }} > /var/www/{{ domain }}/{{ item.size }}_file.txt
+  shell: base64 /dev/urandom | head -c {{ item.size }} > /var/www/{{ domain }}/{{ item.size }}_file.jpeg
   with_items:
     - { size: '500K' }
     - { size: '1M' }

@@ -45,7 +45,7 @@ import argparse
 import threading
 import traceback
 import contextlib
-from selenium import webdriver
+from seleniumwire import webdriver
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.firefox.firefox_binary import FirefoxBinary
 from selenium.webdriver.support.wait import WebDriverWait
@@ -123,6 +123,14 @@ def compute_qos_metrics(driver, url_to_fetch, qos_metrics):
         driver.get(url_to_fetch)
         for key, value in qos_metrics.items():
             results[key] = driver.execute_script(value)
+        for request in driver.requests:
+            if request.url in (url_to_fetch, url_to_fetch + '/'):
+                results['status_code'] = request.response.status_code
+                if results['status_code'] == 404:
+                    message = 'Warning : Fetched url {} returned response code 404 (Not Found)'.format(url_to_fetch)
+                    collect_agent.send_log(syslog.LOG_WARNING, message)
+                    print(message)
+                break
     except WebDriverException as ErrorMessage:
         message = 'ERROR when getting url: {}'.format(ErrorMessage)
         print(message)
@@ -132,7 +140,7 @@ def compute_qos_metrics(driver, url_to_fetch, qos_metrics):
     return results
 
     
-def print_qos_metrics(dict_to_print, config):
+def print_metrics(dict_to_print, config):
     """
     Helper method to print a dictionary of QoS metrics using their pretty names
     Args:
@@ -142,7 +150,12 @@ def print_qos_metrics(dict_to_print, config):
         NoneType
     """
     for key, value in dict_to_print.items():
-        print('{}: {} {}'.format(config['qos_metrics'][key]['pretty_name'], value, config['qos_metrics'][key]['unit']))
+        if key in config['qos_metrics']:
+            print('{}: {} {}'.format(config['qos_metrics'][key]['pretty_name'], value, config['qos_metrics'][key]['unit']))
+        elif key in config['extra_metrics']:
+            print('{}: {} {}'.format(config['extra_metrics'][key]['pretty_name'], value, config['extra_metrics'][key]['unit']))
+        else:
+            print('{}: {}'.format(key, value))
 
 
 def kill_children(parent_pid):
@@ -173,16 +186,13 @@ def launch_thread(collect_agent, url, config, qos_metrics, stop_compression, pro
         exit(message)
     if my_driver is not None:
         timestamp = int(time.time() * 1000)
-        my_qos_metrics = compute_qos_metrics(my_driver, url, qos_metrics)
+        statistics = compute_qos_metrics(my_driver, url, qos_metrics)
+        my_driver.quit()
+        statistics['compression_savings'] = 1 - (statistics['encoded_body_size'] / statistics['decoded_body_size'])
+        statistics['overhead'] = statistics['transfer_size'] - statistics['encoded_body_size']
         s = '# Report for web page ' + url + ' #'
         print('\n' + s)
-        print_qos_metrics(my_qos_metrics, config)
-        my_driver.quit()
-        statistics = {}
-        for key, value in my_qos_metrics.items():
-            statistics.update({key:value})
-        statistics['compression_savings'] = 1 - (statistics['encoded_body_size'] / statistics['decoded_body_size'])
-        statistics['overhead'] = statistics['transfer_size'] - statistics['decoded_body_size']
+        print_metrics(statistics, config)
         collect_agent.send_stat(timestamp, **statistics, suffix=url)
 
     else:
@@ -210,7 +220,8 @@ def main(nb_runs, max_threads, stop_compression, proxy_address, proxy_port, urls
     try:
         for i in range(1, args.nb_runs + 1, 1):
             for url in urls:
-                while threading.active_count() > max_threads:
+                # condition of "max_threads + 1" because seleniumwire uses 1 additional inner thread to monitor requests
+                while threading.active_count() > max_threads + 1:
                     time.sleep(1)
                 t = threading.Thread(target=launch_thread, args=(collect_agent, url, config, qos_metrics, stop_compression, proxy_address, proxy_port))
                 thread_list.append(t)

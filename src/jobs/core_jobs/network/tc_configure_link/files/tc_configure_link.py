@@ -250,7 +250,7 @@ if __name__ == '__main__':
         parser_apply.add_argument('-D', '--delay_distribution', choices=['uniform', 'normal', 'pareto', 'paretonormal'], 
                                   default='normal', help='Delay  distribution (default=normal)')
         parser_apply.add_argument('-d', '--delay', type=int, help='Packet delay in ms')
-        parser_apply.add_argument('-j', '--jitter', type=int, help='Delay variation in ms')
+        parser_apply.add_argument('-j', '--jitter', type=int, help='Delay variation in ms. Warning : this may introduce packets disorder.')
         parser_apply.add_argument('-L', '--loss_model', choices=['random', 'state', 'gemodel'], 
                                   default='random', help='Packet loss model (default=random)')
         parser_apply.add_argument('-l', '--loss_model_params', type=float, nargs='*', help='Parameters of the loss model')

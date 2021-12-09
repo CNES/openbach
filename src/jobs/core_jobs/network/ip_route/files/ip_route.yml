@@ -31,10 +31,10 @@ general:
       This Job executes the ip route command in order
       to allow packet/flow routing capabilities to reach
       the desired destination.
-  job_version: '2.2'
+  job_version: '2.3'
   keywords:
     - ip_route
-  persistent: no
+  persistent: yes
   need_privileges: yes
 
 platform_configuration:
@@ -76,6 +76,11 @@ arguments:
       count: 1 
       flag: '-irwnd'
       description: The initial receive window size for connections to this destination
+    - name: restore
+      type: None
+      count: 0 
+      flag: '-r'
+      description: Restore the previous configuration when the job finishes (the job becomes persistent)
   subcommand:
     - group_name: destination
       optional: no

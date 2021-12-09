@@ -1,0 +1,76 @@
+#   OpenBACH is a generic testbed able to control/configure multiple
+#   network/physical entities (under test) and collect data from them. It is
+#   composed of an Auditorium (HMIs), a Controller, a Collector and multiple
+#   Agents (one for each network entity that wants to be tested).
+#   
+#   
+#   Copyright © 2016-2020 CNES
+#   
+#   
+#   This file is part of the OpenBACH testbed.
+#   
+#   
+#   OpenBACH is a free software : you can redistribute it and/or modify it under
+#   the terms of the GNU General Public License as published by the Free Software
+#   Foundation, either version 3 of the License, or (at your option) any later
+#   version.
+#   
+#   This program is distributed in the hope that it will be useful, but WITHOUT
+#   ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS
+#   FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+#   details.
+#   
+#   You should have received a copy of the GNU General Public License along with
+#   this program. If not, see http://www.gnu.org/licenses/.
+
+---
+
+- name: Display various values regarding controller
+  debug:
+    msg: >
+      "disk_total: {{ hostvars[item].disk_total }} (needed: {{ controller_disk }}) --
+      disk_available: {{ hostvars[item].disk_available }} (needed: {{ controller_disk }}) --
+      ram: {{ hostvars[item].ram|int }} (needed: {{ controller_ram }}) --
+      cpu: {{ hostvars[item].cpu|int }} (needed: {{ controller_cpu }}) --
+      ipv4: {{ hostvars[item].ipv4 }} --
+      ipv6: {{ hostvars[item].ipv6 }}"
+  with_items: "{{ groups.controller | default([]) }}"
+
+- name: Display various values regarding agents
+  debug:
+    msg: >
+      "disk_total: {{ hostvars[item].disk_total }} (needed: {{ agent_disk }}) --
+      disk_available: {{ hostvars[item].disk_available }} (needed: {{ agent_disk }}) --
+      ram: {{ hostvars[item].ram|int }} (needed: {{ agent_ram }}) --
+      cpu: {{ hostvars[item].cpu|int }} (needed: {{ agent_cpu }}) --
+      ipv4: {{ hostvars[item].ipv4 }} --
+      ipv6: {{ hostvars[item].ipv6 }} --"
+  with_items: "{{ groups.agent | default([]) }}"
+
+- name: Check controller resources
+  set_fact:
+    resources_ctrl: "nok"
+  with_items: "{{ groups.controller | default([]) }}"
+  #when: (hostvars[item].disk_available|int) < controller_disk or (hostvars[item].ram|int) < controller_ram or (hostvars[item].cpu|int) < controller_cpu or (hostvars[item].ipv4 == {} and hostvars[item].ipv6 == {}) or ((hostvars[item].ipv4 != {} and hostvars[item].ipv4.type == 'wifi') or (hostvars[item].ipv6 != {} and hostvars[item].ipv6.type == 'wifi'))
+  when: (hostvars[item].disk_total|int) < controller_disk or (hostvars[item].ram|int) < controller_ram or (hostvars[item].cpu|int) < controller_cpu or (hostvars[item].ipv4 == {} and hostvars[item].ipv6 == {}) or ((hostvars[item].ipv4 != {} and hostvars[item].ipv4.type == 'wifi') or (hostvars[item].ipv6 != {} and hostvars[item].ipv6.type == 'wifi'))
+
+- name: Check agents resources
+  set_fact:
+    resources_agents: "nok"
+  with_items: "{{ groups.agent | default([]) }}"
+  #when: (hostvars[item].disk_available|int) < agent_disk or (hostvars[item].ram|int) < agent_ram or (hostvars[item].cpu|int) < agent_cpu or (hostvars[item].ipv4 == {} and hostvars[item].ipv6 == {}) or ((hostvars[item].ipv4 != {} and hostvars[item].ipv4.type == 'wifi') or (hostvars[item].ipv6 != {} and hostvars[item].ipv6.type == 'wifi'))
+  when: (hostvars[item].disk_total|int) < agent_disk or (hostvars[item].ram|int) < agent_ram or (hostvars[item].cpu|int) < agent_cpu or (hostvars[item].ipv4 == {} and hostvars[item].ipv6 == {}) or ((hostvars[item].ipv4 != {} and hostvars[item].ipv4.type == 'wifi') or (hostvars[item].ipv6 != {} and hostvars[item].ipv6.type == 'wifi'))
+
+- name: Ask to continue installation if resources are not met
+  pause:
+    prompt: "\n{{ continue_var | trim }}"
+  vars:
+    continue_var: >
+      The resources are not verified. Continue installation (Enter)?
+      To avoid this task you can cancel this playbook (^C) and
+      restart it using the '--skip-tags check_resources' flag.
+  register: continue_prompt
+  when: (resources_ctrl|default('')) == "nok" or (resources_agents|default('')) == "nok"
+  tags:
+    - check_resources
+

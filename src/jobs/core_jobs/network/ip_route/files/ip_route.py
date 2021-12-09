@@ -40,12 +40,15 @@ __credits__ = '''Contributors:
 
 import os
 import sys
+import time
 import syslog
+import signal
 import argparse
 import traceback
 import contextlib
-from ipaddress import ip_address, ip_network
 from enum import Enum
+from functools import partial
+from ipaddress import ip_address, ip_network
 
 import subprocess
 
@@ -79,8 +82,63 @@ def use_configuration(filepath):
         raise
 
 
-def main(operation, destination, gateway_ip, device, initcwnd, initrwnd):
-    command = ['ip', '-{}'.format(destination.version), 'route', str(operation), str(destination)]
+def run_command(command):
+    try:
+        p = subprocess.run(command, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+    except subprocess.CalledProcessError as ex:
+        message = 'ERROR: {}'.format(ex)
+        collect_agent.send_log(syslog.LOG_ERR, message)
+        sys.exit(message)
+
+    if p.returncode:
+        error = p.stderr.decode()
+        if 'No such process' in error:
+            message = 'WARNING: {} exited with non-zero return value ({}): {}'.format(
+                command, p.returncode, error)
+            collect_agent.send_log(syslog.LOG_WARNING, message)
+            sys.exit(0)
+        else:
+            message = 'ERROR: {} exited with non-zero return value ({}): {}'.format(
+                command, p.returncode, error)
+            collect_agent.send_log(syslog.LOG_ERR, message)
+            sys.exit(message)
+    else:
+        collect_agent.send_log(syslog.LOG_DEBUG, 'Applied successfully : ' + ' '.join(command))
+
+    return p.stdout.decode()
+
+
+def restore_route(old_route, destination, operation, signal, frame):
+    if operation == Operations.ADD.value:
+        # Delete added route
+        cmd = ['ip', 'route', 'del', str(destination)]
+    elif operation == Operations.DELETE.value:
+        # Add deleted route
+        cmd = ['ip', 'route', 'add'] + old_route
+    else:
+        # Restore previous route
+        if old_route:
+            cmd = ['ip', 'route', operation] + old_route
+        else:
+            cmd = ['ip', 'route', 'del', str(destination)]
+
+    run_command(cmd)
+    message = 'Stopped job ip_route. Previous route has been restored.'
+    collect_agent.send_log(syslog.LOG_DEBUG, message)
+    sys.exit(message)
+
+
+def main(operation, destination, gateway_ip, device, initcwnd, initrwnd, restore):
+    if restore:
+        if destination != 'default' and destination.version == 6:
+            old_route = run_command(['ip', '-6', 'r', 'show', str(destination)])
+        else: 
+            old_route = run_command(['ip', '-4', 'r', 'show', str(destination)])
+
+    if destination == 'default':
+        command = ['ip', 'route', str(operation), str(destination)]
+    else:
+        command = ['ip', '-{}'.format(destination.version), 'route', str(operation), str(destination)]
     if gateway_ip:
        command.extend(['via', str(gateway_ip)])
     if device:
@@ -90,31 +148,14 @@ def main(operation, destination, gateway_ip, device, initcwnd, initrwnd):
     if initrwnd:
        command.extend(['initrwnd', str(initrwnd)])
     
-    try:
-        p = subprocess.run(command, stderr=subprocess.PIPE)
-    except subprocess.CalledProcessError as ex:
-        message = 'ERROR: {}'.format(ex)
-        collect_agent.send_log(syslog.LOG_ERR, message)
-        sys.exit(message)
-    if p.returncode:
-        error = p.stderr.decode()
-        if any(
-                err in error
-                for err in {'File exists', 'No such process'}
-                ):
-            message = 'WARNING: {} exited with non-zero return value ({}): {}'.format(
-                command, p.returncode, error)
-            collect_agent.send_log(syslog.LOG_WARNING, message)
-            sys.exit(0)
-        else:
-            message = 'ERROR: {} exited with non-zero return value ({})'.format(
-                command, p.returncode)
-            collect_agent.send_log(syslog.LOG_ERR, message)
-            sys.exit(message)
-    else:
-        collect_agent.send_log(
-                syslog.LOG_DEBUG,
-                '{} route {}'.format(operation, destination))
+    run_command(command)
+
+    if restore:
+        # Manage SIGTERM and SIGINT signals behavior
+        signal.signal(signal.SIGTERM, partial(restore_route, old_route.split(), destination, operation))
+        signal.signal(signal.SIGINT, partial(restore_route, old_route.split(), destination, operation))
+        # Sleep until a signal is received
+        signal.pause()
 
 
 if __name__ == '__main__':
@@ -125,39 +166,50 @@ if __name__ == '__main__':
                  formatter_class=argparse.ArgumentDefaultsHelpFormatter
         )
 
-        parser.add_argument('operation', help='choose the opeartion to apply',
-                      choices=[Operations.ADD.value, Operations.CHANGE.value, Operations.REPLACE.value, Operations.DELETE.value]
+        parser.add_argument(
+                'operation', help='choose the operation to apply',
+                choices=[
+                    Operations.ADD.value,
+                    Operations.CHANGE.value,
+                    Operations.REPLACE.value,
+                    Operations.DELETE.value,
+                ],
         )
    
         # Add common optional arguments
-        parser.add_argument('-gw', '--gateway_ip', type=ip_address, 
-                            help='ip address of the gateway (this or output device is required ' 
-                                 'when adding/changing/replacing route)'
-        )
-        parser.add_argument('-dev', '--device', type=str, 
-                            help='the output device name (this or gateway is required '
-                                 'when adding/changing/replacing route)'
-        )
-        parser.add_argument('-icwnd', '--initcwnd', type=int, default=0,
-                            help='initial congestion window size for connections to this destination'
-        )
-        parser.add_argument('-irwnd', '--initrwnd', type=int, default=0,
-                            help='initial receive window size for connections to this destination'
-        )
+        parser.add_argument(
+                '-gw', '--gateway_ip', type=ip_address,
+                help='ip address of the gateway (this or output device '
+                'is required when adding/changing/replacing route)')
+        parser.add_argument(
+                '-dev', '--device', type=str,
+                help='the output device name (this or gateway '
+                'is required when adding/changing/replacing route)')
+        parser.add_argument(
+                '-icwnd', '--initcwnd', type=int, default=0,
+                help='initial congestion window size for connections to this destination')
+        parser.add_argument(
+                '-irwnd', '--initrwnd', type=int, default=0,
+                help='initial receive window size for connections to this destination')
+        parser.add_argument(
+                '-r', '--restore', action='store_true',
+                help='restore the previous configuration when the job finishes')
         
         # Sub-commands functionnality to split default route and a route to a network
-        subparsers = parser.add_subparsers(title='destination', dest='destination', 
-                                           help='choose the destination'
-        )
-        subparsers.required = True
+        subparsers = parser.add_subparsers(
+                title='destination',
+                dest='destination',
+                required=True,
+                help='choose the destination')
+        
         # Add arguments specific to the default route
         parser_default = subparsers.add_parser('default', help='default route')
         
         # Add arguments specific to a destination network
         parser_dest_ip = subparsers.add_parser('destination_ip', help='route to a destination')
-        parser_dest_ip.add_argument('network_ip', type=ip_network, 
-                                    help='ip address/mask of the destination network'
-        )
+        parser_dest_ip.add_argument(
+                'network_ip', type=ip_network,
+                help='ip address/mask of the destination network')
           
         # get args
         args = parser.parse_args()
@@ -167,7 +219,8 @@ if __name__ == '__main__':
         device = args.device
         initcwnd = args.initcwnd
         initrwnd = args.initrwnd
+        restore = args.restore
         
-        if destination != 'default':
+        if destination == 'destination_ip':
            destination = args.network_ip
-        main(operation, destination, gateway_ip, device, initcwnd, initrwnd)
+        main(operation, destination, gateway_ip, device, initcwnd, initrwnd, restore)

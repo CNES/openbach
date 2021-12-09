@@ -1,6 +1,7 @@
 === Job description ===
 
 This job applies or clears configuration on the network interface. It uses ip link, netem and qdisc.
+**Important Note** : The usage of jitter may introduce packets disorder because netem reorders the packets in the queue by time to send. 
 
 === Examples ===
 

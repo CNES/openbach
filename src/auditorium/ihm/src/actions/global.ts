@@ -1,6 +1,9 @@
 import {doApiCall} from "../api/common";
 import {get as getProjects, getProject} from "../api/project";
 import {
+    CLEAR_FILTERED_SCENARIO_INSTANCES,
+    CLEAR_SCENARIO_INSTANCE_ERROR,
+    CLEAR_SCENARIO_INSTANCES,
     GET_JSON_ERROR,
     GET_JSON_PENDING,
     GET_JSON_SUCCESS,
@@ -18,8 +21,6 @@ import {
     PUT_JSON_SUCCESS,
     SET_SNACKMESSAGE,
     SET_TITLE,
-    CLEAR_SCENARIO_INSTANCES,
-    CLEAR_FILTERED_SCENARIO_INSTANCES,
 } from "../utils/constants";
 
 
@@ -68,6 +69,14 @@ export function clearCurrentScenarioInstances() {
     return {
         payload: null,
         type: CLEAR_FILTERED_SCENARIO_INSTANCES,
+    };
+};
+
+
+export function clearStartScenarioInstanceError() {
+    return {
+        payload: null,
+        type: CLEAR_SCENARIO_INSTANCE_ERROR,
     };
 };
 

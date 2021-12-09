@@ -59,7 +59,7 @@ const styles: IStyles = {
 };
 
 
-class ProjectDescription extends React.Component<IProps & IStoreProps & IDispatchProps, IState> {
+export class ProjectDescription extends React.Component<IProps & IStoreProps & IDispatchProps, IState> {
     private entityContainer: EntityCardContainer;
 
     constructor(props) {
@@ -178,6 +178,10 @@ class ProjectDescription extends React.Component<IProps & IStoreProps & IDispatc
         this.props.listUsers();
     }
 
+    public listenForJobs(jobs: IJobStateQuery[]) {
+        this.setState({ jobs });
+    }
+
     private handleSelectedNetwork(network: INetwork) {
         this.setState({ selectedEntity: undefined, selectedNetwork: network });
     }
@@ -195,10 +199,6 @@ class ProjectDescription extends React.Component<IProps & IStoreProps & IDispatc
 
     private handleUnselectNode() {
         this.setState({ selectedEntity: undefined, selectedNetwork: undefined });
-    }
-
-    private listenForJobs(jobs: IJobStateQuery[]) {
-        this.setState({ jobs });
     }
 
     private setEntityCardContainer(entityCard: EntityCardContainer) {
@@ -271,4 +271,4 @@ const mapDispatchToProps = (dispatch): IDispatchProps => ({
 });
 
 
-export default connect<IStoreProps, IDispatchProps, IProps>(mapStoreToProps, mapDispatchToProps)(ProjectDescription);
+export default connect<IStoreProps, IDispatchProps, IProps>(mapStoreToProps, mapDispatchToProps, null, {withRef: true})(ProjectDescription);

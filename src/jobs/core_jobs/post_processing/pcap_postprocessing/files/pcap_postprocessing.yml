@@ -100,7 +100,7 @@ statistics:
     - name: packet_rate
       description: The number of packets per second in pps, for each flow
       frequency: 'every *metrics_interval* ms'
-    - name: packet_count
+    - name: packets_count
       description: Total number of packets, for each flow
       frequency: 'every *metrics_interval* ms'
     - name: flow_duration
@@ -109,6 +109,15 @@ statistics:
     - name: bytes_count
       description: The total number of bytes, for each flow
       frequency: 'every *metrics_interval* ms'
-    - name: flow_count
+    - name: flows_count
       description: The total number of flow
+      frequency: 'every *metrics_interval* ms'
+    - name: avg_flow_duration
+      description: The average flow duration, for each flow
+      frequency: 'every *metrics_interval* ms'
+    - name: total_bytes
+      description: The total number of bytes
+      frequency: 'every *metrics_interval* ms'
+    - name: total_packets
+      description: The total number of packets
       frequency: 'every *metrics_interval* ms'

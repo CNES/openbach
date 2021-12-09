@@ -19,5 +19,6 @@ Note that, apache2 daemon will start listening for HTTP requests on ports 8081 a
 
 The available web page examples are "website_openbach/www.openbach.org/content/home.php", "website_opensand/www.opensand.org/content/home.php" and "website_cnes/cnes.fr/fr/index.html". To download them in HTTP/2, you can open any web browser and specify the following web address: https://server_ip:8082/website_openbach/www.openbach.org/content/home.php
 
-To download size specific file from the server, four files exist: 500K_file.txt, 1M_file.txt, 10M_file.txt and 100M_file.txt. 
-You can download them at the following web address: http://server_ip:port/[500K_file.txt/1M_file.txt/10M_file.txt/100M_file.txt]
+To download size specific file from the server, four files exist: 500K_file.jpeg, 1M_file.jpeg, 10M_file.jpeg and 100M_file.jpeg. 
+You can download them at the following web address: http://server_ip:port/[500K_file.jpeg/1M_file.jpeg/10M_file.jpeg/100M_file.jpeg]
+Those files use the extension "jpeg" to avoid HTTP compression, irrespective of the configuration of the client side.

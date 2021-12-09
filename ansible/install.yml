@@ -25,6 +25,18 @@
 
 ---
 
+- name: Register resources from hosts
+  hosts:
+    - agent
+    - controller
+  roles:
+    - register_resources
+
+- name: Check resources
+  hosts: localhost
+  roles:
+    - check_resources
+
 - hosts: localhost
   gather_facts: no
   tags:
@@ -92,6 +104,11 @@
   gather_facts: no
   roles:
     - install_job
+
+- name: Create Openbach project
+  hosts: controller
+  roles:
+    - { role: "create_project", when: project_name is defined }
 
 - name: Run Various Tests
   hosts: controller
