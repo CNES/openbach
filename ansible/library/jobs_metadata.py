@@ -153,7 +153,7 @@ def get_all_jobs_infos(folders, limit, substitute, include_platforms):
 
                 if include_platforms:
                     with open(configuration_file, encoding='utf-8') as config:
-                        conf = yaml.load(config)
+                        conf = yaml.safe_load(config)
                     informations['platforms'] = [
                             {key: c[key] for key in REQUIRED_KEYS}
                             for c in conf.get('platform_configuration', [])
