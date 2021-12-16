@@ -69,6 +69,11 @@ arguments:
       count: 1
       flag: '-n'
       description: The number of parallel flows (default 1 flows). To work, it must be set on client and server.
+    - name: reverse
+      type: None
+      count: 0
+      flag: '-R'
+      description: Run in reverse mode (server sends, client receives)
   subcommand:
     - group_name: mode
       optional: no
@@ -119,11 +124,6 @@ arguments:
               description: >
                    Set the IP type of service (The usual prefixes for octal and hex
                    can be used, i.e. 52, 064 and 0x34 specify the same value.)
-            - name: reverse
-              type: None
-              count: 0
-              flag: '-R'
-              description: Run in reverse mode (server sends, client receives)
           subcommand:       
             - group_name: protocol
               optional: yes

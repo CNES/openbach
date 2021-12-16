@@ -305,7 +305,6 @@ def receiver(cmd):
         sys.exit(error_msg)
     p.wait()
 
-
 def client(
         metrics_interval, port, num_flows, server_ip, window_size,
         tos, time_duration, transmitted_size, protocol, reverse, bandwidth=None,
@@ -336,10 +335,13 @@ def client(
     cmd.extend(_command_build_helper('-P', num_flows))
     cmd.extend(_command_build_helper('-S', tos))
 
-    receiver(cmd)
+    if reverse:
+        receiver(cmd)
+    else:
+        sender(cmd)
 
 
-def server(exit, bind, metrics_interval, port, num_flows):
+def server(exit, bind, metrics_interval, port, num_flows, reverse):
     cmd = ['stdbuf', '-oL', 'iperf3', '-s', '-f', 'k']
     if exit:
         cmd.append('-1')
@@ -348,7 +350,10 @@ def server(exit, bind, metrics_interval, port, num_flows):
     cmd.extend(_command_build_helper('-i', metrics_interval))
     cmd.extend(_command_build_helper('-p', port))
 
-    sender(cmd)
+    if reverse:
+        sender(cmd)
+    else:
+        receiver(cmd)
 
 
 if __name__ == "__main__":
@@ -369,6 +374,9 @@ if __name__ == "__main__":
         parser.add_argument(
             '-n', '--num-flows', type=int, default=1,
             help='For client/server, the number of parallel flows.')
+        parser.add_argument(
+            '-R', '--reverse', action='store_true',
+            help='Run in reverse mode (server sends, client receives)')
         # Sub-commands functionnality to split server and client mode
         subparsers = parser.add_subparsers(
             title='Subcommand mode',
@@ -405,9 +413,6 @@ if __name__ == "__main__":
             help='Set the IP type of service. The usual prefixes '
             'for octal and hex can be used, i.e. 52, 064 and 0x34 '
             'specify the same value..')
-        parser_client.add_argument(
-            '-R', '--reverse', action='store_true',
-            help='Run in reverse mode (server sends, client receives)')
         # Second group of sub-commands to split the use of protocol
         # UDP or TCP (within client mode) "dest" is used within the
         # client function to indicate if udp or tcp has been selected.
