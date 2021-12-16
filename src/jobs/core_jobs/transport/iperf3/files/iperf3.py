@@ -308,14 +308,15 @@ def receiver(cmd):
 
 def client(
         metrics_interval, port, num_flows, server_ip, window_size,
-        tos, time_duration, transmitted_size, protocol, recursive=True, bandwidth=None,
+        tos, time_duration, transmitted_size, protocol, reverse, bandwidth=None,
         cong_control=None, mss=None):
 
     cmd = ['stdbuf', '-oL', 'iperf3', '-c', server_ip, '-f', 'k']
     cmd.extend(_command_build_helper('-i', metrics_interval))
     cmd.extend(_command_build_helper('-w', window_size))
     cmd.extend(_command_build_helper('-p', port))
-    cmd.extend(_command_build_helper('-R', recursive))
+    if reverse:
+        cmd.append('-R')
     if protocol == "udp":
         cmd.append('-u')
         cmd.extend(_command_build_helper('-b', bandwidth))
@@ -346,6 +347,8 @@ def server(exit, bind, metrics_interval, port, num_flows):
         cmd.extend(_command_build_helper('-B', bind))
     cmd.extend(_command_build_helper('-i', metrics_interval))
     cmd.extend(_command_build_helper('-p', port))
+
+    sender(cmd)
 
 
 if __name__ == "__main__":
@@ -402,6 +405,9 @@ if __name__ == "__main__":
             help='Set the IP type of service. The usual prefixes '
             'for octal and hex can be used, i.e. 52, 064 and 0x34 '
             'specify the same value..')
+        parser_client.add_argument(
+            '-R', '--reverse', action='store_true',
+            help='Run in reverse mode (server sends, client receives)')
         # Second group of sub-commands to split the use of protocol
         # UDP or TCP (within client mode) "dest" is used within the
         # client function to indicate if udp or tcp has been selected.
