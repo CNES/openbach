@@ -1,6 +1,6 @@
 {
   "name": "openbach-frontend",
-  "version": "2.0.3",
+  "version": "2.4.1",
   "description": "the first frontend for openbach",
   "scripts": {
     "start": "./node_modules/.bin/webpack-dev-server --config webpack.config.js --inline --hot --host 0.0.0.0 --history-api-fallback",

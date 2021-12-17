@@ -27,7 +27,6 @@ import {
     IOpenbachConstantForm,
     IOpenbachFunctionForm,
     IOpenbachSubcommandForm,
-    IRegisteredFields,
     IScenarioForm,
     IUnsupportedOpenbachFunctionBackup,
 } from "../interfaces/scenarioForm.interface";
@@ -124,7 +123,7 @@ export function updateScenario(scenarioName: string) {
         const scenarioForm = getState().form;
         const key = "scenario_" + scenarioName;
         if (scenarioForm.hasOwnProperty(key) && scenarioForm[key].anyTouched) {
-            const scenario: IScenario = convertFormToScenario(scenarioForm[key].values, scenarioForm[key].registeredFields);
+            const scenario: IScenario = convertFormToScenario(scenarioForm[key].values);
             return dispatch({
                 payload: {
                     promise: putScenario(project, scenario),
@@ -164,7 +163,7 @@ export function favoriteScenario(scenarioName: string, favorite: boolean) {
 };
 
 
-function convertFormToScenario(form: IScenarioForm, registeredFields: IRegisteredFields): IScenario {
+function convertFormToScenario(form: IScenarioForm): IScenario {
     const argumentsForm = new Map<string, string>();
     form.arguments.forEach((arg: IOpenbachArgumentForm) => {
         argumentsForm[arg.name] = arg.description;
@@ -180,7 +179,7 @@ function convertFormToScenario(form: IScenarioForm, registeredFields: IRegistere
         constants: constantsForm,
         description: form.description,
         name: form.name,
-        openbach_functions: form.functions.map((func: IOpenbachFunctionForm, index: number) => {
+        openbach_functions: form.functions.map((func: IOpenbachFunctionForm) => {
             const {id, kind, label, section, wait} = func;
             if (wait) {
                 const timeNumber = Number(wait.time);
@@ -190,8 +189,7 @@ function convertFormToScenario(form: IScenarioForm, registeredFields: IRegistere
                 case "start_job_instance":
                     const formParameters = func.parameters[func.job] || {};
                     const formSubcommands = func.subcommands && func.subcommands[func.job] || {};
-                    const subcommandKey = `functions[${index}].subcommands.${func.job}`;
-                    const jobParameters = convertStartJobInstanceParameters(formParameters, formSubcommands, registeredFields, subcommandKey);
+                    const jobParameters = convertStartJobInstanceParameters(formParameters, formSubcommands);
                     const intervalNumber = Number(func.interval);
                     const offsetNumber = Number(func.offset);
                     return {
@@ -248,11 +246,7 @@ function convertFormToScenario(form: IScenarioForm, registeredFields: IRegistere
 };
 
 
-function convertStartJobInstanceParameters(
-        parameters: IStartJobParameters,
-        subcommands: IOpenbachSubcommandForm,
-        registeredFields: IRegisteredFields,
-        key: string): IStartJobParameters {
+function convertStartJobInstanceParameters(parameters: IStartJobParameters, subcommands: IOpenbachSubcommandForm): IStartJobParameters {
     const jobParameters: IStartJobParameters = {};
     for (const param in parameters) {
         if (parameters.hasOwnProperty(param)) {
@@ -272,13 +266,13 @@ function convertStartJobInstanceParameters(
         }
     }
     for (const group in subcommands) {
-        if (subcommands.hasOwnProperty(group) && registeredFields.hasOwnProperty(`${key}.${group}.selected`)) {
+        if (subcommands.hasOwnProperty(group)) {
             const subcommand = subcommands[group];
             const selected = subcommand && subcommand.selected;
-            const subgroups = subcommand && subcommand.subgroups || {};
             if (selected) {
+                const subgroups = subcommand && subcommand[selected] as IOpenbachSubcommandForm || {};
                 const params = parameters[selected] as IStartJobParameters || {};
-                jobParameters[selected] = convertStartJobInstanceParameters(params, subgroups, registeredFields, `${key}.${group}.subgroups`);
+                jobParameters[selected] = convertStartJobInstanceParameters(params, subgroups);
             }
         }
     }
