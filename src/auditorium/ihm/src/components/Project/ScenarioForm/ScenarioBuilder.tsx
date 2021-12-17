@@ -25,14 +25,15 @@ class ScenarioBuilder extends React.Component<IProps & IStoreProps & IDispatchPr
     private static convertSubcommands(groups: IJobSubcommandGroup[], parameters: IStartJobParameters): IOpenbachSubcommandForm {
         const subGroups: IOpenbachSubcommandForm = {};
         groups.forEach((group: IJobSubcommandGroup) => {
-            const availableChoices: IJobSubcommand[] = group.choices || [];
-            const selectedSubgroup = availableChoices.find((subcommand: IJobSubcommand) => parameters.hasOwnProperty(subcommand.name));
-            const subSubcommands = selectedSubgroup && selectedSubgroup.subcommands || [];
-            const subParameters = selectedSubgroup && parameters[selectedSubgroup.name] as IStartJobParameters || {};
-            subGroups[group.group_name] = {
-                selected: selectedSubgroup && selectedSubgroup.name || undefined,
-                subgroups: ScenarioBuilder.convertSubcommands(subSubcommands, subParameters),
-            };
+            const groupName = group.group_name;
+            subGroups[groupName] = {selected: undefined};
+            const selectedSubgroup = (group.choices || []).find((subcommand: IJobSubcommand) => parameters.hasOwnProperty(subcommand.name));
+            if (selectedSubgroup) {
+                subGroups[groupName].selected = selectedSubgroup.name;
+                subGroups[groupName][selectedSubgroup.name] = ScenarioBuilder.convertSubcommands(
+                    selectedSubgroup.subcommands || [],
+                    parameters[selectedSubgroup.name] as IStartJobParameters || {});
+            }
         });
         return subGroups;
     }
