@@ -4,6 +4,8 @@ This job executes iperf3 tool to perform network capacity measurements.
 
 Important Note : if the parameter 'transmitted_size' is used, its value has to be EQUAL OR HIGHER than 1 MByte. This limitation is due to the issues presented by iperf3 to send small sized files.
 
+It is highly recommended to use iperf3 in reverse mode, the statistics are more accurate.
+
 === Examples ===
 
 == Example 1 ==
