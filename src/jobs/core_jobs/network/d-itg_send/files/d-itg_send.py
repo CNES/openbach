@@ -183,7 +183,8 @@ def main(target_address, log_address, dest_path, granularity, traffic_type='UDP'
             collect_agent.send_stat(timestamp, **statistics)
 
             # Calculate packet_loss_rate
-            plr = (pck_loss/packet_rate)*100
+            pck_loss_per_sec = pck_loss*1000/granularity
+            plr = (pck_loss_per_sec/packet_rate)*100
             statistics = {'packetloss_rate_receiver': plr}
             collect_agent.send_stat(timestamp, **statistics)
 
