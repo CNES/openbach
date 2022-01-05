@@ -79,7 +79,7 @@ def run_command(cmd, mode='run'):
 
 
 def main(target_address, log_address, dest_path, granularity, traffic_type='UDP', port=8999, signal_port=9000,
-         packet_size=512, packet_rate=1000, bandwidth='0', duration=10, data_size='0', meter='rttm'):
+         packet_size=512, packet_rate=1000, bandwidth='0', duration=10, data_size='0', meter='owdm'):
 
     # Clean previous log and set up the D-ITG LogServer*
     if os.path.isfile('/tmp/ITGRecv.log'):
@@ -239,7 +239,8 @@ def main(target_address, log_address, dest_path, granularity, traffic_type='UDP'
                 collect_agent.send_stat(timestamp, **statistics)        
 
                 # Calculate packet_loss_rate
-                plr = (pck_loss/packet_rate)*100
+                pck_loss_per_sec = pck_loss*1000/granularity
+                plr = (pck_loss_per_sec/packet_rate)*100
                 statistics = {'packetloss_rate_sender': plr}
                 collect_agent.send_stat(timestamp, **statistics)
 
@@ -281,8 +282,8 @@ if __name__ == "__main__":
         parser.add_argument('-k', '--data_size', type=str, metavar='DATA SIZE', default='0',
                             help='Set the number of [K/M/G]Bytes to send, if set either duration or data_size will limit the job')
         parser.add_argument('-m', '--meter', type=str, metavar='METER', choices=['owdm', 'rttm'], 
-                            help='Way to compute the time: One Way Delay (owdm) or Round Trip Time (rttm) (default=rttm)',
-                            default='rttm')
+                            help='Way to compute the time: One Way Delay (owdm) or Round Trip Time (rttm) (default=owdm)',
+                            default='owdm')
 
         # get args
         args = parser.parse_args()

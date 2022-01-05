@@ -102,7 +102,7 @@ arguments:
       flag:        '-m'
       description: >
           Way to compute the time: One Way Delay (owdm) or Round Trip Time (rttm).
-          Default: rttm
+          Default: owdm
           Careful, if "rttm" is chosen, a bidirectional traffic will be generated for the sender to compute the RTT.
           However, if anykind of synchronization doesn't exist between the equipments, rttm is advised.
       choices:
@@ -111,11 +111,11 @@ arguments:
 statistics:
     - name:        bitrate_receiver
       description: >
-          Bitrate of the receiver
+          Bitrate of the receiver (b/s)
       frequency:   'Only one time, once the D-ITGDec task is finished'
     - name:        bitrate_sender
       description: >
-          Bitrate of the sender
+          Bitrate of the sender (b/s)
       frequency:   'Only one time, once the D-ITGDec task is finished'
     - name:        owd_receiver
       description: >
@@ -139,18 +139,18 @@ statistics:
       frequency:   'Only one time, once the D-ITGDec task is finished'
     - name:        packetloss_receiver
       description: >
-          Packetloss of the receiver
+          Packetloss of the receiver (pkt/inteval)
       frequency:   'Only one time, once the D-ITGDec task is finished'
     - name:        packetloss_sender
       description: >
-          Packetloss of the sender
+          Packetloss of the sender (pkt/interval)
       frequency:   'Only one time, once the D-ITGDec task is finished'
     - name:        packetloss_rate_receiver
       description: >
-          Packetloss Rate of the receiver
+          Packetloss Rate of the receiver (%)
       frequency:   'Only one time, once the D-ITGDec task is finished'
     - name:        packetloss_rate_sender
       description: >
-          Packetloss Rate of the sender
+          Packetloss Rate of the sender (%)
       frequency:   'Only one time, once the D-ITGDec task is finished'
 
