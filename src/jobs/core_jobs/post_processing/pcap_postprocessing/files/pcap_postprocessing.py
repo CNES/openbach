@@ -166,36 +166,53 @@ def compute_and_send_statistics(packets, to, metrics_interval, suffix, stat_time
     collect_agent.send_stat(stat_time, suffix=suffix, **statistics)
 
 
-def parse_two_files(capture_file, ip_second_capture_file, second_capture_file, display_filter):
+def parse_two_files(capture_file, ip_second_capture_file, second_capture_file, src_ip, dst_ip, src_port, dst_port):
     path = "/tmp/" + str(random.randint(1000000, 10000000)) + "-" +  second_capture_file.split('/')[-1]
     cmd = "scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null".split() + [ip_second_capture_file + ":" + second_capture_file, path]
     p = subprocess.run(cmd)
     # TODO handle if scp failed (retry ?, use management network)
     # TODO add try catch
-    # TODO do not filter transport
+    # TODO is IP ID enough ?
     ips_sent = []
-    with closing(pyshark.FileCapture(capture_file, display_filter=display_filter)) as cap_file:
-        packets = [packet for packet in cap_file if 'IP' in str(packet.layers) and packet.transport_layer is not None]
-        for packet in packets:
-            ips_sent.append(packet.ip)
-    ips_received = []
-    with closing(pyshark.FileCapture(path, display_filter=display_filter)) as cap_file:
-        packets = [packet for packet in cap_file if 'IP' in str(packet.layers) and packet.transport_layer is not None]
-        for packet in packets:
-            ips_received.append(packet.ip)
-    pprint.pprint([ip.id for ip in ips_sent])
-    pprint.pprint([ip.id for ip in ips_received])
-    print(len(ips_sent), len(ips_received))
-    print(ip_second_capture_file, capture_file, second_capture_file, path)
+    display_filter = build_display_filter(src_ip, dst_ip, src_port, dst_port, None)
+
+    lost = []
+    with closing(pyshark.FileCapture(capture_file, display_filter=display_filter)) as cap_file_sent:
+        packets_sent = [packet.ip.id for packet in cap_file_sent if 'IP' in str(packet.layers) and packet.transport_layer is not None]
+    index = 0
+    n = len(packets_sent)
+    with closing(pyshark.FileCapture(path, display_filter=display_filter)) as cap_file_received:
+        current_packet_sent = packets_sent[index]
+        index = 1
+        # TODO handle if index == n
+        for packet in cap_file_received:
+            if not ('IP' in str(packet.layers) and packet.transport_layer is not None):
+                continue
+            if packet.ip.id == current_packet_sent:
+                lost.append(0)
+            while packet.ip.id != current_packet_sent:
+                lost.append(1)
+                current_packet_sent = packets_sent[index]
+                index += 1
+                if index == n:
+                    break
+            current_packet_sent = packets_sent[index]
+            index += 1
+            if index == n:
+                break
+
+    print(lost)
+    print(sum(lost))
 
     
 def main(ip_second_capture_file, second_capture_file, src_ip, dst_ip, src_port, dst_port, proto, capture_file, metrics_interval):
-    display_filter = build_display_filter(src_ip, dst_ip, src_port, dst_port, proto)
-    parse_two_files(capture_file, ip_second_capture_file, second_capture_file, display_filter)
+    parse_two_files(capture_file, ip_second_capture_file, second_capture_file, src_ip, dst_ip, src_port, dst_port)
+    # TODO remove return
     return
     """Analyze packets from pcap file located at capture_file and comptute statistics.
     Only consider packets matching the specified fields.
     """
+    display_filter = build_display_filter(src_ip, dst_ip, src_port, dst_port, proto)
     To = now()
     try:
         with closing(pyshark.FileCapture(capture_file, display_filter=display_filter)) as cap_file:
