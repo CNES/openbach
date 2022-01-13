@@ -46,6 +46,8 @@ import itertools
 import traceback
 import contextlib
 from contextlib import closing
+import random
+import subprocess
 
 import pyshark
 import pathlib
@@ -163,12 +165,37 @@ def compute_and_send_statistics(packets, to, metrics_interval, suffix, stat_time
     pprint.pprint(statistics)
     collect_agent.send_stat(stat_time, suffix=suffix, **statistics)
 
+
+def parse_two_files(capture_file, ip_second_capture_file, second_capture_file, display_filter):
+    path = "/tmp/" + str(random.randint(1000000, 10000000)) + "-" +  second_capture_file.split('/')[-1]
+    cmd = "scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null".split() + [ip_second_capture_file + ":" + second_capture_file, path]
+    p = subprocess.run(cmd)
+    # TODO handle if scp failed (retry ?, use management network)
+    # TODO add try catch
+    # TODO do not filter transport
+    ips_sent = []
+    with closing(pyshark.FileCapture(capture_file, display_filter=display_filter)) as cap_file:
+        packets = [packet for packet in cap_file if 'IP' in str(packet.layers) and packet.transport_layer is not None]
+        for packet in packets:
+            ips_sent.append(packet.ip)
+    ips_received = []
+    with closing(pyshark.FileCapture(path, display_filter=display_filter)) as cap_file:
+        packets = [packet for packet in cap_file if 'IP' in str(packet.layers) and packet.transport_layer is not None]
+        for packet in packets:
+            ips_received.append(packet.ip)
+    pprint.pprint([ip.id for ip in ips_sent])
+    pprint.pprint([ip.id for ip in ips_received])
+    print(len(ips_sent), len(ips_received))
+    print(ip_second_capture_file, capture_file, second_capture_file, path)
+
     
-def main(src_ip, dst_ip, src_port, dst_port, proto, capture_file, metrics_interval):
+def main(ip_second_capture_file, second_capture_file, src_ip, dst_ip, src_port, dst_port, proto, capture_file, metrics_interval):
+    display_filter = build_display_filter(src_ip, dst_ip, src_port, dst_port, proto)
+    parse_two_files(capture_file, ip_second_capture_file, second_capture_file, display_filter)
+    return
     """Analyze packets from pcap file located at capture_file and comptute statistics.
     Only consider packets matching the specified fields.
     """
-    display_filter = build_display_filter(src_ip, dst_ip, src_port, dst_port, proto)
     To = now()
     try:
         with closing(pyshark.FileCapture(capture_file, display_filter=display_filter)) as cap_file:
@@ -213,7 +240,7 @@ def main(src_ip, dst_ip, src_port, dst_port, proto, capture_file, metrics_interv
                     # Check if it the last sample
                     if total_flows_count > 0 and float(packets[-1].sniff_timestamp) * 1000 <= time:
                         statistics.update({'avg_flow_duration':int(total_flow_duration/total_flows_count)})
-                        statistics.update({'total_packets':len(packets), 
+                        statistics.update({'total_packets':len(packets),
                                            'total_bytes':packets_length(packets)})
                     collect_agent.send_stat(stat_time, **statistics)
                     samples_count += 1   
@@ -240,6 +267,8 @@ if __name__ == '__main__':
               formatter_class=argparse.ArgumentDefaultsHelpFormatter
         )
         parser.add_argument('capture_file', type=argparse.FileType('r'), help='Path to the capture file (big files are not recommended: check .help of job)')
+        parser.add_argument('-x', '--ip-second-capture-file', help='IP address where the second pcap file is located')
+        parser.add_argument('-F', '--second-capture-file', type=str, help='Path to the second capture file')
         parser.add_argument('-A', '--src-ip', help='Source IP address')
         parser.add_argument('-a', '--dst-ip', help='Destination IP address')
         parser.add_argument('-D', '--src-port', type=int, help='Source port number')
