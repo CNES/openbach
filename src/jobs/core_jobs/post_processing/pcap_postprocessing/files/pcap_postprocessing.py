@@ -166,16 +166,24 @@ def compute_and_send_statistics(packets, to, metrics_interval, suffix, stat_time
     collect_agent.send_stat(stat_time, suffix=suffix, **statistics)
 
 
-def parse_two_files(capture_file, ip_second_capture_file, second_capture_file, src_ip, dst_ip, src_port, dst_port):
+def gilbert_elliot(capture_file, ip_second_capture_file, second_capture_file, src_ip, dst_ip, src_port, dst_port, proto):
     path = "/tmp/" + str(random.randint(1000000, 10000000)) + "-" +  second_capture_file.split('/')[-1]
     cmd = "scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null".split() + [ip_second_capture_file + ":" + second_capture_file, path]
-    p = subprocess.run(cmd)
+    p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    if p.returncode != 0:
+        message = 'ERROR when lauching scp: {}'.format(p.stderr)
+        collect_agent.send_log(syslog.LOG_ERR, message)
+        sys.exit(message)
+
+
     # TODO handle if scp failed (retry ?, use management network)
     # TODO add try catch
     # TODO is IP ID enough ?
     # TODO what if reordering ?
+    # TODO need to use protos other than TCP and UDP
     ips_sent = []
-    display_filter = build_display_filter(src_ip, dst_ip, src_port, dst_port, None)
+    display_filter = build_display_filter(src_ip, dst_ip, src_port, dst_port, proto)
 
     lost = []
     with closing(pyshark.FileCapture(capture_file, display_filter=display_filter)) as cap_file_sent:
@@ -240,11 +248,11 @@ def parse_two_files(capture_file, ip_second_capture_file, second_capture_file, s
 
     print("p=",1-pgg,"r=",1-pbb)
 
+    statistics = {'gilbert_elliot_p':1-pgg, 'gilbert_elliot_r':1-pbb}
+    collect_agent.send_stat(now(), **statistics)
+
     
-def main(ip_second_capture_file, second_capture_file, src_ip, dst_ip, src_port, dst_port, proto, capture_file, metrics_interval):
-    parse_two_files(capture_file, ip_second_capture_file, second_capture_file, src_ip, dst_ip, src_port, dst_port)
-    # TODO remove return
-    return
+def one_file(capture_file, src_ip, dst_ip, src_port, dst_port, proto, metrics_interval):
     """Analyze packets from pcap file located at capture_file and comptute statistics.
     Only consider packets matching the specified fields.
     """
@@ -320,17 +328,30 @@ if __name__ == '__main__':
               formatter_class=argparse.ArgumentDefaultsHelpFormatter
         )
         parser.add_argument('capture_file', type=argparse.FileType('r'), help='Path to the capture file (big files are not recommended: check .help of job)')
-        parser.add_argument('-x', '--ip-second-capture-file', help='IP address where the second pcap file is located')
-        parser.add_argument('-F', '--second-capture-file', type=str, help='Path to the second capture file')
-        parser.add_argument('-A', '--src-ip', help='Source IP address')
-        parser.add_argument('-a', '--dst-ip', help='Destination IP address')
-        parser.add_argument('-D', '--src-port', type=int, help='Source port number')
-        parser.add_argument('-d', '--dst-port', type=int, help='Destination port number')
+        parser.add_argument('-sa', '--src-ip', help='Source IP address')
+        parser.add_argument('-da', '--dst-ip', help='Destination IP address')
+        parser.add_argument('-sp', '--src-port', type=int, help='Source port number')
+        parser.add_argument('-dp', '--dst-port', type=int, help='Destination port number')
         parser.add_argument('-p', '--proto', choices=['udp', 'tcp'], help='Transport protocol')
-        parser.add_argument('-T', '--metrics-interval', type=int, default=500,
-                                    help='Time period in ms to compute metrics')
-    
+
+        subparsers = parser.add_subparsers(
+            title='Subcommand mode',
+            help='Choose the stat to compute (metrics from one pcap, or Gilbert Elliot parameters from 2 files)')
+        subparsers.required = True
+
+        parser_one_file = subparsers.add_parser('stats_one_file', help='Get the metrics from one pcap')
+        parser_one_file.add_argument('-T', '--metrics-interval', type=int, default=500, help='Time period in ms to compute metrics')
+
+        parser_ge = subparsers.add_parser('gilbert_elliot', help='Compute Gilbert Elliot parameters from 2 files')
+        parser_ge.add_argument('ip_second_capture_file', help='IP address where the second pcap file is located')
+        parser_ge.add_argument('second_capture_file', type=str, help='Path to the second capture file')
+
+        # Set subparsers options to automatically call the right
+        # function depending on the chosen subcommand
+        parser_one_file.set_defaults(function=one_file)
+        parser_ge.set_defaults(function=gilbert_elliot)
+
+        # Get args and call the appropriate function
         args = vars(parser.parse_args())
+        main = args.pop('function')
         main(**args)
-
-
