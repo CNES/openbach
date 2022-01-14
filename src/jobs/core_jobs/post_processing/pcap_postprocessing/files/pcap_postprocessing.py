@@ -173,6 +173,7 @@ def parse_two_files(capture_file, ip_second_capture_file, second_capture_file, s
     # TODO handle if scp failed (retry ?, use management network)
     # TODO add try catch
     # TODO is IP ID enough ?
+    # TODO what if reordering ?
     ips_sent = []
     display_filter = build_display_filter(src_ip, dst_ip, src_port, dst_port, None)
 
@@ -201,8 +202,43 @@ def parse_two_files(capture_file, ip_second_capture_file, second_capture_file, s
             if index == n:
                 break
 
-    print(lost)
-    print(sum(lost))
+    subprocess.run(["rm", path])
+
+    total_good = 0
+    total_bad = 0
+    goods = []
+    bads = []
+    last_good = (lost[0] == 0)
+    for x in lost:
+        if x == 0:
+            total_good += 1
+            if not last_good:
+                bads.append(total_bad)
+                total_bad = 0
+            last_good = True
+        else:
+            total_bad += 1
+            if last_good:
+                goods.append(total_good)
+                total_good = 0
+            last_good = False
+
+    if last_good:
+        goods.append(total_good)
+    else:
+        bads.append(total_bad)
+
+    print(goods)
+    print(bads)
+
+    # TODO handle len == 0
+    g = sum(goods)/len(goods)
+    b = sum(bads)/len(bads)
+
+    pgg = 1-1/g
+    pbb = 1-1/b
+
+    print("p=",1-pgg,"r=",1-pbb)
 
     
 def main(ip_second_capture_file, second_capture_file, src_ip, dst_ip, src_port, dst_port, proto, capture_file, metrics_interval):
