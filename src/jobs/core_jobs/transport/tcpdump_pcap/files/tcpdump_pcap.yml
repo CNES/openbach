@@ -31,7 +31,7 @@ general:
       This job launches tcpdump tool in order to capture IP packets.
       If a packets filter is specified, only filtered packets will be captured.
       The captured traffic is saved to an output file.
-  job_version: '1.1'
+  job_version: '1.2'
   keywords:
     - tcpdump
     - capture
@@ -92,4 +92,8 @@ arguments:
       flag:          '-t'
       description:   Duration of the capture, in seconds (default infinite)
 
+statistics:
+    - name: "pcap_file"
+      description: The pcap file captured
+      frequency: 'once'
 

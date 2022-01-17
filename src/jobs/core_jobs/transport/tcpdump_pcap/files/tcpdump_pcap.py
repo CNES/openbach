@@ -45,6 +45,9 @@ import itertools
 import traceback
 import subprocess
 import contextlib
+import time
+import signal
+from functools import partial
 
 import collect_agent
 
@@ -66,6 +69,9 @@ def use_configuration(filepath):
         if e.code != 0:
             collect_agent.send_log(syslog.LOG_CRIT, 'Abrupt program termination: ' + str(e.code))
         raise
+
+def save_pcap(parent_pid, signum, frame):
+    collect_agent.store_files(int(time.time() * 1000), figure=capture_file)
 
 def build_capture_filter(src_ip, dst_ip, src_port, dst_port, proto):
     """Build a capture filter
@@ -98,6 +104,9 @@ def build_capture_filter(src_ip, dst_ip, src_port, dst_port, proto):
 
 def main(src_ip, dst_ip, src_port, dst_port, proto, interface, capture_file, duration):
     """Capture packets on a live network interface. Only consider packets matching the specified fields."""
+    signal_handler_partial = partial(save_pcap, os.getpid())
+    signal.signal(signal.SIGTERM, signal_handler_partial)
+    signal.signal(signal.SIGINT, signal_handler_partial)
     capture_filter = build_capture_filter(src_ip, dst_ip, src_port, dst_port, proto)
     try:
       parent = pathlib.Path(capture_file).parent
@@ -105,7 +114,6 @@ def main(src_ip, dst_ip, src_port, dst_port, proto, interface, capture_file, dur
       cmd = ['tcpdump', '-i', interface, capture_filter, '-w', capture_file, '-Z', 'root']
       if duration:
          cmd += ['-G', str(duration), '-W', str(1)]
-      print(cmd)   
       p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
       if p.returncode != 0:
          message = 'ERROR when lauching tcpdump: {}'.format(p.stderr)
@@ -117,6 +125,7 @@ def main(src_ip, dst_ip, src_port, dst_port, proto, interface, capture_file, dur
       print(message)
       collect_agent.send_log(syslog.LOG_ERR, message)
       sys.exit(message)
+    collect_agent.store_files(int(time.time() * 1000), figure=capture_file)
    
 
 
