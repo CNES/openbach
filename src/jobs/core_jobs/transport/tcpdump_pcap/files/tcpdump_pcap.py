@@ -107,7 +107,7 @@ def main(src_ip, dst_ip, src_port, dst_port, proto, interface, capture_file, dur
     capture_filter = build_capture_filter(src_ip, dst_ip, src_port, dst_port, proto)
     copy=False
     if capture_file == "":
-        capture_file = "/tmp/temp_tcpdump.pcap"
+        capture_file = "/tmp/tcpdump_capture.pcap"
         copy=True
     signal_handler_partial = partial(save_pcap, capture_file, copy, os.getpid())
     original_sigint_handler = signal.getsignal(signal.SIGINT)
