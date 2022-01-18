@@ -320,7 +320,7 @@ collect_agent_store_files(PyObject *self, PyObject *args, PyObject *kwargs)
                 return nullptr;
 
             if (std::strcmp(c_key, "copy") == 0) {
-                continue
+                continue;
             }
 
             PyObject *path;
