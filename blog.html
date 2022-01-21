@@ -1,0 +1,518 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>OpenSAND</title>
+
+    <!-- JQuery Core CSS -->
+    <link href="css/jquery-ui.css" rel="stylesheet">
+    <link href="css/jquery-ui.min.css" rel="stylesheet">
+    <link href="css/jquery-ui.theme.css" rel="stylesheet">
+    <link href="css/jquery-ui.theme.min.css" rel="stylesheet">
+    <link href="css/jquery-ui.structure.css" rel="stylesheet">
+    <link href="css/jquery-ui.structure.min.css" rel="stylesheet">
+
+    <!-- Bootstrap Core CSS -->
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Custom CSS -->
+    <link href="css/openbach.css" rel="stylesheet">
+    <link href="css/scrolling-nav.css" rel="stylesheet">
+    <link rel="icon" type="image/png" href="img/tab_logo.png" />
+
+    <!-- Custom Fonts -->
+    <link href="font-awesome/css/font-awesome.min.css" rel="stylesheet" type="text/css">
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js" defer></script>
+      <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js" defer></script>
+    <![endif]-->
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js" defer></script>
+
+    <!-- jQuery -->
+    <script src="js/jquery.js" defer></script>
+
+    <!-- Bootstrap Core JavaScript -->
+    <script src="js/bootstrap.min.js" defer></script>
+
+    <!-- Scrolling Nav JavaScript -->
+    <script src="js/jquery/jquery.js" defer></script>
+    <script src="js/jquery/jquery-ui.js" defer></script>
+    <script src="js/jquery/jquery-ui.min.js" defer></script>
+    <script src="js/jquery.easing.min.js" defer></script>
+    <script src="js/scrolling-nav.js" defer></script>
+    <script src="js/jqBootstrapValidation.js" defer></script>
+  </head>
+
+  <body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-inverse navbar-fixed-top navbar-custom" role="navigation">
+      <div class="container">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <div id = "imgLogo">
+            <img class="logo" src="img/logo2.png" onclick="document.location.href = 'index.html'" alt=""></img>
+          </div>
+        </div>
+        <!-- Collect the nav links, forms, and other content for toggling -->
+        <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+          <ul class="nav navbar-nav navbar-right">
+            <li class="dropdown page-scroll">
+              <a href="#" class="dropdown-toggle" data-toggle="dropdown"><p class="text-custom">About<b class="caret"></b></p></a>
+              <ul class="dropdown-menu">
+                <li><a href="overview.html" style="font-size:100%">Overview</a></li>
+                <li><a href="references.html" style="font-size:100%">References</a></li>
+                <li><a href="commitee.html" style="font-size:100%">Steering commitee</a></li>
+              </ul>
+            </li>
+            <li class="dropdown page-scroll">
+              <a href="#" class="dropdown-toggle" data-toggle="dropdown"><p class="text-custom">Get & Learn<b class="caret"></b></p></a>
+              <ul class="dropdown-menu">
+                <li><a href="get.html" style="font-size:100%">Installation</a></li>
+                <li><a href="mail.html" style="font-size:100%">Mailing-lists</a></li>
+                <li><a href="https://wiki.net4sat.org/doku.php?id=openbach:index" style="font-size:100%">Wiki</a></li>
+                <li><a href="jobs.html" style="font-size:100%">Related tools & Jobs</a></li>
+              </ul>
+            </li>
+            <li class="dropdown page-scroll">
+              <a href="#" class="dropdown-toggle" data-toggle="dropdown"><p class="text-custom">Contribute<b class="caret"></b></p></a>
+              <ul class="dropdown-menu">
+                <li><a href="contribution.html" style="font-size:100%">Contribution</a></li>
+                <li><a href="bugtracker.html" style="font-size:100%">Bugtracker</a></li>
+                <li><a href="https://forge.net4sat.org/openbach/openbach" style="font-size:100%">Forge OpenBACH</a></li>
+              </ul>
+            </li>
+            <li class="page-scroll active">
+              <a href="blog.html"><p class="text-custom">Blog</p></a>
+            </li>
+            <li class="page-scroll">
+              <a href="https://forge.net4sat.org/openbach/openbach"> <img src="img/gitlab-logo-square.png"/> </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+<!-- Page Content -->
+<section>
+	<div class="page-wrap">
+    <div class="container">
+
+        <!-- Page Heading/Breadcrumbs -->
+        <div class="row">
+            <div class="col-lg-12">
+                <h1 class="page-header">Blog
+                    <small>Latest announcements</small>
+                </h1>
+            </div>
+        </div>
+        <!-- /.row -->
+
+        <div class="row">
+
+            <!-- Blog Entries Column -->
+            <div class="col-md-8">
+                                <div class="custom-blog-post">
+                                        <h2 style="color: #FFB95E;">
+                                                OpenBACH stable release 2.3.0
+                                        </h2>
+                                        <p class="lead">
+                                                by <a href="overview.html">OpenBACH team</a>
+                                        </p>
+                                        <p><i class="fa fa-clock-o"></i> Posted on Friday, 16 April 2021</p>
+                                        <hr style="border-top: 1px solid #FFB95E;">
+                                                        <p>Hi OpenBACH community,</p>
+
+                                                        <p>The new release of OpenBACH is now supporting Ubuntu 20.04!</p>
+                                                        <p>OpenBACH 2.3.0 includes the following evolutions:
+                                                        <ul>
+                                                                <li>Support of Ubuntu 20.04:</li>
+                                                                <ul>
+                                                                        <li>Controller/Collector/Auditorium and Agents support now Ubuntu 20.04.</li>
+                                                                        <li>All core jobs and external-stable jobs support now Ubuntu 20.04.</li>
+                                                                        <li>It is still possible to use/install OpenBACH on Ubuntu 16.04 if you git clone the tag openbach-2.2.0. However, the evolutions implemented on v2.3.0 (and newer versions) are not (will not be) available.</li>
+                                                                </ul>
+                                                                <li>The web interface load has been reduced allowing to improve scalability:</li>
+                                                                <ul>
+                                                                        <li>The graphical analysis has been removed.</li>
+                                                                        <li>By default, the number of scenario instances that are loaded (for each scenario) is 10, and you can load more thanks to a Load button.</li>
+                                                                </ul>
+                                                                <li>More documentation on openbach-api, command line usage and the validation suite.</li>
+                                                                <li>New features and improvements, e.g.:</li>
+                                                                <ul>
+                                                                        <li>Improved validation suite.</li>
+                                                                        <li>New jobs have been added and obsolete jobs have been cleaned.</li>
+                                                                        <li>A new executor/scenario example named TCP evaluation suite is now ready to be used: its objective is to provide a complex scenario for evaluating TCP protocol performances under different network conditions.</li>
+
+                                                                </ul>
+                                                                <li>Other minor bugfixes and improvements.</li>
+                                                        </ul>
+
+
+                                                        <p>We will be glad to get your feedback on our mailing list [1] and bug reports on the bugtrackers [2].</p>
+                                                        <p>
+                                                        [1] <a rel="nofollow" href="mailto:users _AT_ openbach _DOT_ org" title="OpenBACH mailing list">The OpenBACH mailing list</a>
+                                                        <br />
+                                                        [2] <a rel="nofollow" href="https://forge.net4sat.org/openbach/openbach/issues">The OpenBACH bugtracker</a> and <a rel="nofollow" href="https://forge.net4sat.org/openbach/openbach-extra/issues">the OpenBACH-extra bugtracker</a>
+                                                        </p>
+
+                                                        <p>Kind Regards,</p>
+
+                                                        <p>The OpenBACH team</p>
+
+                                        <hr>
+                                </div>
+
+
+                                <div class="custom-blog-post">
+                                        <h2 style="color: #008000;">
+                                                OpenBACH stable release 2.2.0
+                                        </h2>
+                                        <p class="lead">
+                                                by <a href="overview.html">OpenBACH team</a>
+                                        </p>
+                                        <p><i class="fa fa-clock-o"></i> Posted on Friday, 4 December 2020</p>
+                                        <hr style="border-top: 1px solid #FFB95E;">
+                                                        <p>Hi OpenBACH community,</p>
+
+                                                        <p>We are happy to announce a new release on our favourite network metrology testing tool: the new version 2.2.0!!</p>
+                                                        <p>OpenBACH 2.2.0 includes the following evolutions:
+                                                        <ul>
+                                                                <li>Improved openbach-functions (bullets 1/2) and auditorium-scripts (bullets 3/4):</li>
+                                                                <ol>
+                                                                        <li>Push file is now available to send files to the controller and from the controller to an entity.</li>
+                                                                        <li>New function allowing to reboot your agents on your desired kernel, even within a scenario.</li>
+                                                                        <li>An unified console output lets you clearly know whether the operation was successful or not.</li>
+                                                                        <li>Added scripts to kill all jobs on any / all agents and to uninstall jobs before reinstalling a new version.</li>
+
+                                                                </ol>
+                                                                <li>Improvements on jobs stability and installation process, as well as:</li>
+                                                                <ul>
+                                                                        <li>Reorganisation of jobs (from openbach-extra to openbach and viceversa).</li>
+                                                                        <li>Splitted tcpdump job: tcpdump_pcap (for traffic captures) and pcap_postprocessing (computes different statistics from a pcap).</li>
+                                                                        <li>Evolutions on apache2 (e.g. it includes now dash streaming content and new web sites).</li>
+                                                                        <li>New jobs: synchronization (force ntp), ftp_clt/srv, tc_qdisc_stats (monitor tc queues status) and more postprocessing jobs (temporal_binning_histogram and temporal_binning_statistics).</li>
+                                                                        <li>etc.</li>
+
+                                                                </ul>
+                                                                <li>More accurate reference scenarios and executors and: </li>
+                                                                <ul>
+                                                                        <li>New executor examples allowing to show the modularity of the reference scenarios.
+                                                                        <li>Improved stability on all scenarios.</li>
+
+                                                                </ul>
+                                                                <li>More documentation on openbach-api (especially on the scenario_builder and the data_access).</li>
+                                                                <li>New features, e.g.:</li>
+                                                                <ul>
+                                                                        <li>Improved statistics management and the possibility to disable local storage.</li>
+                                                                        <li>New validation suite module: allows to test the OpenBACH capabilities to prevent regressions and help develop new features.</li>
+
+                                                                </ul>
+                                                                <li>Other minor bugfixes and improvements.</li>
+                                                        </ul>
+
+
+                                                        <p>We will be glad to get your feedback on our mailing list [1] and bug reports on the bugtrackers [2].</p>
+                                                        <p>
+                                                        [1] <a rel="nofollow" href="mailto:users _AT_ openbach _DOT_ org" title="OpenBACH mailing list">The OpenBACH mailing list</a>
+                                                        <br />
+                                                        [2] <a rel="nofollow" href="https://forge.net4sat.org/openbach/openbach/issues">The OpenBACH bugtracker</a> and <a rel="nofollow" href="https://forge.net4sat.org/openbach/openbach-extra/issues">the OpenBACH-extra bugtracker</a>
+                                                        </p>
+
+                                                        <p>Best Regards,</p>
+
+                                                        <p>The OpenBACH team</p>
+
+                                        <hr>
+                                </div>
+
+				<div class="custom-blog-post">
+					<h2 style="color: #1BAEAE;">
+						OpenBACH stable release 2.1.0
+					</h2>
+					<p class="lead">
+						by <a href="overview.html">OpenBACH team</a>
+					</p>
+					<p><i class="fa fa-clock-o"></i> Posted on Monday, 29 June 2020</p>
+					<hr style="border-top: 1px solid #FFB95E;">
+							<p>Hi everybody,</p>
+							
+							<p>We are happy to announce that the new release of OpenBACH 2.1.0 is now available!!</p>
+							<p>This version includes the following updates:
+                                                        <ul>
+								<li>Big effort on openbach-extra and openbach-api:</li>
+                                                                <ul>
+                                                                        <li>New and more robust reference scenarios (network, transport, service, etc.) and executors to launch them from CLI.</li>
+                                                                        <li>New and improved jobs/helpers.</li>
+                                                                        <li>Polished auditorium-scripts.</li>
+                                                               
+                                                                </ul>
+                                                        	<li>Reorganization of the wiki:</li>
+                                                                <ul>
+                                                                        <li>More understandable for new users (easy CLI and web interfaces manuals).</li>
+                                                                        <li>New conventions to standardize the way jobs/scenarios are developed.</li>
+                                                               
+                                                                </ul>
+                                                                <li>Improvements and corrections on post-processing, LDAP, platform update/backup and stability.</li>
+                                                                <li>New features, e.g.:</li>
+                                                                <ul>
+                                                                        <li>Allowed parallel job installation.</li>
+                                                                        <li>Improved admin web page for jobs: easier to install/uninstall/update jobs in your controller and agents.</li>
+                                                               
+                                                                </ul>
+                                                                <li>Other minor bugfixes and improvements.</li>
+                                                        </ul>
+
+
+							<p>We will be glad to get your feedback on our mailing list [1] and bug reports on the bugtrackers [2].</p>
+							<p>
+							[1] <a rel="nofollow" href="mailto:users _AT_ openbach _DOT_ org" title="OpenBACH mailing list">The OpenBACH mailing list</a>
+							<br />
+							[2] <a rel="nofollow" href="https://forge.net4sat.org/openbach/openbach/issues">The OpenBACH bugtracker</a> and <a rel="nofollow" href="https://forge.net4sat.org/openbach/openbach-extra/issues">the OpenBACH-extra bugtracker</a>
+							</p>
+							
+							<p>Best Regards,</p>
+							
+							<p>The OpenBACH team</p>
+
+					<hr>
+				</div>
+
+
+				<div class="custom-blog-post">
+					<h2 style="color: #FFB95E;">
+						OpenBACH stable release 2.0.0
+					</h2>
+					<p class="lead">
+						by <a href="overview.html">OpenBACH team</a>
+					</p>
+					<p><i class="fa fa-clock-o"></i> Posted on Monday, 1 April 2019</p>
+					<hr style="border-top: 1px solid #FFB95E;">
+							<p>Hello OpenBACH community,</p>
+							
+							<p>We are glad to announce that stable major release of OpenBACH v2.0.0 is now available!!</p>
+							<p>This version includes many evolutions :
+                                                        <ul>
+								<li>Big effort on stability and scalability.</li>
+								<li>New HMI features.</li>
+                                       	                        <li>new Standalone features.</li>
+          	                                                <li>Job API evolution : more flexibility on parameters.</li>
+          	                                                <li>File collection in the collector</li>
+						                <li>More jobs and scenarios</li>
+                                                                <li>Many bugs corrections .</li>
+                                                        </ul>
+
+
+                                                        <p> Please do not reinstall this version on an existing OpenBACH v1.0.0 platform, the new version must be installed from scratch.
+							<p>We will be glad to get your feedback on our mailing list [1] and bug reports on the bugtracker [2].</p>
+							<p>
+							[1] <a rel="nofollow" href="mailto:users _AT_ openbach _DOT_ org" title="OpenBACH mailing list">The OpenBACH mailing list</a>
+							<br />
+							[2] <a rel="nofollow" href="https://forge.net4sat.org/openbach/openbach/issues">The OpenBACH bugtracker</a>
+							</p>
+							
+							<p>Best Regards,</p>
+							
+							<p>The OpenBACH team</p>
+
+					<hr>
+				</div>
+
+
+				<div class="custom-blog-post">
+					<h2 style="color: #008000;">
+						OpenBACH stable release 1.0.0
+					</h2>
+					<p class="lead">
+						by <a href="overview.html">OpenBACH team</a>
+					</p>
+					<p><i class="fa fa-clock-o"></i> Posted on Thursday, 15 February 2018</p>
+					<hr style="border-top: 1px solid #FFB95E;">
+							<p>Hello OpenBACH community,</p>
+							
+							<p>We are glad to announce that stable release of OpenBACH v1.0.0 is now available!!</p>
+							<p>This version includes many evolutions and a new way to install the platform. Some included evolutions are:
+                                                        <ul>
+								<li>Evolved HMI with more functionnalities (integrated logs, new visuals, status, etc.).</li>
+          	                                                <li>Extended library of jobs (metrology/traffic generation, etc).</li>
+							        <li>Automatic detection of your network topology.</li>
+							        <li>Better integration of Kibana logs and Grafana metrics per scenario.</li>
+                                                                <li>A new graphical analysis section allowing to create your post-processing plots (time-series, histograms and comparison of results).</li>
+                                                                <li>Many bugs corrections allowing to release a stable version.</li>
+		                                        </ul>
+
+
+                                                        <p> Please do not reinstall this version on an existing OpenBACH v0.10.0 platform, the new version must be installed from scratch.
+							<p>We will be glad to get your feedback on our mailing list [1] and bug reports on the bugtracker [2].</p>
+							<p>
+							[1] <a rel="nofollow" href="mailto:users _AT_ openbach _DOT_ org" title="OpenBACH mailing list">The OpenBACH mailing list</a>
+							<br />
+							[2] <a rel="nofollow" href="https://forge.net4sat.org/openbach/openbach/issues">The OpenBACH bugtracker</a>
+							</p>
+							
+							<p>Best Regards,</p>
+							
+							<p>The OpenBACH team</p>
+
+					<hr>
+				</div>
+
+
+                                <!-- Second Blog Post -->		
+				<div class="custom-blog-post">
+					<h2 style="color: #1BAEAE;">
+						OpenBACH Opening Day at CNES
+					</h2>
+					<p class="lead">
+						by <a href="overview.html">OpenBACH team</a>
+					</p>
+					<p><i class="fa fa-clock-o"></i> Posted on Friday, 2 June 2017</p>
+					<hr style="border-top: 1px solid #FFB95E;">
+							<p>The OpenBACH opening day has been held at CNES premises!</p>
+							<p>Around 50 people from Toulouse labs and industry have attended the opening day. Different aspects of OpenBACH have been presented to the local community: i.e. a context/history and objectives, a global technical presentation including the architecture/design of OpenBACH, a detailed technical presentation ("how to use" oriented) within a telecom use case. You can find the slides below:
+ 							<ul>
+								<li>The <a href="documents/01_OpenBACH_general_presentation_30052017.pdf" type="application/pdf">General and context presentation.</a></li>
+							        <li>The <a href="documents/02_OpenBACH_global_technical_presentation.pdf" type="application/pdf">Global technical presentation.</a></li>
+							        <li>The <a href="documents/03_OpenBACH_detailed_technical_presentation.pdf" type="application/pdf">Detailed technical presentation.</a></li>
+		
+							</ul>
+							<p>
+							
+							<p>Best Regards,</p>
+							
+							<p>The OpenBACH team</p>
+
+					<hr>
+				</div>
+                                <!-- First Blog Post -->
+				<div class="custom-blog-post">
+					<h2 style="color: #FFB95E;">
+						OpenBACH first release 0.9.0
+					</h2>
+					<p class="lead">
+						by <a href="overview.html">OpenBACH team</a>
+					</p>
+					<p><i class="fa fa-clock-o"></i> Posted on Friday, 3 Mars 2017</p>
+					<hr style="border-top: 1px solid #FFB95E;">
+							<p>Hi all,</p>
+							
+							<p>The release of OpenBACH 0.9.0 is now available.</p>
+							<p>This version is still a beta version with different evolutions under development.
+
+							<p>We will be glad to get your feedback on our mailing list [1] and bug reports on the bugtracker [2].</p>
+							<p>
+							[1] <a rel="nofollow" href="mailto:users _AT_ openbach _DOT_ org" title="OpenBACH mailing list">The OpenBACH mailing list</a>
+							<br />
+							[2] <a rel="nofollow" href="https://forge.net4sat.org/openbach/openbach/issues">The OpenBACH bugtracker</a>
+							</p>
+							
+							<p>Best Regards,</p>
+							
+							<p>The OpenBACH team</p>
+
+					<hr>
+				</div>
+
+
+
+            </div>
+
+            <!-- Blog Sidebar Widgets Column -->
+            <div class="col-md-4">
+
+                <!-- Blog Search Well -->
+                <div class="well">
+                    <h4>Blog Search</h4>
+                    <div class="input-group">
+                        <input type="text" id="search_text" class="form-control">
+                        <span class="input-group-btn">
+                            <button class="btn btn-default" type="button" id = "search_button" onclick="post_search()"><i class="fa fa-search"></i></button>
+                        </span>
+                    </div>
+                    <!-- /.input-group -->
+                </div>
+
+            </div>
+
+        </div>
+        <!-- /.row -->
+		</div>
+
+        <!-- Footer -->
+   
+
+    </div>
+</section>
+
+<script defer>
+  document.addEventListener("DOMContentLoaded", function() {
+		document.getElementById("search_text").addEventListener("keyup", function(event) {
+			event.preventDefault();
+			if (event.keyCode == 13) {
+				document.getElementById("search_button").click();
+			}
+		});
+  });
+
+  function post_search(){
+    var divs = document.getElementsByClassName('custom-blog-post');
+    for (var i = 0, len = divs.length; i < len; ++i) {
+      divs[i].style.display = 'block';
+    }
+    var text = document.getElementById("search_text").value;
+    var textLower = text.toLowerCase();
+    if (text != "") {
+      var divs = document.getElementsByClassName('custom-blog-post');
+      for (var i = 0, len = divs.length; i < len; ++i) {
+        var textLower2 = divs[i].innerHTML.toLowerCase();
+        if(textLower2.indexOf(textLower) == -1) {
+          divs[i].style.display = 'none';
+        }
+      }
+    }
+  };
+</script>
+
+
+    <!-- Footer -->
+    <footer>
+      <div class="container">
+        <div class="row">
+          <div class="col-lg-12">
+            <div id="licenses">
+              <br />
+              <p style="font-size:90%">Contact <a href="mailto:admin _AT_ openbach _DOT_ org" title="OpenBACH contact">
+              OpenBACH Steering Committee <i class="fa fa-envelope" aria-hidden="true"></i></a></p>
+              <p style="font-size:90%">The text content of this website is published under the <a 
+              href="http://creativecommons.org/licenses/by-nc-sa/3.0/" title="See license details"
+              rel="license" hreflang="en">Creative Commons BY-NC-SA license</a> (except where otherwise
+              stated). Some sections icons are derivative work of the GPL2 icons provided by the Gnome
+              project.</p>
+              <p style="font-size:90%">Logos and trademarks are the property of their respective owners. Any representation,
+              reproduction and/or exploitation, whether partial or total, of trademarks and logos
+              is prohibited without prior written permission from the owners.</p>
+              <p style="font-size:90%"><a href="privacy_policy.html" title="Read the privacy policy">
+              Privacy policy</a>.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
+
