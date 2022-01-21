@@ -124,14 +124,23 @@
     executable: /bin/bash
     creates: ~logstash/vendor/bundle/jruby/2.3.0/gems/logstash-output-influxdb-5.0.5
   become: yes
-  #become_user: logstash  ## Tested but does not work
+  become_user: logstash
+  vars:
+    # The install user and the logstash user most likely do not share any group
+    # so ask Ansible to push its script world readable so :become: do work
+    ansible_shell_allow_world_readable_temp: yes
 
 - name: Remove problematic log4j vulnerability
   shell: zip -q -d logstash-core/lib/jars/log4j-core-2.* org/apache/logging/log4j/core/lookup/JndiLookup.class
   args:
     chdir: '~logstash'
+    executable: /bin/bash
   become: yes
   become_user: logstash
+  vars:
+    # The install user and the logstash user most likely do not share any group
+    # so ask Ansible to push its script world readable so :become: do work
+    ansible_shell_allow_world_readable_temp: yes
   register: openbach_log4j_vulnerability
   failed_when: openbach_log4j_vulnerability.rc != 0 and openbach_log4j_vulnerability.rc != 12
 
