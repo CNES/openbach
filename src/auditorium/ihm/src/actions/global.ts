@@ -65,9 +65,9 @@ export function clearScenarioInstances() {
 };
 
 
-export function clearCurrentScenarioInstances() {
+export function clearCurrentScenarioInstances(scenarioName?: string) {
     return {
-        payload: null,
+        payload: scenarioName,
         type: CLEAR_FILTERED_SCENARIO_INSTANCES,
     };
 };

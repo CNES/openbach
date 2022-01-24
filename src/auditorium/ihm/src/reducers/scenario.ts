@@ -5,8 +5,8 @@ import {
     DELETE_SCENARIO_INSTANCES_SUCCESS,
     GET_FILTERED_SCENARIO_INSTANCES_SUCCESS,
     GET_SCENARIO_INSTANCE_SUCCESS,
-    PUT_SCENARIO_INSTANCE_SUCCESS,
     GET_SCENARIO_INSTANCES_SUCCESS,
+    PUT_SCENARIO_INSTANCE_SUCCESS,
     START_SCENARIO_INSTANCE_ERROR,
 } from "../utils/constants";
 
@@ -24,11 +24,9 @@ function scenarioReducer(state: IScenarioInstanceState = INITIAL_STATE, action =
     switch (action.type) {
         case PUT_SCENARIO_INSTANCE_SUCCESS:
             const startedInstance: IScenarioInstance = action.payload;
-            return {
-                ...state,
-                all: [startedInstance, ...state.all],
-                current: [startedInstance, ...state.current],
-            };
+            const all = [startedInstance, ...state.all];
+            const current = startedInstance.scenario_name === state.currentScenario ? [startedInstance, ...state.current] : [...state.current];
+            return {...state, all, current};
 
         case GET_SCENARIO_INSTANCE_SUCCESS:
             const instance: IScenarioInstance = action.payload;
@@ -75,6 +73,7 @@ function scenarioReducer(state: IScenarioInstanceState = INITIAL_STATE, action =
             return {
                 ...state,
                 current: [],
+                currentScenario: action.payload as string,
                 moreCurrent: true,
             };
 

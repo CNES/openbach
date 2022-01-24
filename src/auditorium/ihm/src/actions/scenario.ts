@@ -316,6 +316,7 @@ export function getFilteredScenarioInstancesFromProject(project: string, scenari
     };
 };
 
+
 export function startScenarioInstance(scenario: string, date: Date, args: any) {
     return (dispatch, getState) => {
         const project: string = getState().project.current.name;
