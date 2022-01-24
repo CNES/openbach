@@ -53,6 +53,9 @@ import {
     GET_SCENARIO_INSTANCES_ERROR,
     GET_SCENARIO_INSTANCES_PENDING,
     GET_SCENARIO_INSTANCES_SUCCESS,
+    PUT_SCENARIO_INSTANCE_ERROR,
+    PUT_SCENARIO_INSTANCE_PENDING,
+    PUT_SCENARIO_INSTANCE_SUCCESS,
     REMOVE_SCENARIO_ERROR,
     REMOVE_SCENARIO_PENDING,
     REMOVE_SCENARIO_SUCCESS,
@@ -325,9 +328,9 @@ export function startScenarioInstance(scenario: string, date: Date, args: any) {
                                 promise: getScenarioInstanceFromID(response.scenario_instance_id, false),
                             },
                             types: [
-                                GET_SCENARIO_INSTANCE_PENDING,
-                                GET_SCENARIO_INSTANCE_SUCCESS,
-                                GET_SCENARIO_INSTANCE_ERROR,
+                                PUT_SCENARIO_INSTANCE_PENDING,
+                                PUT_SCENARIO_INSTANCE_SUCCESS,
+                                PUT_SCENARIO_INSTANCE_ERROR,
                             ],
                         });
                     }),

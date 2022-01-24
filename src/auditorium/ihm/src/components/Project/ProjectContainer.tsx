@@ -97,8 +97,8 @@ class ProjectContainer extends React.Component<IProps & IStoreProps & IDispatchP
         this.props.setTitle(`'${name}' Project`);
         this.props.loadAgents();
         this.props.loadProject(name);
-        this.props.loadScenarioInstances(name);
         this.props.clearCurrentInstances();
+        this.props.loadScenarioInstances(name);
 
         const scenario = this.props.params.scenarioId;
         if (scenario != null) {
