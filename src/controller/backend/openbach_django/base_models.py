@@ -84,8 +84,14 @@ class OpenbachFunctionParameter(models.TextField):
     def __init__(self, *args, **kwargs):
         type_ = kwargs.pop('type', type(None))
 
-        if not isinstance(type_, type) and not (isinstance(type_, list) and len(type_) == 1 and isinstance(type_[0], type)):
-            raise TypeError('type parameter should be a class or a list of one class')
+        try:
+            if isinstance(type_, list):
+                t, = type_  # Can raise ValueError if len != 1
+            else:
+                t = type_
+            isinstance(None, t)  # Can raise TypeError if t is not a type, a tuple of types or a union
+        except (ValueError, TypeError):
+            raise TypeError('type parameter should be a type, a tuple of types, a union or a list of one of them')
 
         self.type = type_
         kwargs['default'] = None
