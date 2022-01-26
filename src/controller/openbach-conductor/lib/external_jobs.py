@@ -59,7 +59,7 @@ def _read_proxies(group_vars_file):
     """Read proxy configuration from the provided Ansible :vars: file"""
 
     with open(group_vars_file, encoding='utf-8') as openbach_variables:
-        variables = yaml.load(openbach_variables)
+        variables = yaml.safe_load(openbach_variables)
 
     proxies = {}
     proxy_configuration = variables.get('openbach_proxy_env', {})
@@ -154,7 +154,7 @@ def _fetch_version(project_id, file_path):
 
     content = _fetch_raw_content(project_id, file_path)
     try:
-        job = yaml.load(content)
+        job = yaml.safe_load(content)
         return job['general']['job_version']
     except (yaml.error.YAMLError, KeyError):
         return None

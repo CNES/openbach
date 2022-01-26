@@ -63,10 +63,10 @@ def get_collector_infos(
         collector_file='/opt/openbach/agent/collector.yml',
         rstats_file='/opt/openbach/agent/rstats/rstats.yml'):
     with open(collector_file) as stream:
-        config = yaml.load(stream)
+        config = yaml.safe_load(stream)
 
     with open(rstats_file) as stream:
-        config.update(yaml.load(stream))
+        config.update(yaml.safe_load(stream))
 
     return config
 

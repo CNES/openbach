@@ -1092,7 +1092,7 @@ class VersionView(GenericView):
         """Return the current version"""
         try:
             with open('/opt/openbach/controller/version') as version_file:
-                openbach_infos = yaml.load(version_file)
+                openbach_infos = yaml.safe_load(version_file)
         except OSError as e:
             return {'msg': 'Cannot fetch version: {}'.format(e)}, 500
         return {'openbach_version': openbach_infos['version']}, 200
