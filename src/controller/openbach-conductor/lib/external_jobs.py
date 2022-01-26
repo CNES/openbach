@@ -146,10 +146,7 @@ def _filter_jobs(files):
 def _fetch_raw_content(project_id, file_path):
     """Fetch a file from the repository without wrapping it in a JSON response"""
 
-    response = _do_request(
-            project_id, file_path,
-            accept='application/vnd.github.v3.raw', ref=REF_NAME)
-    return response.content
+    return _do_request(project_id, file_path, accept='application/vnd.github.v3.raw').content
 
 
 def _fetch_version(project_id, file_path):
@@ -178,14 +175,14 @@ def _retrieve_file(project_id, path, dest_file):
 def _list_project_files(project_id, path):
     """Generate all entries in the repository that correspond to a file"""
 
-    for entry in _do_request(project_id, path, ref=REF_NAME).json():
+    for entry in _do_request(project_id, path).json():
         if entry['type'] == 'file':
             yield entry
         elif entry['type'] == 'dir':
             yield from _list_project_files(project_id, entry['path'])
 
 
-def _do_request(project_id, route, accept=None, *, base_header=_build_headers(), proxies=_read_proxies('/opt/openbach/controller/ansible/group_vars/all')):
+def _do_request(project_id, route, accept=None, *, base_headers=_build_headers(), proxies=_read_proxies('/opt/openbach/controller/ansible/group_vars/all')):
     """Hit an API endpoint and return the result"""
 
     response = requests.get(
