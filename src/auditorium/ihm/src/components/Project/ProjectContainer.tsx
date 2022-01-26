@@ -98,9 +98,9 @@ class ProjectContainer extends React.Component<IProps & IStoreProps & IDispatchP
         this.props.loadAgents();
         this.props.loadProject(name);
         this.props.loadScenarioInstances(name);
-        this.props.clearCurrentInstances();
 
         const scenario = this.props.params.scenarioId;
+        this.props.clearCurrentInstances(scenario);
         if (scenario != null) {
             this.props.loadCurrentInstances(name, scenario);
         }
@@ -111,9 +111,10 @@ class ProjectContainer extends React.Component<IProps & IStoreProps & IDispatchP
         if (projectId !== previousProps.params.projectId) {
             this.props.clearAllInstances();
             this.props.loadScenarioInstances(projectId);
+            this.props.clearCurrentInstances(scenarioId);
             if (scenarioId != null) { this.props.loadCurrentInstances(projectId, scenarioId); }
         } else if (scenarioId !== previousProps.params.scenarioId) {
-            this.props.clearCurrentInstances();
+            this.props.clearCurrentInstances(scenarioId);
             if (scenarioId != null) { this.props.loadCurrentInstances(projectId, scenarioId); }
         }
     }
@@ -167,7 +168,7 @@ interface IDispatchProps {
     loadProject: (name: string) => void;
     loadScenarioInstances: (project: string) => void;
     clearAllInstances: () => void;
-    clearCurrentInstances: () => void;
+    clearCurrentInstances: (scenario?: string) => void;
     loadCurrentInstances: (project: string, name: string) => void;
     setTitle: (title: string) => void;
 };
@@ -175,7 +176,7 @@ interface IDispatchProps {
 
 const mapDispatchToProps = (dispatch): IDispatchProps => ({
     clearAllInstances: () => dispatch(clearScenarioInstances()),
-    clearCurrentInstances: () => dispatch(clearCurrentScenarioInstances()),
+    clearCurrentInstances: (scenario?: string) => dispatch(clearCurrentScenarioInstances(scenario)),
     loadAgents: () => dispatch(getAgents(false)),
     loadCurrentInstances: (project: string, name: string) => dispatch(getFilteredScenarioInstancesFromProject(project, name)),
     loadProject: (name: string) => dispatch(getSingleProject(name)),

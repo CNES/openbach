@@ -13,6 +13,7 @@ export interface IScenarioInstanceState {
     more: boolean;
     moreCurrent: boolean;
     startError?: IStartScenarioError;
+    currentScenario?: string;
 };
 
 

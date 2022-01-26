@@ -6,6 +6,7 @@ import {
     GET_FILTERED_SCENARIO_INSTANCES_SUCCESS,
     GET_SCENARIO_INSTANCE_SUCCESS,
     GET_SCENARIO_INSTANCES_SUCCESS,
+    PUT_SCENARIO_INSTANCE_SUCCESS,
     START_SCENARIO_INSTANCE_ERROR,
 } from "../utils/constants";
 
@@ -21,47 +22,21 @@ const INITIAL_STATE: IScenarioInstanceState = {
 
 function scenarioReducer(state: IScenarioInstanceState = INITIAL_STATE, action = {payload: null, type: ""}) {
     switch (action.type) {
+        case PUT_SCENARIO_INSTANCE_SUCCESS:
+            const startedInstance: IScenarioInstance = action.payload;
+            const all = [startedInstance, ...state.all];
+            const current = startedInstance.scenario_name === state.currentScenario ? [startedInstance, ...state.current] : [...state.current];
+            return {...state, all, current};
+
         case GET_SCENARIO_INSTANCE_SUCCESS:
             const instance: IScenarioInstance = action.payload;
             const id = instance.scenario_instance_id;
-            const index = state.all.findIndex((i: IScenarioInstance) => i.scenario_instance_id === id);
-            let currentIndex = -1;
-            const currentScenario: { [name: string]: boolean; } = {};
-            state.current.forEach((i: IScenarioInstance, idx: number) => {
-                currentScenario[i.scenario_name] = true;
-                if (i.scenario_instance_id === id) {
-                    currentIndex = idx;
-                }
-            });
-
-            const newState = {...state};
             const keep_others = (i: IScenarioInstance) => i.scenario_instance_id === id ? instance : i;
-
-            if (currentIndex === -1) {
-                // Not present => add on top
-                if (Object.keys(currentScenario).length !== 1) {
-                    newState.current = [instance];
-                } else if (currentScenario.hasOwnProperty(instance.scenario_name)) {
-                    // only if it's for our specific scenario
-                    newState.current = [instance, ...state.current];
-                }
-            } else {
-                // Present => replace
-                newState.current = state.current.map(keep_others);
-            }
-
-            if (index === -1) {
-                // Not present => add on top
-                if (currentIndex === -1) {
-                    // only if it wasn't an update for a specific scenario
-                    newState.all = [instance, ...state.all];
-                }
-            } else {
-                // Present => replace
-                newState.all = state.all.map(keep_others);
-            }
-
-            return newState;
+            return {
+                ...state,
+                all: state.all.map(keep_others),
+                current: state.current.map(keep_others),
+            };
 
         case GET_SCENARIO_INSTANCES_SUCCESS:
             return {
@@ -98,6 +73,7 @@ function scenarioReducer(state: IScenarioInstanceState = INITIAL_STATE, action =
             return {
                 ...state,
                 current: [],
+                currentScenario: action.payload as string,
                 moreCurrent: true,
             };
 

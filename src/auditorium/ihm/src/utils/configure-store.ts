@@ -36,8 +36,8 @@ function _getEnhancers() {
         persistState("session", _persistSessionInLocalStorage()),
     ];
 
-    if (__DEV__ && environment.devToolsExtension) {
-        enhancers = [...enhancers, environment.devToolsExtension()];
+    if (__DEV__ && environment.__REDUX_DEVTOOLS_EXTENSION__) {
+        enhancers = [...enhancers, environment.__REDUX_DEVTOOLS_EXTENSION__()];
     }
 
     return enhancers;
