@@ -38,7 +38,7 @@ ProjectInfos = namedtuple('ProjectInfos', ['id', 'jobs_path', 'dest_dir'])
 
 REF_NAME = 'dev'
 API_TOKEN = ''
-BASE_URL_TEMPLATE = 'https://api.github.com/repos/CNES/{}/contents/{}'
+BASE_URL_TEMPLATE = 'https://api.github.com/repos/CNES/{}{}'
 REPOSITORIES = {
         'openbach': ProjectInfos('openbach', 'src/jobs/', ''),
         'openbach-extra': ProjectInfos('openbach-extra', 'externals_jobs/stable_jobs/', 'src/jobs/private_jobs'),
@@ -81,17 +81,17 @@ def list_jobs_properties(repository):
                 project_name=repository)
 
     files = {
-            f['path']
+            f['path']: f['sha']
             for f in _list_project_files(project_info.id, project_info.jobs_path)
-            if os.path.splitext(f['name'])[1] == '.yml'
+            if os.path.splitext(f['path'])[1] == '.yml'
     }
 
     return [
             {
                 'display': ' '.join(map(str.title, name.split('_'))),
                 'name': name,
-                'version': _fetch_version(project_info.id, path),
-            } for name, path in sorted(_filter_jobs(files))
+                'version': _fetch_version(project_info.id, sha),
+            } for name, sha in sorted(_filter_jobs(files))
     ]
 
 
@@ -118,9 +118,8 @@ def add_job(name, repository, dest_dir='/opt/openbach/controller'):
     dest_dir = os.path.join(dest_dir, project_info.dest_dir)
     base_directory = os.path.dirname(os.path.dirname(file_blob['path']))
     for blob in _list_project_files(project_info.id, base_directory):
-        if blob['type'] == 'file':
-            destination = os.path.join(dest_dir, blob['path'])
-            _retrieve_file(project_info.id, blob['path'], destination)
+        destination = os.path.join(dest_dir, blob['path'])
+        _retrieve_file(project_info.id, blob['sha'], destination)
 
     return os.path.join(dest_dir, base_directory)
 
@@ -130,8 +129,8 @@ def _filter_jobs(files):
     files from the whole list of :files: inside a repository.
     """
 
-    for filepath in files:
-        folder, filename = os.path.split(filepath)
+    for filename, sha in files.items():
+        folder, filename = os.path.split(filename)
         job_name, _ = os.path.splitext(filename)
         parent_folder, files_folder = os.path.split(folder)
         if files_folder != 'files':
@@ -140,19 +139,19 @@ def _filter_jobs(files):
         install = os.path.join(parent_folder, install_filename)
         uninstall = os.path.join(parent_folder, 'un' + install_filename)
         if install in files and uninstall in files:
-            yield job_name, filepath
+            yield job_name, sha
 
 
-def _fetch_raw_content(project_id, file_path):
+def _fetch_raw_content(project_id, checksum):
     """Fetch a file from the repository without wrapping it in a JSON response"""
 
-    return _do_request(project_id, file_path, accept='application/vnd.github.v3.raw').content
+    return _do_request(project_id, '/git/blobs/' + checksum, 'application/vnd.github.v3.raw').content
 
 
-def _fetch_version(project_id, file_path):
+def _fetch_version(project_id, sha):
     """Read a job's configuration file and return its version"""
 
-    content = _fetch_raw_content(project_id, file_path)
+    content = _fetch_raw_content(project_id, sha)
     try:
         job = yaml.safe_load(content)
         return job['general']['job_version']
@@ -160,10 +159,10 @@ def _fetch_version(project_id, file_path):
         return None
 
 
-def _retrieve_file(project_id, path, dest_file):
+def _retrieve_file(project_id, sha, dest_file):
     """Download a file from the repository and write it at the provided destination"""
 
-    content = _fetch_raw_content(project_id, path)
+    content = _fetch_raw_content(project_id, sha)
 
     dest_folder = os.path.dirname(dest_file)
     os.makedirs(dest_folder, exist_ok=True)
@@ -173,21 +172,20 @@ def _retrieve_file(project_id, path, dest_file):
 
 
 def _list_project_files(project_id, path):
-    """Generate all entries in the repository that correspond to a file"""
+    """Generate all entries in the repository that correspond to a file under the given path"""
 
-    for entry in _do_request(project_id, path).json():
-        if entry['type'] == 'file':
-            yield entry
-        elif entry['type'] == 'dir':
-            yield from _list_project_files(project_id, entry['path'])
+    reference = _do_request(project_id, '/git/ref/heads/' + REF_NAME).json()
+    tree = _do_request(project_id, '/git/trees/' + reference['object']['sha'], recursive=True).json()
+    yield from (entry for entry in tree['tree'] if entry['type'] == 'blob' and entry['path'].startswith(path))
 
 
-def _do_request(project_id, route, accept=None, *, base_headers=_build_headers(), proxies=_read_proxies('/opt/openbach/controller/ansible/group_vars/all')):
+def _do_request(project_id, route, accept=None, recursive=False, *, base_headers=_build_headers(), proxies=_read_proxies('/opt/openbach/controller/ansible/group_vars/all'), session=requests.Session()):
     """Hit an API endpoint and return the result"""
+    params = {'recursive': 1} if recursive else None
 
-    response = requests.get(
+    response = session.get(
             BASE_URL_TEMPLATE.format(project_id, route),
-            params={'ref': REF_NAME},
+            params=params,
             proxies=proxies,
             headers=base_headers if accept is None else {**base_headers, 'Accept': accept})
     response.raise_for_status()
