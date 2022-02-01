@@ -37,7 +37,7 @@ ProjectInfos = namedtuple('ProjectInfos', ['id', 'jobs_path', 'dest_dir'])
 
 
 REF_NAME = 'dev'
-API_TOKEN = ''
+API_TOKEN = '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'
 BASE_URL_TEMPLATE = 'https://api.github.com/repos/CNES/{}{}'
 REPOSITORIES = {
         'openbach': ProjectInfos('openbach', 'src/jobs/', ''),
