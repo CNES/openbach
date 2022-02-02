@@ -3504,6 +3504,60 @@ class StatisticsComparison(StatisticsAction):
 class PushFile(ConductorAction):
     """Action that send a file from the Controller to an Agent"""
 
+    def __init__(self, local_path, remote_path, address, users=(), groups=(), removes=()):
+        if not users:
+            users = [None] * len(local_path)
+
+        if not groups:
+            groups = [None] * len(local_path)
+
+        if not removes:
+            removes = [False] * len(local_path)
+
+        # TODO check removes length
+
+        super().__init__(
+                local_path=local_path, remote_path=remote_path,
+                address=address, users=users, groups=groups, removes=removes)
+
+    @require_connected_user()
+    def _action(self):
+        if not (len(self.local_path) == len(self.remote_path) == len(self.users) == len(self.groups)):
+            raise errors.BadRequestError(
+                    'amount mismatch between local paths ({}), '
+                    'remote paths ({}), users ({}), or groups ({})'
+                    .format(len(self.local_path), len(self.remote_path), len(self.users), len(self.groups)))
+
+        agent_infos = InfosAgent(self.address)
+        self.share_user(agent_infos)
+        agent_infos._check_user_can_use_agent()
+        agent = agent_infos.get_agent_or_not_found_error()
+
+        users = [user if user else 'openbach' for user in self.users]
+        groups = [group if group else user for user, group in zip(users, self.groups)]
+        parameters = [
+                {
+                    'source': local_path,
+                    'destination': os.path.join(
+                        '/opt/openbach/agent/files/',
+                        self.connected_user.username,
+                        remote_path),
+                    'user': user,
+                    'group': group,
+                    'remove': remove
+                }
+                for local_path, remote_path, user, group, remove
+                in zip(self.local_path, self.remote_path, users, groups, removes)
+        ]
+        start_playbook('push_file', agent.address, parameters)
+
+        return None, 204
+
+class PullFile(ConductorAction):
+    """Action that send a file from the Controller to an Agent"""
+
+    # TODO put removes here
+
     def __init__(self, local_path, remote_path, address, users=(), groups=()):
         if not users:
             users = [None] * len(local_path)
@@ -3532,18 +3586,15 @@ class PushFile(ConductorAction):
         groups = [group if group else user for user, group in zip(users, self.groups)]
         parameters = [
                 {
-                    'source': local_path,
-                    'destination': os.path.join(
-                        '/opt/openbach/agent/files/',
-                        self.connected_user.username,
-                        remote_path),
+                    'source': remote_path,
+                    'destination': local_path,
                     'user': user,
                     'group': group,
                 }
                 for local_path, remote_path, user, group
                 in zip(self.local_path, self.remote_path, users, groups)
         ]
-        start_playbook('push_file', agent.address, parameters)
+        start_playbook('pull_file', agent.address, parameters)
 
         return None, 204
 

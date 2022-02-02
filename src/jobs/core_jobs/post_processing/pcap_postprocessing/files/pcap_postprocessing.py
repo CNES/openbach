@@ -166,18 +166,7 @@ def compute_and_send_statistics(packets, to, metrics_interval, suffix, stat_time
     collect_agent.send_stat(stat_time, suffix=suffix, **statistics)
 
 
-def gilbert_elliot(capture_file, ip_second_capture_file, second_capture_file, src_ip, dst_ip, src_port, dst_port, proto):
-    path = "/tmp/" + str(random.randint(1000000, 10000000)) + "-" +  second_capture_file.split('/')[-1]
-    cmd = "scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null".split() + [ip_second_capture_file + ":" + second_capture_file, path]
-    p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-    if p.returncode != 0:
-        message = 'ERROR when lauching scp: {}'.format(p.stderr)
-        collect_agent.send_log(syslog.LOG_ERR, message)
-        sys.exit(message)
-
-
-    # TODO handle if scp failed (retry ?, use management network)
+def gilbert_elliot(capture_file, second_capture_file, src_ip, dst_ip, src_port, dst_port, proto):
     # TODO add try catch
     # TODO is IP ID enough ?
     # TODO what if reordering ?
@@ -190,7 +179,7 @@ def gilbert_elliot(capture_file, ip_second_capture_file, second_capture_file, sr
         packets_sent = [packet.ip.id for packet in cap_file_sent if 'IP' in str(packet.layers) and packet.transport_layer is not None]
     index = 0
     n = len(packets_sent)
-    with closing(pyshark.FileCapture(path, display_filter=display_filter)) as cap_file_received:
+    with closing(pyshark.FileCapture(second_capture_file, display_filter=display_filter)) as cap_file_received:
         current_packet_sent = packets_sent[index]
         index = 1
         # TODO handle if index == n
@@ -210,13 +199,11 @@ def gilbert_elliot(capture_file, ip_second_capture_file, second_capture_file, sr
             if index == n:
                 break
 
-    subprocess.run(["rm", path])
-
     total_good = 0
     total_bad = 0
     goods = []
     bads = []
-    last_good = (lost[0] == 0)
+    last_good = (lost[0] == 0) # TODO case not lost
     for x in lost:
         if x == 0:
             total_good += 1
@@ -343,7 +330,6 @@ if __name__ == '__main__':
         parser_one_file.add_argument('-T', '--metrics-interval', type=int, default=500, help='Time period in ms to compute metrics')
 
         parser_ge = subparsers.add_parser('gilbert_elliot', help='Compute Gilbert Elliot parameters from 2 files')
-        parser_ge.add_argument('ip_second_capture_file', help='IP address where the second pcap file is located')
         parser_ge.add_argument('second_capture_file', type=str, help='Path to the second capture file')
 
         # Set subparsers options to automatically call the right

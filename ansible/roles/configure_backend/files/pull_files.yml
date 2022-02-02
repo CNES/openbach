@@ -1,0 +1,13 @@
+---
+
+- hosts: all
+  tasks:
+    - name: Copy File from the Remote Host
+      fetch:
+        flat: yes
+        src: "{{ item.source }}"
+        dest: "{{ item.destination }}"
+        group: "{{ item.group | default(item.user | default(omit)) }}"
+        owner: "{{ item.user | default(omit) }}"
+      with_items: "{{ copy_parameters }}"
+      become: yes

@@ -95,10 +95,6 @@ arguments:
               description: The time period in ms to compute statistics (default 500)
         - name: gilbert_elliot
           required:
-            - name:        ip_second_capture_file
-              type:        str
-              count:       1
-              description: IP address where the second pcap file is located
             - name:        second_capture_file
               type:        str
               count:       1
