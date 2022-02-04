@@ -3514,19 +3514,17 @@ class PushFile(ConductorAction):
         if not removes:
             removes = [False] * len(local_path)
 
-        # TODO check removes length
-
         super().__init__(
                 local_path=local_path, remote_path=remote_path,
                 address=address, users=users, groups=groups, removes=removes)
 
     @require_connected_user()
     def _action(self):
-        if not (len(self.local_path) == len(self.remote_path) == len(self.users) == len(self.groups)):
+        if not (len(self.local_path) == len(self.remote_path) == len(self.users) == len(self.groups) == len(self.removes)):
             raise errors.BadRequestError(
                     'amount mismatch between local paths ({}), '
-                    'remote paths ({}), users ({}), or groups ({})'
-                    .format(len(self.local_path), len(self.remote_path), len(self.users), len(self.groups)))
+                    'remote paths ({}), users ({}), groups ({}), or removes ({})'
+                    .format(len(self.local_path), len(self.remote_path), len(self.users), len(self.groups), len(self.removes)))
 
         agent_infos = InfosAgent(self.address)
         self.share_user(agent_infos)
@@ -3535,6 +3533,7 @@ class PushFile(ConductorAction):
 
         users = [user if user else 'openbach' for user in self.users]
         groups = [group if group else user for user, group in zip(users, self.groups)]
+        removes = [True if remove=="True" else False for remove in self.removes]
         parameters = [
                 {
                     'source': local_path,
@@ -3554,28 +3553,29 @@ class PushFile(ConductorAction):
         return None, 204
 
 class PullFile(ConductorAction):
-    """Action that send a file from the Controller to an Agent"""
+    """Action that send a file from an Agent to the Controller"""
 
-    # TODO put removes here
-
-    def __init__(self, local_path, remote_path, address, users=(), groups=()):
+    def __init__(self, local_path, remote_path, address, users=(), groups=(), removes=()):
         if not users:
             users = [None] * len(local_path)
 
         if not groups:
             groups = [None] * len(local_path)
 
+        if not removes:
+            removes = [False] * len(local_path)
+
         super().__init__(
                 local_path=local_path, remote_path=remote_path,
-                address=address, users=users, groups=groups)
+                address=address, users=users, groups=groups, removes=removes)
 
     @require_connected_user()
     def _action(self):
-        if not (len(self.local_path) == len(self.remote_path) == len(self.users) == len(self.groups)):
+        if not (len(self.local_path) == len(self.remote_path) == len(self.users) == len(self.groups) == len(self.removes)):
             raise errors.BadRequestError(
                     'amount mismatch between local paths ({}), '
-                    'remote paths ({}), users ({}), or groups ({})'
-                    .format(len(self.local_path), len(self.remote_path), len(self.users), len(self.groups)))
+                    'remote paths ({}), users ({}), groups ({}), or removes ({})'
+                    .format(len(self.local_path), len(self.remote_path), len(self.users), len(self.groups), len(self.removes)))
 
         agent_infos = InfosAgent(self.address)
         self.share_user(agent_infos)
@@ -3584,15 +3584,17 @@ class PullFile(ConductorAction):
 
         users = [user if user else 'openbach' for user in self.users]
         groups = [group if group else user for user, group in zip(users, self.groups)]
+        removes = [True if remove=="True" else False for remove in self.removes]
         parameters = [
                 {
                     'source': remote_path,
                     'destination': local_path,
                     'user': user,
                     'group': group,
+                    'remove': remove
                 }
-                for local_path, remote_path, user, group
-                in zip(self.local_path, self.remote_path, users, groups)
+                for local_path, remote_path, user, group, remove
+                in zip(self.local_path, self.remote_path, users, groups, removes)
         ]
         start_playbook('pull_file', agent.address, parameters)
 
