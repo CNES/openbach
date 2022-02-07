@@ -32,7 +32,7 @@ general:
       generate UDP/TCP traffic with configured parameters (duration,
       bandwidth, parallel flows, ToS, MSS, etc.). It measures
       throughput, sent/lost packets, jitter, etc. 
-  job_version: '2.8'
+  job_version: '2.9'
   keywords:
     - iperf
     - iperf3
@@ -136,6 +136,11 @@ arguments:
                       count: 1
                       flag: '-b'
                       description: Set target bandwidth to n [M/K]bits/sec (default 1 Mbit/sec).
+                    - name: udp_size
+                      type: str
+                      count: 1
+                      flag: '-us'
+                      description: Set the UDP packet size in bytes (default 1472 B).
                 - name: tcp
                   required:
                   optional:

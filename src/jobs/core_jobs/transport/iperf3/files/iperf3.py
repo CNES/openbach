@@ -308,7 +308,7 @@ def receiver(cmd):
 def client(
         metrics_interval, port, num_flows, server_ip, window_size,
         tos, time_duration, transmitted_size, protocol, reverse, bandwidth=None,
-        cong_control=None, mss=None):
+        cong_control=None, mss=None, udp_size=None):
 
     cmd = ['stdbuf', '-oL', 'iperf3', '-c', server_ip, '-f', 'k']
     cmd.extend(_command_build_helper('-i', metrics_interval))
@@ -319,6 +319,7 @@ def client(
     if protocol == "udp":
         cmd.append('-u')
         cmd.extend(_command_build_helper('-b', bandwidth))
+        cmd.extend(_command_build_helper('--length', udp_size))
     else:
         cmd.extend(_command_build_helper('-C', cong_control))
         cmd.extend(_command_build_helper('-M', mss))
@@ -433,6 +434,9 @@ if __name__ == "__main__":
             '-b', '--bandwidth', type=str,
             help='Set target bandwidth to n [M/K]bits/sec (default '
             '1M). This setting requires UDP (-u).')
+        parser_client_udp.add_argument(
+            '-us', '--udp_size', type=str,
+            help='Set the UDP packet size in bytes (default 1472 B). This setting requires UDP (-u).')
 
         # Set subparsers options to automatically call the right
         # function depending on the chosen subcommand
