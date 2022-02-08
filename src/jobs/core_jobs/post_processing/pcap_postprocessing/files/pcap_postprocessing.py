@@ -34,12 +34,12 @@ __credits__ = '''Contributors:
  * Joaquin MUGUERZA <joaquin.muguerza@viveris.fr>
  * Francklin SIMO <francklin.simo@viveris.fr>
  * David FERNANDES <david.fernandes@viveris.fr>
+ * Bastien TAURAN <bastien.tauran@viveris.fr>
 '''
 
 import os
 import sys
 import time
-import pprint
 import syslog
 import argparse
 import itertools
@@ -162,81 +162,79 @@ def compute_and_send_statistics(packets, to, metrics_interval, suffix, stat_time
         if avg_inter_packets_delay is not None:
            statistics.update({'avg_inter_packets_delay': int(avg_inter_packets_delay*1000)})
 
-    pprint.pprint(statistics)
     collect_agent.send_stat(stat_time, suffix=suffix, **statistics)
 
 
 def gilbert_elliot(capture_file, second_capture_file, src_ip, dst_ip, src_port, dst_port, proto):
-    # TODO add try catch
     # TODO is IP ID enough ?
-    # TODO what if reordering ?
-    # TODO need to use protos other than TCP and UDP
     ips_sent = []
     display_filter = build_display_filter(src_ip, dst_ip, src_port, dst_port, proto)
 
-    lost = []
-    with closing(pyshark.FileCapture(capture_file, display_filter=display_filter)) as cap_file_sent:
-        packets_sent = [packet.ip.id for packet in cap_file_sent if 'IP' in str(packet.layers) and packet.transport_layer is not None]
-    index = 0
-    n = len(packets_sent)
-    with closing(pyshark.FileCapture(second_capture_file, display_filter=display_filter)) as cap_file_received:
-        current_packet_sent = packets_sent[index]
-        index = 1
-        # TODO handle if index == n
-        for packet in cap_file_received:
-            if not ('IP' in str(packet.layers) and packet.transport_layer is not None):
-                continue
-            if packet.ip.id == current_packet_sent:
-                lost.append(0)
-            while packet.ip.id != current_packet_sent:
-                lost.append(1)
-                current_packet_sent = packets_sent[index]
-                index += 1
-                if index == n:
-                    break
+    try:
+        with closing(pyshark.FileCapture(capture_file, display_filter=display_filter)) as cap_file_sent:
+            packets_sent = [packet.ip.id for packet in cap_file_sent if 'IP' in str(packet.layers) and packet.transport_layer is not None]
+        n = len(packets_sent)
+        index = 0
+        goods = []
+        bads = []
+        with closing(pyshark.FileCapture(second_capture_file, display_filter=display_filter)) as cap_file_received:
             current_packet_sent = packets_sent[index]
-            index += 1
-            if index == n:
-                break
+            index = 1
+            total_good = 0
+            total_bad = 0
+            try:
+                for packet in cap_file_received:
+                    if not ('IP' in str(packet.layers) and packet.transport_layer is not None):
+                        continue
+                    if packet.ip.id == current_packet_sent:
+                        total_good += 1
+                        if total_bad:
+                            bads.append(total_bad)
+                            total_bad = 0
+                    while packet.ip.id != current_packet_sent:
+                        if total_good:
+                            goods.append(total_good)
+                            total_good = 0
+                        total_bad += 1
+                        current_packet_sent = packets_sent[index]
+                        index += 1
+                        if index == n:
+                            break
+                    current_packet_sent = packets_sent[index]
+                    index += 1
+                    if index >= n:
+                        break
+                if total_good:
+                    goods.append(total_good)
+                if total_bad:
+                    bads.append(total_bad)
+            except Exception as ex:
+                message = 'ERROR when parsing pcap: {}'.format(ex)
+                collect_agent.send_log(syslog.LOG_ERR, message)
+                sys.exit(message)
 
-    total_good = 0
-    total_bad = 0
-    goods = []
-    bads = []
-    last_good = (lost[0] == 0) # TODO case not lost
-    for x in lost:
-        if x == 0:
-            total_good += 1
-            if not last_good:
-                bads.append(total_bad)
-                total_bad = 0
-            last_good = True
+
+        statistics = {}
+        if goods:
+            g = sum(goods)/len(goods)
+            statistics['gilbert_elliot_p'] = 1/g
         else:
-            total_bad += 1
-            if last_good:
-                goods.append(total_good)
-                total_good = 0
-            last_good = False
+            collect_agent.send_log(syslog.LOG_WARNING, "Cannot compute p parameter. Maybe the capture files are too short.")
+        if bads:
+            b = sum(bads)/len(bads)
+            statistics['gilbert_elliot_r'] = 1/b
+        else:
+            collect_agent.send_log(syslog.LOG_WARNING, "Cannot compute r parameter. Maybe the capture files are too short.")
 
-    if last_good:
-        goods.append(total_good)
-    else:
-        bads.append(total_bad)
+        collect_agent.send_stat(now(), **statistics)
 
-    print(goods)
-    print(bads)
+    except Exception as ex:
+        message = 'ERROR when analyzing: {}'.format(ex)
+        collect_agent.send_log(syslog.LOG_ERR, message)
+        sys.exit(message)
 
-    # TODO handle len == 0
-    g = sum(goods)/len(goods)
-    b = sum(bads)/len(bads)
 
-    pgg = 1-1/g
-    pbb = 1-1/b
-
-    print("p=",1-pgg,"r=",1-pbb)
-
-    statistics = {'gilbert_elliot_p':1-pgg, 'gilbert_elliot_r':1-pbb}
-    collect_agent.send_stat(now(), **statistics)
+    sys.exit(0)  # Explicitly exit properly. This is required by pyshark module
 
     
 def one_file(capture_file, src_ip, dst_ip, src_port, dst_port, proto, metrics_interval):
@@ -296,7 +294,6 @@ def one_file(capture_file, src_ip, dst_ip, src_port, dst_port, proto, metrics_in
 
     except Exception as ex:
         message = 'ERROR when analyzing: {}'.format(ex)
-        print(message)
         collect_agent.send_log(syslog.LOG_ERR, message)
         sys.exit(message)
 

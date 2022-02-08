@@ -499,7 +499,6 @@ class PullFile(OpenbachFunction):
         if length != len(remote_path):
             raise ValueError('local and remote paths amount mismatch')
 
-        # TODO is useful ?
         if users and len(users) != length:
             raise ValueError('owner of files and paths amount mismatch')
 

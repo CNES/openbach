@@ -79,7 +79,7 @@ def build_capture_filter(src_ip, dst_ip, src_port, dst_port, proto):
     capture_filter = []
 
     if src_ip is not None:
-       capture_filter.append('ip src {}'.format(src_ip))
+        capture_filter.append('ip src {}'.format(src_ip))
 
     if dst_ip is not None:
         capture_filter.append('ip dst {}'.format(dst_ip))
@@ -88,16 +88,16 @@ def build_capture_filter(src_ip, dst_ip, src_port, dst_port, proto):
        capture_filter.append('{}'.format(proto.lower()))
 
     if src_port is not None:
-       if proto is not None:
-          capture_filter.append('{} src port {}'.format(proto, src_port))
-       else:
-          capture_filter.append('src port {}'.format(src_port))
+        if proto is not None:
+            capture_filter.append('{} src port {}'.format(proto, src_port))
+        else:
+            capture_filter.append('src port {}'.format(src_port))
 
     if dst_port is not None:
-       if proto is not None:
-          capture_filter.append('{} dst port {}'.format(proto, dst_port))
-       else:
-          capture_filter.append('dst port {}'.format(dst_port))
+        if proto is not None:
+            capture_filter.append('{} dst port {}'.format(proto, dst_port))
+        else:
+            capture_filter.append('dst port {}'.format(dst_port))
 
     return ' and '.join(capture_filter) if capture_filter else ''
     
@@ -115,22 +115,22 @@ def main(src_ip, dst_ip, src_port, dst_port, proto, interface, capture_file, dur
     signal.signal(signal.SIGTERM, signal_handler_partial)
     signal.signal(signal.SIGINT, signal_handler_partial)
     try:
-      parent = pathlib.Path(capture_file).parent
-      pathlib.Path(parent).mkdir(parents=True, exist_ok=True)
-      cmd = ['tcpdump', '-i', interface, capture_filter, '-w', capture_file, '-Z', 'root']
-      if duration:
-         cmd += ['-G', str(duration), '-W', str(1)]
-      p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-      if p.returncode != 0:
-         message = 'ERROR when lauching tcpdump: {}'.format(p.stderr)
-         collect_agent.send_log(syslog.LOG_ERR, message)
-         sys.exit(message)
+        parent = pathlib.Path(capture_file).parent
+        pathlib.Path(parent).mkdir(parents=True, exist_ok=True)
+        subprocess.run(["rm", capture_file])
+        cmd = ['tcpdump', '-i', interface, capture_filter, '-w', capture_file, '-Z', 'root']
+        if duration:
+            cmd += ['-G', str(duration), '-W', str(1)]
+        p = subprocess.run(cmd)
+        if p.returncode != 0:
+            message = 'ERROR when lauching tcpdump: {}'.format(p.stderr)
+            collect_agent.send_log(syslog.LOG_ERR, message)
+            sys.exit(message)
 
     except Exception as ex:
-      message = 'ERROR when capturing: {}'.format(ex)
-      print(message)
-      collect_agent.send_log(syslog.LOG_ERR, message)
-      sys.exit(message)
+        message = 'ERROR when capturing: {}'.format(ex)
+        collect_agent.send_log(syslog.LOG_ERR, message)
+        sys.exit(message)
     collect_agent.store_files(int(time.time() * 1000), pcap_file=capture_file, copy=copy)
     signal.signal(signal.SIGTERM, original_sigint_handler)
     signal.signal(signal.SIGINT, original_sigterm_handler)
