@@ -207,14 +207,18 @@ def gilbert_elliot(capture_file, second_capture_file, src_ip, dst_ip, src_port, 
                     bads.append(total_bad)
 
 
-        statistics = {}
+        statistics = {'gilbert_elliot_sent':sum(goods)+sum(bads), 'gilbert_elliot_received':sum(goods)}
+        if goods or bads:
+            statistics['gilbert_elliot_lost_rate'] = sum(bads)/(sum(goods)+sum(bads))
+
         if goods:
-            g = sum(goods)/len(goods)
+            g = sum(goods)/len(goods) # average number of steps when we stay in good state
             statistics['gilbert_elliot_p'] = 1/g
         else:
             collect_agent.send_log(syslog.LOG_WARNING, "Cannot compute p parameter. Maybe the capture files are too short.")
+
         if bads:
-            b = sum(bads)/len(bads)
+            b = sum(bads)/len(bads) # average number of steps when we stay in bad state
             statistics['gilbert_elliot_r'] = 1/b
         else:
             collect_agent.send_log(syslog.LOG_WARNING, "Cannot compute r parameter. Maybe the capture files are too short.")

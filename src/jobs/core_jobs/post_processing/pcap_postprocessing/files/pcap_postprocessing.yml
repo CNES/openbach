@@ -141,3 +141,12 @@ statistics:
     - name: gilbert_elliot_r
       description: r parameter of Gilbert Elliot model
       frequency: 'once'
+    - name: gilbert_elliot_sent
+      description: Number of packets sent, only filtered packets are considered
+      frequency: 'once'
+    - name: gilbert_elliot_received
+      description: Number of packets received, only filtered packets are considered
+      frequency: 'once'
+    - name: gilbert_elliot_lost_rate
+      description: Loss rate between packets sent and received, only filtered packets are considered
+      frequency: 'once'
