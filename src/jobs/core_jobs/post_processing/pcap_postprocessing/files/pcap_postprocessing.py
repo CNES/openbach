@@ -164,54 +164,47 @@ def compute_and_send_statistics(packets, to, metrics_interval, suffix, stat_time
 
     collect_agent.send_stat(stat_time, suffix=suffix, **statistics)
 
+def get_next_packet(it):
+    pkt = next(it)
+    while not ('IP' in str(pkt.layers) and pkt.transport_layer is not None):
+        pkt = next(it)
+    return pkt.ip.id
+
 
 def gilbert_elliot(capture_file, second_capture_file, src_ip, dst_ip, src_port, dst_port, proto):
-    # TODO is IP ID enough ?
-    ips_sent = []
     display_filter = build_display_filter(src_ip, dst_ip, src_port, dst_port, proto)
 
     try:
         with closing(pyshark.FileCapture(capture_file, display_filter=display_filter)) as cap_file_sent:
-            packets_sent = [packet.ip.id for packet in cap_file_sent if 'IP' in str(packet.layers) and packet.transport_layer is not None]
-        n = len(packets_sent)
-        index = 0
-        goods = []
-        bads = []
-        with closing(pyshark.FileCapture(second_capture_file, display_filter=display_filter)) as cap_file_received:
-            current_packet_sent = packets_sent[index]
-            index = 1
-            total_good = 0
-            total_bad = 0
-            try:
-                for packet in cap_file_received:
-                    if not ('IP' in str(packet.layers) and packet.transport_layer is not None):
-                        continue
-                    if packet.ip.id == current_packet_sent:
-                        total_good += 1
-                        if total_bad:
-                            bads.append(total_bad)
-                            total_bad = 0
-                    while packet.ip.id != current_packet_sent:
-                        if total_good:
-                            goods.append(total_good)
-                            total_good = 0
-                        total_bad += 1
-                        current_packet_sent = packets_sent[index]
-                        index += 1
-                        if index == n:
-                            break
-                    current_packet_sent = packets_sent[index]
-                    index += 1
-                    if index >= n:
-                        break
+            cap_file_sent_iter = iter(cap_file_sent)
+            goods = []
+            bads = []
+            with closing(pyshark.FileCapture(second_capture_file, display_filter=display_filter)) as cap_file_received:
+                try:
+                    current_packet_sent = get_next_packet(cap_file_sent_iter)
+                    total_good = 0
+                    total_bad = 0
+                    for packet in cap_file_received:
+                        if not ('IP' in str(packet.layers) and packet.transport_layer is not None):
+                            continue
+                        if packet.ip.id == current_packet_sent:
+                            total_good += 1
+                            if total_bad:
+                                bads.append(total_bad)
+                                total_bad = 0
+                        while packet.ip.id != current_packet_sent:
+                            if total_good:
+                                goods.append(total_good)
+                                total_good = 0
+                            total_bad += 1
+                            current_packet_sent = get_next_packet(cap_file_sent_iter)
+                        current_packet_sent = get_next_packet(cap_file_sent_iter)
+                except StopIteration:
+                    pass
                 if total_good:
                     goods.append(total_good)
                 if total_bad:
                     bads.append(total_bad)
-            except Exception as ex:
-                message = 'ERROR when parsing pcap: {}'.format(ex)
-                collect_agent.send_log(syslog.LOG_ERR, message)
-                sys.exit(message)
 
 
         statistics = {}
