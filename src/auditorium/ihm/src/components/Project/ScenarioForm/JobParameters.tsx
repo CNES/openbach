@@ -103,8 +103,8 @@ export default class JobParameters extends React.Component<IProps, {}> {
         const customRequiredField = (subArguments && subArguments.required || []).map(transform);
         const customOptionalField = (subArguments && subArguments.optional || []).map(transform);
 
-        const subGroupPrefix = `${subPrefix}.${name}.subgroups`;
-        const subSubcommands = subcommands[name].subgroups || {};
+        const subGroupPrefix = `${subPrefix}.${name}.${selected}`;
+        const subSubcommands = subcommands[name][selected] || {};
         const transformator = this.renderSubcommand.bind(this, subGroupPrefix, prefix, subParameters, subSubcommands);
         (subArguments && subArguments.subcommands || []).forEach((group: IJobSubcommandGroup) => {
             const rendered = transformator(group);

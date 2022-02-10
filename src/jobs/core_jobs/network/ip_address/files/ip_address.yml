@@ -30,7 +30,7 @@ general:
   description: >
       This Job executes the ip address command in order
       to configure IP address of network interfaces.
-  job_version: '1.1'
+  job_version: '1.2'
   keywords:
     - ip_address
   persistent: no
@@ -56,14 +56,14 @@ arguments:
         - name: add
           required: 
             - name: address_mask
-              type: str
+              type: network
               count: 1
               description: The ip address/mask to add to the network interface
           optional:
         - name: delete
           required: 
             - name: address_mask
-              type: str
+              type: network
               count: 1
               description: The ip address/mask to remove from the network interface
           optional:

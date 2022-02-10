@@ -7,7 +7,7 @@ config.devServer = {
     proxy: [
         {
             context: ["/openbach", "/kibana", "/grafana"],
-            target: "http://172.20.34.41",
+            target: "http://172.20.34.78",
             toProxy: true,
         }
     ]

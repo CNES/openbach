@@ -25,8 +25,12 @@
 
 ---
 
-- name: Install openjdk
-  apt: name=openjdk-8-jdk state=present
+- name: Install APT Dependencies
+  apt:
+    name:
+      - openjdk-8-jdk
+      - zip
+    state: present
   environment: "{{ openbach_proxy_env }}"
   become: yes
 
@@ -41,7 +45,11 @@
   become: yes
 
 - name: Change owner of elasticsearch sources
-  file : path=/usr/share/elasticsearch/ owner=elasticsearch group=elasticsearch recurse=yes
+  file:
+    path: /usr/share/elasticsearch/
+    owner: elasticsearch
+    group: elasticsearch
+    recurse: yes
   become: yes
 
 - name: Install pip Dependencies
@@ -55,56 +63,108 @@
   environment: "{{ openbach_proxy_env }}"
   become: yes
 
-- name: Upload Binary Files
-  copy: src={{ item }} dest=/tmp/
-  with_items:
-    - logstash-offline-plugins.zip
+- name: Upload Logstash Output Plugin
+  copy:
+    src: logstash-offline-plugins.zip
+    dest: /tmp/
 
 - name: Configure Elasticsearch
-  template: src=elasticsearch.yml.j2 dest=/etc/elasticsearch/elasticsearch.yml owner=root group=elasticsearch
+  template:
+    src: elasticsearch.yml.j2
+    dest: /etc/elasticsearch/elasticsearch.yml
+    owner: root
+    group: elasticsearch
   become: yes
   
 - name: Configure used RAM of Elasticsearch
-  template: src=jvm.options.j2 dest=/etc/elasticsearch/jvm.options owner=root group=elasticsearch
+  template:
+    src: jvm.options.j2
+    dest: /etc/elasticsearch/jvm.options
+    owner: root
+    group: elasticsearch
   become: yes
 
 - name: Copy Elasticsearch cronjob script
-  template: src=curator_cronjob.py.j2 dest=/etc/cron.daily/curator_cronjob.py owner=root group=root mode=0755
+  template:
+    src: curator_cronjob.py.j2
+    dest: /etc/cron.daily/curator_cronjob.py
+    owner: root
+    group: root
+    mode: '0755'
   become: yes
 
 - name: Add Elasticsearch cron job
-  cron: name=curator minute=0 hour=0 job=/etc/cron.daily/curator_cronjob.py
+  cron:
+    name: curator
+    minute: 0
+    hour: 0
+    job: /etc/cron.daily/curator_cronjob.py
   become: yes
 
 - name: Configure Logstash
-  template: src=collector.conf.j2 dest=/etc/logstash/conf.d/collector.conf owner=root group=root
+  template:
+    src: collector.conf.j2
+    dest: /etc/logstash/conf.d/collector.conf
+    owner: root
+    group: root
   vars:
     auditorium_ip: "{{ openbach_auditorium | default(('auditorium' in group_names and inventory_hostname) or ('auditorium' in groups and groups.auditorium and groups.auditorium[0]) or inventory_hostname) }}"
   become: yes
 
 - name: Add patterns to the ouptput module 'grok'
-  copy: src=pattern dest=/etc/logstash/conf.d/
+  copy:
+    src: pattern
+    dest: /etc/logstash/conf.d/
   become: yes
 
 - name: Install logstash-output-influxdb
   shell: bin/logstash-plugin install file:///tmp/logstash-offline-plugins.zip
   args:
-    chdir: /usr/share/logstash
+    chdir: '~logstash'
     executable: /bin/bash
-    creates: /usr/share/logstash/vendor/bundle/jruby/2.3.0/gems/logstash-output-influxdb-5.0.5
+    creates: ~logstash/vendor/bundle/jruby/2.3.0/gems/logstash-output-influxdb-5.0.5
   become: yes
-  #become_user: logstash  ## Tested but does not work
+  become_user: logstash
+  vars:
+    # The install user and the logstash user most likely do not share any group
+    # so ask Ansible to push its script world readable so :become: do work
+    ansible_shell_allow_world_readable_temp: yes
+
+- name: Remove problematic log4j vulnerability
+  shell: zip -q -d logstash-core/lib/jars/log4j-core-2.* org/apache/logging/log4j/core/lookup/JndiLookup.class
+  args:
+    chdir: '~logstash'
+    executable: /bin/bash
+  become: yes
+  become_user: logstash
+  vars:
+    # The install user and the logstash user most likely do not share any group
+    # so ask Ansible to push its script world readable so :become: do work
+    ansible_shell_allow_world_readable_temp: yes
+  register: openbach_log4j_vulnerability
+  failed_when: openbach_log4j_vulnerability.rc != 0 and openbach_log4j_vulnerability.rc != 12
 
 - name: Set the Port to use by InfluxDB
-  replace: dest=/etc/influxdb/influxdb.conf regexp='(\s+)# bind-address = ":8086"(\s+.*)?$' replace='\1bind-address = ":{{ influxdb_port }}"\2' backup=yes
+  replace:
+    dest: /etc/influxdb/influxdb.conf
+    regexp: '(\s+)# bind-address :  ":8086"(\s+.*)?$'
+    replace: '\1bind-address :  ":{{ influxdb_port }}"\2'
+    backup: yes
   become: yes
 
 - name: Change default max cache memory size by InfluxDB
-  replace: dest=/etc/influxdb/influxdb.conf regexp='(\s+)# cache-max-memory-size = "1g"(\s+.*)?$' replace='\1cache-max-memory-size = "{{ database_max_cache }}"\2'
+  replace:
+    dest: /etc/influxdb/influxdb.conf
+    regexp: '(\s+)# cache-max-memory-size :  "1g"(\s+.*)?$'
+    replace: '\1cache-max-memory-size :  "{{ database_max_cache }}"\2'
   become: yes
 
 - name: Restart OpenBACH Services
-  systemd: name={{ item }} state=restarted enabled=yes daemon_reload=yes
+  systemd:
+    name: '{{ item }}'
+    state: restarted
+    enabled: yes
+    daemon_reload: yes
   with_items:
     - influxdb
     - elasticsearch
@@ -112,7 +172,9 @@
   become: yes
 
 - name: Wait for Services to Start
-  wait_for: port={{ item }} timeout=120
+  wait_for:
+    port: '{{ item }}'
+    timeout: 120
   with_items:
     - "{{ influxdb_port }}"
     - "{{ elasticsearch_port }}"
@@ -246,9 +308,13 @@
   when: openbach_restore_host is defined
 
 - name: Create OpenBACH repository
-  file: path=/opt/openbach/collector state=directory
+  file:
+    path: /opt/openbach/collector
+    state: directory
   remote_user: openbach
 
 - name: Copy the version file on the Collector
-  copy: src=../version dest=/opt/openbach/collector/version
+  copy:
+    src: ../version
+    dest: /opt/openbach/collector/version
   remote_user: openbach
