@@ -4,7 +4,7 @@ general:
   name:            web_browsing_qoe
   description: >
       Monitors W3C Navigation Timing metrics of an HTTP Service using Firefox web browser (please go to config.yaml to check/modify the list of web sites to be visited).
-  job_version:     '1.7'
+  job_version:     '1.8'
   keywords:        [web, performance, HTTP, QoE, PLT]
   persistent:      False
 
