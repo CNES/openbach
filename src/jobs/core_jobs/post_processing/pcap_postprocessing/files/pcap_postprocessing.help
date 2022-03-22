@@ -2,7 +2,7 @@
 
 This job analyzes pcap files. There are two main modes:
 
- * Analyze on pcap: get the average packet length, average inter packets delay, bitrate, etc.
+ * Analyze one pcap: get the average packet length, average inter packets delay, bitrate, etc.
  * Analyze 2 pcaps: get the parameters of a Gilbert Elliot loss model
 
 If a filter is specified, only filtered packets will be considered.
