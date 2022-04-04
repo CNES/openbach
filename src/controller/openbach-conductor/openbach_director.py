@@ -98,6 +98,7 @@ from lib.openbach_conductor import (
         StopJobInstances as StopJobInstancesConductor,
         RestartJobInstance as RestartJobInstanceConductor,
         PushFile as PushFileConductor,
+        PullFile as PullFileConductor,
         Reboot as RebootConductor,
         ThreadedAction, ScenarioInstanceAction, InfosScenarioInstance,
 )
@@ -382,6 +383,9 @@ class StopScenarioInstance(OpenbachFunctionMixin, StopScenarioInstanceConductor)
 
 
 class PushFile(OpenbachFunctionMixin, PushFileConductor):
+    pass
+
+class PullFile(OpenbachFunctionMixin, PullFileConductor):
     pass
 
 class Reboot(OpenbachFunctionMixin, RebootConductor):

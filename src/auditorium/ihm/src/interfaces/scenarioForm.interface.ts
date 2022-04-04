@@ -1,11 +1,6 @@
 import {IOpenbachFunction, IOpenbachFunctionWait, TOpenbachFunctions, TOpenbachFunctionCondition, IStartJobParameters} from "./project.interface";
 
 
-export interface IRegisteredFields {
-    [key: string]: {name: string; type: string; count: number;};
-};
-
-
 export interface IScenarioForm {
     name: string;
     description: string;
@@ -76,5 +71,5 @@ export interface IOpenbachSubcommandForm {
 
 export interface IOpenbachSubcommandContentForm {
     selected: string;
-    subgroups: IOpenbachSubcommandForm;
+    [groupValue: string]: string | IOpenbachSubcommandForm;
 };

@@ -1,18 +1,23 @@
 === Job description ===
 
-This job analyzes a pcap file in order to get the average packet length, average inter packets delay, bitrate, etc.
+This job analyzes pcap files. There are two main modes:
+
+ * Analyze one pcap: get the average packet length, average inter packets delay, bitrate, etc.
+ * Analyze 2 pcaps: get the parameters of a Gilbert Elliot loss model
+
 If a filter is specified, only filtered packets will be considered.
 
 Please note that the install of this job may require that you delete the following folder '/tmp/collect-agent' .
 
-Warning: the analyze of pcap files might be slow and/or crash when your agent is limited in terms of RAM ressources, e.g. the job might crash when the file size >40MB and the RAM <2GB. 
+Warning: the analyze of pcap files might be slow and/or crash when your agent is limited in terms of RAM ressources, e.g. the job might crash when the file size >40MB and the RAM <2GB.
 
-== Example ==
+== Example 1 ==
 
 Analyze IP packets from a capture file ''test.pcap'' which is located in root user's home directory on a given Agent and compute statistics every 100 ms. Packets filter rule includes packet fields set as follows : src_ip = ''192.168.1.1'', src_port = ''80'', dst_ip = ''172.20.0.1'', dst_port = ''63006''.
 
 In the web interface, set the following parameters:
   * **capture_file** = ~/test.pcap
+  * **mode** = stats_one_file
   * **metrics_interval** = 100
   * **src_ip** = 192.168.1.1
   * **src_port** = 80
@@ -21,5 +26,24 @@ In the web interface, set the following parameters:
 
 Or launch the job manually from the Agent as follows:
 <code>
-JOB_NAME=pcap_postprocessing sudo -E python3.6 /opt/openbach/agent/jobs/pcap_postprocessing/pcap_postprocessing.py ~/test.pcap -A 192.168.1.1 -a 172.20.0.1 -D 80 -d 63006 -T 100
+JOB_NAME=pcap_postprocessing sudo -E python3.6 /opt/openbach/agent/jobs/pcap_postprocessing/pcap_postprocessing.py ~/test.pcap -sa 192.168.1.1 -da 172.20.0.1 -sp 80 -dp 63006 stats_one_file -T 100
+</code>
+
+== Example 2 ==
+
+Measure Gilbert Elliot parameters of a loss model. We have two pcap files: ''/tmp/sender.pcap'' and ''/tmp/receiver.pcap'' corresponding to the captures before and after the losses.
+Packets filter rule includes packet fields set as follows : src_ip = ''192.168.1.1'', src_port = ''80'', dst_ip = ''192.168.2.2'', dst_port = ''63009''.
+
+In the web interface, set the following parameters:
+  * **capture_file** = /tmp/sender.pcap
+  * **mode** = gilbert_elliot
+  * **second_capture_file** = /tmp/receiver.pcap
+  * **src_ip** = 192.168.1.1
+  * **src_port** = 80
+  * **dst_ip** = 192.168.2.2
+  * **dst_port** = 63009
+
+Or launch the job manually from the Agent as follows:
+<code>
+JOB_NAME=pcap_postprocessing sudo -E python3.6 /opt/openbach/agent/jobs/pcap_postprocessing/pcap_postprocessing.py /tmp/sender.pcap -sa 192.168.1.1 -da 192.168.2.2 -sp 80 -dp 63009 gilbert_elliot /tmp/receiver.pcap
 </code>

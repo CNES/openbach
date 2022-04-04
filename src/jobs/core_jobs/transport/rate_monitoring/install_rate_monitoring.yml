@@ -29,7 +29,6 @@
   pip: name={{ item.name }} executable=pip3 version={{ item.version }}
   with_items:
     - {name: python-iptables, version: 0.12.0}
-    - {name: apscheduler, version: 3.2.0}
   become: yes
   environment: "{{ openbach_proxies }}"
   

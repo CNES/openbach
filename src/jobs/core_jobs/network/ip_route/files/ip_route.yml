@@ -91,7 +91,7 @@ arguments:
         - name: destination_ip
           required:
             - name: network_ip
-              type: str
+              type: network
               count: 1
               description: The ip address/mask of the destination network
           optional:

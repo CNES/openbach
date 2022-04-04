@@ -53,6 +53,7 @@
     - fetch_files.yml
     - install_a_job.yml
     - push_files.yml
+    - pull_files.yml
     - uninstall_a_job.yml
     - controller_access.yml
     - reboot.yml

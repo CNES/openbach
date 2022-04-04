@@ -34,6 +34,7 @@
 
 #include <iostream>
 #include <functional>
+#include <cstring>
 
 #include "collectagent.h"
 #include "syslog.h"
@@ -299,12 +300,29 @@ collect_agent_store_files(PyObject *self, PyObject *args, PyObject *kwargs)
 
     json::JSON statistics;
     if (kwargs) {
+        bool should_copy = true;
         PyObject *key, *value;
         Py_ssize_t pos = 0;
         while (PyDict_Next(kwargs, &pos, &key, &value)) {
             const char * c_key = PyUnicode_AsUTF8(key);
             if (c_key == nullptr)
                 return nullptr;
+
+            if (std::strcmp(c_key, "copy") == 0) {
+                should_copy = PyObject_IsTrue(value) == 1;
+            }
+        }
+
+        pos = 0;
+        while (PyDict_Next(kwargs, &pos, &key, &value)) {
+            const char * c_key = PyUnicode_AsUTF8(key);
+            if (c_key == nullptr)
+                return nullptr;
+
+            if (std::strcmp(c_key, "copy") == 0) {
+                continue;
+            }
+
             PyObject *path;
             if (!PyUnicode_FSConverter(value, &path))
                 return nullptr;
@@ -312,14 +330,18 @@ collect_agent_store_files(PyObject *self, PyObject *args, PyObject *kwargs)
             std::string filepath = PyBytes_AsString(path);
             Py_DECREF(path);
 
-	    try {
-                std::string stored_file = collect_agent::store_file(timestamp, filepath);
-                statistics[c_key] = stored_file;
-	    } catch (std::exception& e) {
-		syslog(LOG_INFO, "%s", "Exception");
+            try {
+                if (should_copy) {
+                    std::string stored_file = collect_agent::store_file(timestamp, filepath);
+                    statistics[c_key] = stored_file;
+                } else {
+                    statistics[c_key] = filepath;
+                }
+            } catch (std::exception& e) {
+                syslog(LOG_INFO, "%s", "Exception");
                 PyErr_SetString(PyExc_RuntimeError, e.what());
                 return nullptr;
-	    }
+            }
         }
     }
 
@@ -330,8 +352,11 @@ collect_agent_store_files(PyObject *self, PyObject *args, PyObject *kwargs)
     return Py_BuildValue("s", result.c_str());
 }
 PyDoc_STRVAR(doc_store_files,
-    "store_files(timestamp, suffix=None, **filepaths)\n\n"
-    "Store files and send their path to the collector.");
+    "store_files(timestamp, suffix=None, copy=True, **filepaths)\n\n"
+    "Store files and send their path to the collector.\n\n"
+    "If copy is False, does not attempt to copy the specified files\n"
+    "in an OpenBACH specific directory and send the statistic with\n"
+    "their current path instead.");
 
 
 static PyObject *

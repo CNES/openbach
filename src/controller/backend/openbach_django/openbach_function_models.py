@@ -370,6 +370,7 @@ class Reboot(OpenbachFunction):
 class PushFile(OpenbachFunction):
     users = OpenbachFunctionParameter(type=list)
     groups = OpenbachFunctionParameter(type=list)
+    removes = OpenbachFunctionParameter(type=list)
     local_path = OpenbachFunctionParameter(type=list)
     remote_path = OpenbachFunctionParameter(type=list)
     entity_name = OpenbachFunctionParameter(type=str)
@@ -394,6 +395,10 @@ class PushFile(OpenbachFunction):
         if not isinstance(groups, list):
             raise TypeError(list, groups, 'groups')
 
+        removes = arguments.pop('removes', [])
+        if not isinstance(removes, list):
+            raise TypeError(list, removes, 'removes')
+
         length = len(local_path)
         if length != len(remote_path):
             raise ValueError('local and remote paths amount mismatch')
@@ -403,6 +408,9 @@ class PushFile(OpenbachFunction):
 
         if groups and len(groups) != length:
             raise ValueError('group owner of files and paths amount mismatch')
+
+        if removes and len(removes) != length:
+            raise ValueError('removes and paths amount mismatch')
 
         return super().build_from_arguments(
                 function_id,
@@ -415,6 +423,7 @@ class PushFile(OpenbachFunction):
                     'remote_path': remote_path,
                     'users': users,
                     'groups': groups,
+                    'removes': removes,
                     **arguments,
                 })
 
@@ -426,9 +435,10 @@ class PushFile(OpenbachFunction):
                     'remote_path': remote_path,
                     'user': user,
                     'group': group,
+                    'remove': remove,
                 }
-                for local_path, remote_path, user, group
-                in zip(self.local_path, self.remote_path, self.users, self.groups)
+                for local_path, remote_path, user, group, remove
+                in zip(self.local_path, self.remote_path, self.users, self.groups, self.removes)
         ]
         return {'push_file': {
             'entity_name': self.entity_name,
@@ -449,8 +459,104 @@ class PushFile(OpenbachFunction):
                 'remote_path': self.instance_value('remote_path', parameters),
                 'users': self.instance_value('users', parameters),
                 'groups': self.instance_value('groups', parameters),
+                'removes': self.instance_value('removes', parameters),
         }
 
+
+class PullFile(OpenbachFunction):
+    users = OpenbachFunctionParameter(type=list)
+    groups = OpenbachFunctionParameter(type=list)
+    removes = OpenbachFunctionParameter(type=list)
+    local_path = OpenbachFunctionParameter(type=list)
+    remote_path = OpenbachFunctionParameter(type=list)
+    entity_name = OpenbachFunctionParameter(type=str)
+
+    @classmethod
+    def build_from_arguments(
+            cls, function_id, label, section,
+            scenario, wait_time, arguments):
+        local_path = arguments.pop('local_path')
+        if not isinstance(local_path, list):
+            raise TypeError(list, local_path, 'local_path')
+
+        remote_path = arguments.pop('remote_path')
+        if not isinstance(remote_path, list):
+            raise TypeError(list, remote_path, 'remote_path')
+
+        users = arguments.pop('users', [])
+        if not isinstance(users, list):
+            raise TypeError(list, users, 'users')
+
+        groups = arguments.pop('groups', [])
+        if not isinstance(groups, list):
+            raise TypeError(list, groups, 'groups')
+
+        removes = arguments.pop('removes', [])
+        if not isinstance(removes, list):
+            raise TypeError(list, removes, 'removes')
+
+        length = len(local_path)
+        if length != len(remote_path):
+            raise ValueError('local and remote paths amount mismatch')
+
+        if users and len(users) != length:
+            raise ValueError('owner of files and paths amount mismatch')
+
+        if groups and len(groups) != length:
+            raise ValueError('group owner of files and paths amount mismatch')
+
+        if removes and len(removes) != length:
+            raise ValueError('removes and paths amount mismatch')
+
+        return super().build_from_arguments(
+                function_id,
+                label,
+                section,
+                scenario,
+                wait_time,
+                {
+                    'local_path': [build_storage_path(path) for path in local_path],
+                    'remote_path': remote_path,
+                    'users': users,
+                    'groups': groups,
+                    'removes': removes,
+                    **arguments,
+                })
+
+    @property
+    def _json(self):
+        path_infos = [
+                {
+                    'local_path': local_path,
+                    'remote_path': remote_path,
+                    'user': user,
+                    'group': group,
+                    'remove': remove,
+                }
+                for local_path, remote_path, user, group, remove
+                in zip(self.local_path, self.remote_path, self.users, self.groups, self.removes)
+        ]
+        return {'pull_file': {
+            'entity_name': self.entity_name,
+            'files': path_infos,
+        }}
+
+    def _get_arguments(self, parameters, scenario_instance):
+        entity_name = self.instance_value('entity_name', parameters)
+        project = self.scenario.project
+
+        entity = Entity.objects.get(name=entity_name, project=project)
+        if entity.agent is None:
+            raise Agent.DoesNotExist
+
+        return {
+                'address': entity.agent.address,
+                'local_path': self.instance_value('local_path', parameters),
+                'remote_path': self.instance_value('remote_path', parameters),
+                'users': self.instance_value('users', parameters),
+                'groups': self.instance_value('groups', parameters),
+                'removes': self.instance_value('removes', parameters),
+        }
 
 class StartJobInstance(OpenbachFunction):
     entity_name = OpenbachFunctionParameter(type=str)

@@ -20,6 +20,14 @@
       with_items: "{{ copy_parameters }}"
       become: yes
 
+    - name: Remove file on source
+      local_action:
+        module: file
+        path: "{{ item.source }}"
+        state: absent
+      with_items: "{{ copy_parameters }}"
+      when: "{{ item.remove }}"
+
     - name: Restart Service
       systemd:
         name: rstats
