@@ -40,7 +40,7 @@ class ExternalJobsInstaller extends React.Component<IProps & IDispatchProps, ISt
                     <p>You are about to add the job {jobName} into the
                     controller. For more informations, you can browse
                     the job descriptions on <a
-                        href="https://wiki.net4sat.org/doku.php?id=openbach:exploitation:jobs:index"
+                        href="https://github.com/CNES/openbach/blob/master/src/jobs/README.md"
                         target="_blank"
                     >
                         the OpenBACH wiki

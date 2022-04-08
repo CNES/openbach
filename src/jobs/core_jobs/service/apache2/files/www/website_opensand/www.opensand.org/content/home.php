@@ -99,7 +99,7 @@
                                 <a href="bugtracker.php" style="font-size:100%">Bugtracker</a>
                             </li>
                             <li>
-                                <a href="https://forge.net4sat.org/opensand/opensand" style="font-size:100%">Forge OpenSAND</a>
+                                <a href="https://github.com/CNES/opensand" style="font-size:100%">Forge OpenSAND</a>
                             </li>
                         </ul>
                     </li>
