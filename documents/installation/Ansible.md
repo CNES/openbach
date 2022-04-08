@@ -136,4 +136,4 @@ $ ansible-playbook install.yml -u exploit -k -K -e '{"openbach_jobs_folders": ["
 [8]: http://docs.ansible.com/ansible/latest/become.html#connection-variables
 [9]: Topology.md#machine-dependencies
 [10]: http://docs.ansible.com/ansible/latest/playbooks_tags.html
-[11]: https://forge.net4sat.org/openbach/openbach-external-jobs
+[11]: https://github.com/CNES/openbach-extra/tree/master/externals_jobs
