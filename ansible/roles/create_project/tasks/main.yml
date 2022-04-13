@@ -35,6 +35,16 @@
       password: "{{ openbach_backend_admin_password | mandatory }}"
   register: openbach_backend_login
 
+- name: List existing Projects
+  uri:
+    url: http://localhost:{{ django_port }}/project/
+    method: GET
+    body_format: json
+    body: {}
+    headers:
+      Cookie: "sessionid={{ openbach_backend_login.cookies.sessionid }}"
+    register: openbach_projects_list
+
 - name: Create Openbach project and associate agent
   block:
   - name: Create Openbach project
@@ -48,7 +58,6 @@
         owners: ["{{ openbach_backend_login.json.username }}"]
       headers:
         Cookie: "sessionid={{ openbach_backend_login.cookies.sessionid }}"
-    ignore_errors: true
 
   - name: Add entities to project
     uri:
@@ -61,6 +70,6 @@
         agent: "{'address': '{{ item }}'}"
       headers:
         Cookie: "sessionid={{ openbach_backend_login.cookies.sessionid }}"
-    with_items: "{{ hostvars[inventory_hostname][\"groups\"][\"all\"] }}"
-    ignore_errors: true
+    with_items: "{{ hostvars[inventory_hostname]['groups']['all'] }}"
 
+  when: openbach_projects_list.json and project_name not in (openbach_projects_list.json.values() | map(attribute='name') | list)
