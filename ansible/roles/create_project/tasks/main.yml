@@ -43,7 +43,7 @@
     body: {}
     headers:
       Cookie: "sessionid={{ openbach_backend_login.cookies.sessionid }}"
-    register: openbach_projects_list
+  register: openbach_projects_list
 
 - name: Create Openbach project and associate agent
   block:
@@ -72,4 +72,4 @@
         Cookie: "sessionid={{ openbach_backend_login.cookies.sessionid }}"
     with_items: "{{ hostvars[inventory_hostname]['groups']['all'] }}"
 
-  when: openbach_projects_list.json and project_name not in (openbach_projects_list.json.values() | map(attribute='name') | list)
+  when: project_name not in (openbach_projects_list.json | map(attribute='name') | list)
