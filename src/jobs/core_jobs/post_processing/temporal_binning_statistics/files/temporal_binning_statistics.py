@@ -54,6 +54,7 @@ from data_access.post_processing import Statistics, save, _Plot
 
 TIME_OPTIONS = {'year', 'month', 'day', 'hour', 'minute', 'second'}
 
+
 @contextlib.contextmanager
 def use_configuration(filepath):
     success = collect_agent.register_collect(filepath)
@@ -78,15 +79,17 @@ def now():
     return int(time.time() * 1000)
 
 
-def main(job_instance_ids, statistics_names, aggregations, percentiles,
-        stats_with_suffixes, labels, titles, use_legend, median,
+def main(
+        job_instance_ids, statistics_names, aggregations_periods, percentiles,
+        stats_with_suffixes, axis_labels, figures_titles, use_legend, median,
         average, deviation, boundaries, min_max, pickle):
     file_ext = 'pickle' if pickle else 'png'
     statistics = Statistics.from_default_collector()
     statistics.origin = 0
     with tempfile.TemporaryDirectory(prefix='openbach-temporal-binning-statistics-') as root:
         for job, fields, aggregations, labels, titles in itertools.zip_longest(
-                job_instance_ids, statistics_names, aggregations, labels, titles):
+                job_instance_ids, statistics_names, aggregations_periods, axis_labels, figures_titles,
+                fillvalue=[]):
             data_collection = statistics.fetch(
                     job_instances=job,
                     suffix = None if stats_with_suffixes else '',
@@ -102,26 +105,40 @@ def main(job_instance_ids, statistics_names, aggregations, percentiles,
                     names=['job', 'scenario', 'agent', 'suffix', 'statistic'])
             plot = _Plot(df)
 
-            for index, field in enumerate(fields):
+            if not fields:
+                fields = list(df.columns.get_level_values('statistic'))
+
+            for field, label, aggregation, title in itertools.zip_longest(fields, labels, aggregations, titles):
                 if field not in df.columns.get_level_values('statistic'):
                     message = 'job instances {} did not produce the statistic {}'.format(job, field)
                     collect_agent.send_log(syslog.LOG_WARNING, message)
                     print(message)
                     continue
 
+                if label is None:
+                    collect_agent.send_log(
+                            syslog.LOG_WARNING,
+                            'no y-axis label provided for the {} statistic of job '
+                            'instances {}: using the empty string instead'.format(field, job))
+                    label = ''
+
+                if aggregation is None:
+                    collect_agent.send_log(
+                            syslog.LOG_WARNING,
+                            'invalid aggregation value of {} for the {} '
+                            'statistic of job instances {}: choose from {}, using '
+                            '"hour" instead'.format(aggregation, field, job, TIME_OPTIONS))
+                    aggregation = 'hour'
+
                 figure, axis = plt.subplots()
                 axis = plot.plot_temporal_binning_statistics(
-                        axis, labels[index], field, None,
-                        percentiles, aggregations[index],
+                        axis, label, field, None,
+                        percentiles, aggregation,
                         median, average, deviation, boundaries,
                         min_max, use_legend)
-                if titles is not None:
-                    axis.set_title(titles[index])
-                if statistics_names is None:
-                    filename = 'temporal_binning_statistics.{}'.format(file_ext)
-                else:
-                    filename = 'temporal_binning_statistics_{}.{}'.format(field, file_ext)
-                filepath = os.path.join(root, filename)
+                if title is not None:
+                    axis.set_title(title)
+                filepath = os.path.join(root, 'temporal_binning_statistics_{}.{}'.format(field, file_ext))
                 save(figure, filepath, pickle)
                 collect_agent.store_files(now(), figure=filepath)
 
@@ -205,4 +222,3 @@ if __name__ == '__main__':
         main(args.jobs, args.statistics, args.aggregations, args.percentiles, stats_with_suffixes,
                 args.ylabel, args.title, use_legend, draw_median, draw_average,
                 draw_deviation, draw_boundaries, draw_min_max, args.pickle)
-

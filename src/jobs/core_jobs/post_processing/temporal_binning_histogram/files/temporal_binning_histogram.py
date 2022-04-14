@@ -54,6 +54,7 @@ from data_access.post_processing import Statistics, save, _Plot
 
 AGGREGATION_OPTIONS = {'year', 'month', 'day', 'hour', 'minute', 'second'}
 
+
 @contextlib.contextmanager
 def use_configuration(filepath):
     success = collect_agent.register_collect(filepath)
@@ -79,16 +80,17 @@ def now():
 
 
 def main(
-        job_instance_ids, statistics_names, aggregations,
-        bin_sizes, offset, maximum, stats_with_suffixes, labels,
-        titles, legend_titles, use_legend, add_global, pickle):
+        job_instance_ids, statistics_names, aggregations_periods,
+        bins_sizes, offset, maximum, stats_with_suffixes, axis_labels,
+        figures_titles, legends_titles, use_legend, add_global, pickle):
     file_ext = 'pickle' if pickle else 'png'
     statistics = Statistics.from_default_collector()
     statistics.origin = 0
     with tempfile.TemporaryDirectory(prefix='openbach-temporal-binning-histogram-') as root:
         for job, fields, aggregations, bin_sizes, labels, titles, legend_titles in itertools.zip_longest(
-                job_instance_ids, statistics_names, aggregations,
-                bin_sizes, labels, titles, legend_titles):
+                job_instance_ids, statistics_names, aggregations_periods,
+                bins_sizes, axis_labels, figures_titles, legends_titles,
+                fillvalue=[]):
             data_collection = statistics.fetch(
                     job_instances=job,
                     suffix = None if stats_with_suffixes else '',
@@ -104,25 +106,54 @@ def main(
                     names=['job', 'scenario', 'agent', 'suffix', 'statistic'])
             plot = _Plot(df)
 
-            for index, field in enumerate(fields):
+            if not fields:
+                fields = list(df.columns.get_level_values('statistic'))
+
+            metadata = itertools.zip_longest(fields, labels, bin_sizes, aggregations, legend_titles, titles)
+            for field, label, bin_size, aggregation, legend, title in metadata:
                 if field not in df.columns.get_level_values('statistic'):
                     message = 'job instances {} did not produce the statistic {}'.format(job, field)
                     collect_agent.send_log(syslog.LOG_WARNING, message)
                     print(message)
                     continue
 
+                if label is None:
+                    collect_agent.send_log(
+                            syslog.LOG_WARNING,
+                            'no y-axis label provided for the {} statistic of job '
+                            'instances {}: using the empty string instead'.format(field, job))
+                    label = ''
+
+                if aggregation is None:
+                    collect_agent.send_log(
+                            syslog.LOG_WARNING,
+                            'invalid aggregation value of {} for the {} '
+                            'statistic of job instances {}: choose from {}, using '
+                            '"hour" instead'.format(aggregation, field, job, TIME_OPTIONS))
+                    aggregation = 'hour'
+
+                if legend is None and use_legend:
+                    collect_agent.send_log(
+                            syslog.LOG_WARNING,
+                            'no legend title provided for the {} statistic of job '
+                            'instances {}: using the empty string instead'.format(field, job))
+                    legend = ''
+
+                if bin_size is None:
+                    collect_agent.send_log(
+                            syslog.LOG_WARNING,
+                            'no bin size provided for the {} statistic of job '
+                            'instances {}: using the default value 100 instead'.format(field, job))
+                    bin_size = 100
+
                 figure, axis = plt.subplots()
                 axis = plot.plot_temporal_binning_histogram(
-                        axis, labels[index], field, None, bin_sizes[index],
-                        offset, maximum, aggregations[index], add_global,
-                        use_legend, legend_titles[index])
-                if titles is not None:
-                    axis.set_title(titles[index])
-                if statistics_names is None:
-                    filename = 'temporal_binning_histogram.{}'.format(file_ext)
-                else:
-                    filename = 'temporal_binning_histogram_{}.{}'.format(field, file_ext)
-                filepath = os.path.join(root, filename)
+                        axis, label, field, None, bin_size,
+                        offset, maximum, aggregation, add_global,
+                        use_legend, legend)
+                if title is not None:
+                    axis.set_title(title)
+                filepath = os.path.join(root, 'temporal_binning_histogram_{}.{}'.format(field, file_ext))
                 save(figure, filepath, pickle, False)
                 collect_agent.store_files(now(), figure=filepath)
 
