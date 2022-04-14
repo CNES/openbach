@@ -24,8 +24,8 @@ isn't in plain text in the command line. In order to do this:
     * `vault_openbach_http_proxy: http://user:password@proxy.url:port/` 
     * `vault_openbach_https_proxy: https://user:password@proxy.url:port/`
   * Modify the `ansible/group_vars/all` file adding two variables at the end:
-    * `openbach_http_proxy: {{ vault_openbach_http_proxy }}` 
-    * `openbach_https_proxy: {{ vault_openbach_https_proxy }}`
+    * `openbach_http_proxy: "{{ vault_openbach_http_proxy }}"` 
+    * `openbach_https_proxy: "{{ vault_openbach_https_proxy }}"`
   * Launch the ansible playbook using the following command 
     * `ansible-playbook -i inventory/inventory install.yml -u user -k -K -e @group_vars/vault.yml --ask-vault-pass`
 

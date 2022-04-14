@@ -81,7 +81,7 @@ def get_statistics_sender():
     """
 
     with open(COLLECTOR_CONFIG_FILE, encoding='utf-8') as stream:
-        content = yaml.load(stream)
+        content = yaml.safe_load(stream)
     host = content['address']
     port = content['stats']['port']
     address = (host, int(port))
@@ -115,7 +115,7 @@ def get_statistics_sender():
                 logstash.send(data.encode())
 
     with open(RSTATS_CONFIG_FILE, encoding='utf-8') as stream:
-        content = yaml.load(stream)
+        content = yaml.safe_load(stream)
 
     # Select the right function to use based on the configured mode
     try:

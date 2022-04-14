@@ -26,17 +26,24 @@
 ---
 
 - name: Install Python Dependencies
-  pip: name={{ item.name }} executable=pip3 version={{ item.version }}
-  with_items:
-    - {name: python-iptables, version: 0.12.0}
+  pip:
+    name: python-iptables
+    version: 0.12.0
+    executable: pip3
   become: yes
   environment: "{{ openbach_proxies }}"
   
 - name: Create the Rate Monitoring Job Repository
-  file: path=/opt/openbach/agent/jobs/{{ job_name }} state=directory mode=0755
+  file:
+    path: /opt/openbach/agent/jobs/{{ job_name }}
+    state: directory
+    mode: 0755
 
 - name: Install the Rate Monitoring Job
-  copy: src={{ item }} dest=/opt/openbach/agent/jobs/{{ job_name }}/ mode=0644
+  copy:
+    src: "{{ item }}"
+    dest: /opt/openbach/agent/jobs/{{ job_name }}/
+    mode: 0644
   with_items:
     - rate_monitoring.py
     - rate_monitoring_rstats_filter.conf

@@ -53,7 +53,9 @@ The following table list some of the interesting ansible variable and all the op
 | [`openbach_backend_admin_name`](Security.md) | `-e openbach_backend_admin_name=USERNAME` | Create/Connect as this user on the controller to add jobs and install collectors and agents (default `openbach`) |
 | [`openbach_backend_admin_password`](Security.md) | `-e openbach_backend_admin_password=PASSWORD` | Create/Connect using this password on the controller to add jobs and install collectors and agents (default `openbach`) |
 | [`openbach_jobs_folders`](#adding-jobs-from-external-sources) | `-e '{"openbach_jobs_folders": ["FOLDER1", "FOLDER2"]}'` | Add extra jobs founds in this list of folders into the controllers database |
+| `project_name` | `-e project_name=openbach_first_project` | Automatically create a project of this name after the installation is complete and associate all the agents from the inventory to this project |
 | [`default_jobs`](#adding-jobs-from-external-sources) | `-e '{"default_jobs": ["JOB1", "JOB2"]}'` | Install exactly these jobs on each agent instead of the default ones |
+| [`installed_on`](#adding-jobs-from-external-sources) | `-e installed_on=agent`, `-e installed_on=controller` | Override the default list of jobs to install on the specified group and install all the available jobs instead, best used in addition to `openbach_jobs_folders` |
 | `openbach_backend_retry_delay` | `-e openbach_backend_retry_delay=SECONDS` | Sleep this amount of seconds between each retries when waiting for a playbook to finish on the controllers |
 | [`openbach_clear_database`](#uninstalling-an-openbach-platform) | `-e openbach_clear_database=yes` | Use this switch to clear recorded data during the uninstallation of a controller or collector |
 | [`openbach_restore_archive`](Backup.md) | `-e openbach_restore_archive=openbach_backup.tar.gz` | Path to an archive file created via a backup of an existing platform to perform its restoration from the collected data instead of a full-blown installation |
@@ -69,6 +71,7 @@ of them are meant to be used with the `skip-tags` option of the `ansible-playboo
   * [restore_influxdb_database](Backup.md)
   * [restore_backend_database](Backup.md)
   * [rerun_jobs_install_playbooks](Backup.md)
+  * [check_resources](Resources.md)
 
 ## Installing an OpenBACH platform ##
 
@@ -136,4 +139,4 @@ $ ansible-playbook install.yml -u exploit -k -K -e '{"openbach_jobs_folders": ["
 [8]: http://docs.ansible.com/ansible/latest/become.html#connection-variables
 [9]: Topology.md#machine-dependencies
 [10]: http://docs.ansible.com/ansible/latest/playbooks_tags.html
-[11]: https://forge.net4sat.org/openbach/openbach-external-jobs
+[11]: https://github.com/CNES/openbach-extra/tree/master/externals_jobs

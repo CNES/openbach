@@ -416,7 +416,7 @@ arguments than the original `synchronize` module.
 
 
 [1]: users@openbach.org
-[2]: https://forge.net4sat.org/openbach/openbach-extra/tree/master/apis/scenario_builder
+[2]: https://github.com/CNES/openbach-extra/tree/master/apis/scenario_builder
 [3]: http://docs.ansible.com/ansible/latest/playbooks.html
 [4]: https://docs.gitlab.com/ee/user/markdown.html
 [5]: https://docs.python.org/3/library/argparse.html#sub-commands

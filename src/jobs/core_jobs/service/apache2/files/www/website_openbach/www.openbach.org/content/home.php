@@ -79,7 +79,7 @@
                                 <a href="mail.php" style="font-size:100%">Mailing-lists</a>
                             </li>
                             <li>
-                                <a href="https://wiki.net4sat.org/doku.php?id=openbach:index" style="font-size:100%">Wiki</a>
+                                <a href="https://github.com/CNES/openbach/blob/master/README.md" style="font-size:100%">Wiki</a>
                             </li>
 				<li>
                                 <a href="jobs.php" style="font-size:100%">Related tools & Jobs</a>
@@ -96,7 +96,7 @@
                                 <a href="bugtracker.php" style="font-size:100%">Bugtracker</a>
                             </li>
                             <li>
-                                <a href="https://forge.net4sat.org/openbach/openbach" style="font-size:100%">Forge OpenBACH</a>
+                                <a href="https://github.com/CNES/openbach" style="font-size:100%">Forge OpenBACH</a>
                             </li>
                         </ul>
                     </li>
@@ -105,7 +105,7 @@
                     </li>
 
 					<li class = "page-scroll">
-                        <a href="https://forge.net4sat.org/openbach/openbach"> <img src="../img/gitlab-logo-square.png"/> </a>
+                        <a href="https://github.com/CNES/openbach"> <img src="../img/gitlab-logo-square.png"/> </a>
                     </li>
                 </ul>
             </div>

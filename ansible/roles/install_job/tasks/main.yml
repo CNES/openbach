@@ -30,23 +30,10 @@
       local_action:
         module: jobs_metadata
         folders: "{{ ['../src/jobs/'] + (openbach_jobs_folders | default([])) }}"
-        platforms: yes
-      register: make_openbach_install_default_jobs
-      when: jobs is not defined and installed_on is defined and installed_on in group_names
-
-    - name: Setup Default Jobs
-      set_fact:
-        jobs: "{{ make_openbach_install_default_jobs.openbach_jobs }}"
-      when: jobs is not defined and installed_on is defined and installed_on in group_names
-
-    - name: Gather Jobs Metadata
-      local_action:
-        module: jobs_metadata
-        folders: "{{ ['../src/jobs/'] + (openbach_jobs_folders | default([])) }}"
-        limit: "{{ (default_jobs + default_collector_jobs) if 'collector' in group_names or ('controller' in group_names and ('collector' not in groups or not groups.collector)) else default_jobs }}"
+        limit: "{{ omit if installed_on is defined and installed_on in group_names else ((default_jobs + default_collector_jobs) if 'collector' in group_names or ('controller' in group_names and ('collector' not in groups or not groups.collector)) else default_jobs) }}"
         platforms: yes
       register: openbach_install_default_jobs
-      when: jobs is not defined and (installed_on is not defined or installed_on not in group_names)
+      when: jobs is not defined
 
     - name: Setup Default Jobs
       set_fact:

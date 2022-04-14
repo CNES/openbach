@@ -18,7 +18,7 @@ import MainTitle from "./MainTitle";
 import Separator from "./Separator";
 
 
-const wikiURL = "https://wiki.net4sat.org/doku.php?id=openbach:index";
+const wikiURL = "https://github.com/CNES/openbach";
 
 
 class App extends React.Component<IStoreProps, IState> {

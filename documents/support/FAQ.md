@@ -121,4 +121,4 @@ OpenBACH agents run seamlessly on ubuntu 20.04 LXC containers. For the controlle
 The rest of the installation process is identical.
 
 
-[1]: https://forge.net4sat.org/openbach/auditorium-scripts
+[1]: https://github.com/CNES/openbach-extra/tree/master/apis/auditorium_scripts

@@ -1009,7 +1009,7 @@ class AddJob(JobAction):
                     configuration_file=config_file)
         with stream:
             try:
-                content = yaml.load(stream)
+                content = yaml.safe_load(stream)
             except yaml.YAMLError as err:
                 raise errors.BadRequestError(
                         'The configuration file of the Job does not '

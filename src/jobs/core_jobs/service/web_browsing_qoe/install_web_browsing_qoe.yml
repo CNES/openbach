@@ -55,7 +55,7 @@
     
 - name: Install Gecko Driver
   unarchive: 
-    src: https://github.com/mozilla/geckodriver/releases/download/v0.19.1/geckodriver-v0.19.1-linux{{ 64 if cpu_arch.stdout == "x86_64" else 32 }}.tar.gz
+    src: https://github.com/mozilla/geckodriver/releases/download/v0.30.0/geckodriver-v0.30.0-linux{{ 64 if cpu_arch.stdout == "x86_64" else 32 }}.tar.gz
     dest: /usr/local/bin
     creates: /usr/local/bin/geckodriver
     remote_src: yes

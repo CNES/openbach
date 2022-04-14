@@ -79,7 +79,7 @@
                                 <a href="mail.php" style="font-size:100%">Mailing-lists</a>
                             </li>
                             <li>
-                                <a href="https://wiki.net4sat.org/doku.php?id=opensand:index" style="font-size:100%">Wiki</a>
+                                <a href="https://github.com/CNES/opensand/wiki" style="font-size:100%">Wiki</a>
                             </li>
                             <li>
                                 <a href="libraries.php" style="font-size:100%">Libraries</a>
@@ -99,7 +99,7 @@
                                 <a href="bugtracker.php" style="font-size:100%">Bugtracker</a>
                             </li>
                             <li>
-                                <a href="https://forge.net4sat.org/opensand/opensand" style="font-size:100%">Forge OpenSAND</a>
+                                <a href="https://github.com/CNES/opensand" style="font-size:100%">Forge OpenSAND</a>
                             </li>
                         </ul>
                     </li>
