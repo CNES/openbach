@@ -45,7 +45,7 @@ hosted on [CNES GITHUB page](https://github.com/CNES/openbach
 
 You can either:
   * Download an [archive file of the repository][1];
-  * Or clone the repository using `git`: `git clone --depth 1 --single-branch https://github.com/CNES/openbach/openbach.git`
+  * Or clone the repository using `git`: `git clone --depth 1 --single-branch https://github.com/CNES/openbach.git`
 
 > :warning: Developpers that want to contribute to the OpenBACH repository should clone
 the whole history (i.e.: dropping the `depth` and `single-branch` options)
