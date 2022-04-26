@@ -210,7 +210,7 @@ def main(nb_runs, max_threads, stop_compression, proxy_address, proxy_port, urls
     qos_metrics_lists = dict()
     qos_metrics = dict()
     # Load config from config.yaml
-    config_filepath = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'config.yml')
+    config_filepath = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'config.yaml')
     with open(config_filepath) as config_file:
         config = yaml.safe_load(config_file)
     if not urls:
