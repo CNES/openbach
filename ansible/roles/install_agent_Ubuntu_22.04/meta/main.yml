@@ -25,5 +25,5 @@
 
 ---
 
-- include_role:
-    name: "install_controller_{{ ansible_os_family }}"
+dependencies:
+  - role: install_base

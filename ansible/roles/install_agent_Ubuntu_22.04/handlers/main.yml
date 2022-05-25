@@ -25,5 +25,10 @@
 
 ---
 
-- include_role:
-    name: "install_controller_{{ ansible_os_family }}"
+- name: restart ntp
+  systemd: name=ntp state=restarted enabled=yes daemon_reload=yes
+  become: yes
+
+- name: restart rsyslog
+  systemd: name=rsyslog state=restarted enabled=yes daemon_reload=yes
+  become: yes

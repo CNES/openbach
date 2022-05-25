@@ -26,4 +26,4 @@
 ---
 
 - include_role:
-    name: "install_controller_{{ ansible_os_family }}"
+    name: "install_controller_{{ ansible_distribution }}_{{ ansible_distribution_version }}"
