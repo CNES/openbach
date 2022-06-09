@@ -42,15 +42,6 @@
   environment: "{{ openbach_proxy_env }}"
   notify: restart postgresql
 
-- name: Install pip3 Dependencies uwsgi
-  pip:
-    name:
-      - uwsgi
-      # - ansible
-    executable: pip3
-    extra_args: '-U' # --no-index --find-links=file:///opt/openbach/pip_mirror/python3/'
-  become: yes
-
 - name: Install pip3 Dependencies
   pip:
     name:
@@ -60,6 +51,7 @@
       - python-Levenshtein
       - numpy
       - django
+      - uwsgi
     executable: pip3
     extra_args: '-U --no-index --find-links=file:///opt/openbach/pip_mirror/python3/'
   become: yes
