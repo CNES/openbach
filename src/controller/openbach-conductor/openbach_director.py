@@ -688,6 +688,8 @@ def main(socket_name=DEFAULT_UNIX_DOMAIN):
             Q(status__startswith='Finished'))
     for scenario in unfinished_scenarios:
         owner = scenario.started_by
+        if owner is None:
+            continue
         owner_name = owner.get_username()
         started_jobs = scenario.openbach_functions_instances.values('started_job')
         for job_instance in JobInstance.objects.filter(id__in=started_jobs):
