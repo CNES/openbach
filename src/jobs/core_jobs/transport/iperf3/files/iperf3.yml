@@ -28,11 +28,11 @@
 general:
   name: iperf3
   description: >
-      This Job launches the iperf3.7 tool (client or server mode) to
+      This Job launches the iperf3 tool (client or server mode) to
       generate UDP/TCP traffic with configured parameters (duration,
       bandwidth, parallel flows, ToS, MSS, etc.). It measures
       throughput, sent/lost packets, jitter, etc. 
-  job_version: '2.7'
+  job_version: '2.9'
   keywords:
     - iperf
     - iperf3
@@ -136,6 +136,11 @@ arguments:
                       count: 1
                       flag: '-b'
                       description: Set target bandwidth to n [M/K]bits/sec (default 1 Mbit/sec).
+                    - name: udp_size
+                      type: str
+                      count: 1
+                      flag: '-us'
+                      description: Set the UDP packet size in bytes (default 1472 B).
                 - name: tcp
                   required:
                   optional:
@@ -151,30 +156,30 @@ arguments:
                       description: The TCP/SCTP maximum segment size (MTU - 39 bytes)
                               
 statistics:
-    - name: "sent_data"
+    - name: "sent_data_*flow_number*"
       description: The cumulative amount of data sent from the job launch, in Bytes (client and server sides)
       frequency: 'every *metrics_interval* seconds'
-    - name: "throughput"
+    - name: "throughput_*flow_number*"
       description: The throughput in this period, in bits/sec (client and server sides)
       frequency: 'every *metrics_interval* seconds'
-    - name: "jitter"
+    - name: "jitter_*flow_number*"
       description: The jitter between packets in this period, in seconds (server side)
       frequency: 'every *metrics_interval* seconds'
-    - name: "sent_pkts"
+    - name: "sent_pkts_*flow_number*"
       description: The number of sent packets (server side)
       frequency: 'every *metrics_interval* seconds'
-    - name: "lost_pkts"
+    - name: "lost_pkts_*flow_number*"
       description: The number of lost packets (server side)
       frequency: 'every *metrics_interval* seconds'
-    - name: "plr"
+    - name: "plr_*flow_number*"
       description: The packet loss rate for this period, in % (server side)
       frequency: 'every *metrics_interval* seconds'
-    - name: "download_time"
+    - name: "download_time_*flow_number*"
       description: The total download time, in seconds (client and server sides)
       frequency: 'once'
-    - name: "cwnd"
+    - name: "cwnd_*flow_number*"
       description: The value of the congestion window, in Bytes, when TCP is chosen (client side)
       frequency: 'every *metrics_interval* seconds'
-    - name: "retransmissions"
+    - name: "retransmissions_*flow_number*"
       description: The number of TCP retransmissions, when TCP is chosen (client side)
       frequency: 'every *metrics_interval* seconds'

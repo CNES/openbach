@@ -31,7 +31,7 @@ general:
       This job analyzes a pcap file in order to get the average packet length,
       average inter packets delay, bitrate, etc. If a filter is specified,
       only filtered packets will be considered.
-  job_version: '1.2'
+  job_version: '1.3'
   keywords:
     - pcap
     - network
@@ -56,22 +56,22 @@ arguments:
     - name:        src_ip
       type:        str
       count:       1
-      flag:        '-A'
+      flag:        '-sa'
       description: The source IP Address
     - name:        dst_ip
       type:        str
       count:       1
-      flag:        '-a'
+      flag:        '-da'
       description: The destination IP Address
     - name:        src_port
       type:        int
       count:       1
-      flag:        '-D'
+      flag:        '-sp'
       description: The source port number
     - name:        dst_port
       type:        int
       count:       1
-      flag:        '-d'
+      flag:        '-dp'
       description: The destination port number
     - name:        proto
       type:        str
@@ -81,11 +81,25 @@ arguments:
       choices: 
                    - udp
                    - tcp
-    - name:  metrics_interval
-      type:  int
-      count: 1
-      flag:  '-T'
-      description: The time period in ms to compute statistics (default 500)
+  subcommand:
+    - group_name: mode
+      optional: no
+      choices:
+        - name: stats_one_file
+          required:
+          optional:
+            - name:  metrics_interval
+              type:  int
+              count: 1
+              flag:  '-T'
+              description: The time period in ms to compute statistics (default 500)
+        - name: gilbert_elliot
+          required:
+            - name:        second_capture_file
+              type:        str
+              count:       1
+              description: The path of the second pcap file to analyze
+          optional:
 
 statistics:
     - name: avg_packet_length
@@ -121,3 +135,18 @@ statistics:
     - name: total_packets
       description: The total number of packets
       frequency: 'every *metrics_interval* ms'
+    - name: gilbert_elliot_p
+      description: p parameter of Gilbert Elliot model
+      frequency: 'once'
+    - name: gilbert_elliot_r
+      description: r parameter of Gilbert Elliot model
+      frequency: 'once'
+    - name: gilbert_elliot_sent
+      description: Number of packets sent, only filtered packets are considered
+      frequency: 'once'
+    - name: gilbert_elliot_received
+      description: Number of packets received, only filtered packets are considered
+      frequency: 'once'
+    - name: gilbert_elliot_lost_rate
+      description: Loss rate between packets sent and received, only filtered packets are considered
+      frequency: 'once'

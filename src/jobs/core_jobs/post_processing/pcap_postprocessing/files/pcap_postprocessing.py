@@ -34,18 +34,20 @@ __credits__ = '''Contributors:
  * Joaquin MUGUERZA <joaquin.muguerza@viveris.fr>
  * Francklin SIMO <francklin.simo@viveris.fr>
  * David FERNANDES <david.fernandes@viveris.fr>
+ * Bastien TAURAN <bastien.tauran@viveris.fr>
 '''
 
 import os
 import sys
 import time
-import pprint
 import syslog
 import argparse
 import itertools
 import traceback
 import contextlib
 from contextlib import closing
+import random
+import subprocess
 
 import pyshark
 import pathlib
@@ -160,11 +162,79 @@ def compute_and_send_statistics(packets, to, metrics_interval, suffix, stat_time
         if avg_inter_packets_delay is not None:
            statistics.update({'avg_inter_packets_delay': int(avg_inter_packets_delay*1000)})
 
-    pprint.pprint(statistics)
     collect_agent.send_stat(stat_time, suffix=suffix, **statistics)
 
+def get_next_packet(it):
+    pkt = next(it)
+    while not ('IP' in str(pkt.layers) and pkt.transport_layer is not None):
+        pkt = next(it)
+    return pkt.ip.id
+
+
+def gilbert_elliot(capture_file, second_capture_file, src_ip, dst_ip, src_port, dst_port, proto):
+    display_filter = build_display_filter(src_ip, dst_ip, src_port, dst_port, proto)
+
+    try:
+        with closing(pyshark.FileCapture(capture_file, display_filter=display_filter)) as cap_file_sent:
+            cap_file_sent_iter = iter(cap_file_sent)
+            goods = []
+            bads = []
+            with closing(pyshark.FileCapture(second_capture_file, display_filter=display_filter)) as cap_file_received:
+                try:
+                    current_packet_sent = get_next_packet(cap_file_sent_iter)
+                    total_good = 0
+                    total_bad = 0
+                    for packet in cap_file_received:
+                        if not ('IP' in str(packet.layers) and packet.transport_layer is not None):
+                            continue
+                        if packet.ip.id == current_packet_sent:
+                            total_good += 1
+                            if total_bad:
+                                bads.append(total_bad)
+                                total_bad = 0
+                        while packet.ip.id != current_packet_sent:
+                            if total_good:
+                                goods.append(total_good)
+                                total_good = 0
+                            total_bad += 1
+                            current_packet_sent = get_next_packet(cap_file_sent_iter)
+                        current_packet_sent = get_next_packet(cap_file_sent_iter)
+                except StopIteration:
+                    pass
+                if total_good:
+                    goods.append(total_good)
+                if total_bad:
+                    bads.append(total_bad)
+
+
+        statistics = {'gilbert_elliot_sent':sum(goods)+sum(bads), 'gilbert_elliot_received':sum(goods)}
+        if goods or bads:
+            statistics['gilbert_elliot_lost_rate'] = sum(bads)/(sum(goods)+sum(bads))
+
+        if goods:
+            g = sum(goods)/len(goods) # average number of steps when we stay in good state
+            statistics['gilbert_elliot_p'] = 1/g
+        else:
+            collect_agent.send_log(syslog.LOG_WARNING, "Cannot compute p parameter. Maybe the capture files are too short.")
+
+        if bads:
+            b = sum(bads)/len(bads) # average number of steps when we stay in bad state
+            statistics['gilbert_elliot_r'] = 1/b
+        else:
+            collect_agent.send_log(syslog.LOG_WARNING, "Cannot compute r parameter. Maybe the capture files are too short.")
+
+        collect_agent.send_stat(now(), **statistics)
+
+    except Exception as ex:
+        message = 'ERROR when analyzing: {}'.format(ex)
+        collect_agent.send_log(syslog.LOG_ERR, message)
+        sys.exit(message)
+
+
+    sys.exit(0)  # Explicitly exit properly. This is required by pyshark module
+
     
-def main(src_ip, dst_ip, src_port, dst_port, proto, capture_file, metrics_interval):
+def one_file(capture_file, src_ip, dst_ip, src_port, dst_port, proto, metrics_interval):
     """Analyze packets from pcap file located at capture_file and comptute statistics.
     Only consider packets matching the specified fields.
     """
@@ -213,7 +283,7 @@ def main(src_ip, dst_ip, src_port, dst_port, proto, capture_file, metrics_interv
                     # Check if it the last sample
                     if total_flows_count > 0 and float(packets[-1].sniff_timestamp) * 1000 <= time:
                         statistics.update({'avg_flow_duration':int(total_flow_duration/total_flows_count)})
-                        statistics.update({'total_packets':len(packets), 
+                        statistics.update({'total_packets':len(packets),
                                            'total_bytes':packets_length(packets)})
                     collect_agent.send_stat(stat_time, **statistics)
                     samples_count += 1   
@@ -221,7 +291,6 @@ def main(src_ip, dst_ip, src_port, dst_port, proto, capture_file, metrics_interv
 
     except Exception as ex:
         message = 'ERROR when analyzing: {}'.format(ex)
-        print(message)
         collect_agent.send_log(syslog.LOG_ERR, message)
         sys.exit(message)
 
@@ -240,15 +309,29 @@ if __name__ == '__main__':
               formatter_class=argparse.ArgumentDefaultsHelpFormatter
         )
         parser.add_argument('capture_file', type=argparse.FileType('r'), help='Path to the capture file (big files are not recommended: check .help of job)')
-        parser.add_argument('-A', '--src-ip', help='Source IP address')
-        parser.add_argument('-a', '--dst-ip', help='Destination IP address')
-        parser.add_argument('-D', '--src-port', type=int, help='Source port number')
-        parser.add_argument('-d', '--dst-port', type=int, help='Destination port number')
+        parser.add_argument('-sa', '--src-ip', help='Source IP address')
+        parser.add_argument('-da', '--dst-ip', help='Destination IP address')
+        parser.add_argument('-sp', '--src-port', type=int, help='Source port number')
+        parser.add_argument('-dp', '--dst-port', type=int, help='Destination port number')
         parser.add_argument('-p', '--proto', choices=['udp', 'tcp'], help='Transport protocol')
-        parser.add_argument('-T', '--metrics-interval', type=int, default=500,
-                                    help='Time period in ms to compute metrics')
-    
+
+        subparsers = parser.add_subparsers(
+            title='Subcommand mode',
+            help='Choose the stat to compute (metrics from one pcap, or Gilbert Elliot parameters from 2 files)')
+        subparsers.required = True
+
+        parser_one_file = subparsers.add_parser('stats_one_file', help='Get the metrics from one pcap')
+        parser_one_file.add_argument('-T', '--metrics-interval', type=int, default=500, help='Time period in ms to compute metrics')
+
+        parser_ge = subparsers.add_parser('gilbert_elliot', help='Compute Gilbert Elliot parameters from 2 files')
+        parser_ge.add_argument('second_capture_file', type=str, help='Path to the second capture file')
+
+        # Set subparsers options to automatically call the right
+        # function depending on the chosen subcommand
+        parser_one_file.set_defaults(function=one_file)
+        parser_ge.set_defaults(function=gilbert_elliot)
+
+        # Get args and call the appropriate function
         args = vars(parser.parse_args())
+        main = args.pop('function')
         main(**args)
-
-

@@ -400,6 +400,14 @@ class PlaybookBuilder():
         self.launch_playbook('push_files', session_cookie=cookie)
 
     @classmethod
+    def pull_file(cls, address, parameters, restart_services=False, cookie=None):
+        self = cls(address)
+        self.add_variables(
+                copy_parameters=parameters,
+                restart_services=restart_services)
+        self.launch_playbook('pull_files', session_cookie=cookie)
+
+    @classmethod
     def fetch_file(cls, address, archive_prefix, local_path, remote_paths, cookie=None):
         self = cls(address)
         self.add_variables(

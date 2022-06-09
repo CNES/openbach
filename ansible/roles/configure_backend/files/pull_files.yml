@@ -1,0 +1,21 @@
+---
+
+- hosts: all
+  tasks:
+    - name: Copy File from the Remote Host
+      fetch:
+        flat: yes
+        src: "{{ item.source }}"
+        dest: "{{ item.destination }}"
+        group: "{{ item.group | default(item.user | default(omit)) }}"
+        owner: "{{ item.user | default(omit) }}"
+      with_items: "{{ copy_parameters }}"
+      become: yes
+
+    - name: Remove file on source
+      file:
+        path: "{{ item.source }}"
+        state: absent
+      with_items: "{{ copy_parameters }}"
+      when: "{{ item.remove }}"
+      become: yes
