@@ -41,6 +41,11 @@ platform_configuration:
     ansible_distribution_version: '20.04'
     command: '/usr/bin/env python3 /opt/openbach/agent/jobs/time_series/time_series.py'
     command_stop:
+  - ansible_system: Debian
+    ansible_distribution: Ubuntu
+    ansible_distribution_version: '22.04'
+    command: '/usr/bin/env python3 /opt/openbach/agent/jobs/time_series/time_series.py'
+    command_stop:
 
 arguments:
   required:
