@@ -49,7 +49,7 @@
   
 - name: Download and Install Firefox
   apt: 
-    deb: https://sourceforge.net/projects/ubuntuzilla/files/mozilla/apt/pool/main/f/firefox-mozilla-build/firefox-mozilla-build_62.0.3-0ubuntu1_{{ 'amd64' if cpu_arch.stdout == "x86_64" else 'i386' }}.deb
+    deb: https://sourceforge.net/projects/ubuntuzilla/files/mozilla/apt/pool/main/f/firefox-mozilla-build/firefox-mozilla-build_101.0.1-0ubuntu1_{{ 'amd64' if cpu_arch.stdout == "x86_64" else 'i386' }}.deb
   become: yes
   environment: "{{ openbach_proxies }}"
     
