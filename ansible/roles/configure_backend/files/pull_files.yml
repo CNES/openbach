@@ -10,6 +10,9 @@
         group: "{{ item.group | default(item.user | default(omit)) }}"
         owner: "{{ item.user | default(omit) }}"
       with_items: "{{ copy_parameters }}"
+      register: result
+      until: result is succeeded
+      retries: 5
       become: yes
 
     - name: Remove file on source
