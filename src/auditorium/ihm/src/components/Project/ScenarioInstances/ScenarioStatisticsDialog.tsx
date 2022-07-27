@@ -103,11 +103,11 @@ class ScenarioStatisticsDialog extends React.Component<IProps & IDispatchProps, 
         const {groupTogether, selected} = this.state;
         const instance = this.props.instance;
         postGrafanaDashboard(instance, selected, groupTogether).then((APIResult: IGrafanaDashboardResult) => {
-            openURL("/grafana/dashboard/db/" + APIResult.slug);
+            openURL("/chronograf/sources/1/dashboards/" + APIResult.id);
             this.props.handleCloseDialog();
             this.setState({ groupTogether: false, selected: [], errorMessage: null });
         }).catch((error: Error) => {
-            this.props.notify("Cannot create Grafana Dashboard: " + error.message);
+            this.props.notify("Cannot create Chronograf Dashboard: " + error.message);
             this.setState({ errorMessage: error.message });
         });
     }

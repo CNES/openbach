@@ -19,7 +19,7 @@ server {
         return 301 http://{{ auditorium_ip }}:{{ kibana_port }}/;
     }
 
-    location /grafana/api {
+    location /chronograf/api {
         proxy_redirect off;
         proxy_set_header Host $host;
 
@@ -55,11 +55,11 @@ server {
         }
 
         # Actual redirect
-        proxy_pass http://{{ auditorium_ip }}:{{ grafana_port }}/api;
+        proxy_pass http://{{ auditorium_ip }}:{{ chronograf_port }}/chronograf/v1;
     }
 
-    location /grafana {
-        rewrite /grafana(.*) http://{{ auditorium_ip }}:{{ grafana_port }}$1 permanent;
+    location /chronograf {
+        rewrite /chronograf(.*) http://{{ auditorium_ip }}:{{ chronograf_port }}$1 permanent;
     }
 
     location /influxdb_api/ {
