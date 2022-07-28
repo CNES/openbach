@@ -128,18 +128,12 @@
     recursive: yes
     delete: yes
     rsync_opts:
-      - --exclude
-      - __pycache__
-      - --exclude
-      - functional_tests.sh
-      - --exclude
-      - manage.py
-      - --filter
-      - P static_root
-      - --filter
-      - P local_settings.py
-      - --filter
-      - P pgbouncer_auth.txt
+      - --exclude=__pycache__
+      - --exclude=functional_tests.sh
+      - --exclude=manage.py
+      - --filter='P static_root'
+      - --filter='P local_settings.py'
+      - --filter='P pgbouncer_auth.txt'
   remote_user: openbach
 
 - name: Install the Conductor
@@ -149,8 +143,7 @@
     recursive: yes
     delete: yes
     rsync_opts:
-      - --exclude
-      - __pycache__
+      - --exclude=__pycache__
   remote_user: openbach
 
 - name: Fetch the openbach User's SSH public Key
@@ -308,8 +301,7 @@
     recursive: yes
     delete: yes
     rsync_opts:
-      - --exclude
-      - __pycache__
+      - --exclude=__pycache__
   remote_user: openbach
 
 - name: Copy the installation Playbooks
@@ -319,10 +311,8 @@
     recursive: yes
     delete: yes
     rsync_opts:
-      - --exclude
-      - __pycache__
-      - --exclude
-      - '*.pyc'
+      - --exclude=__pycache__
+      - --exclude=*.pyc
   with_items:
     - roles
     - library
@@ -341,10 +331,8 @@
     recursive: yes
     delete: yes
     rsync_opts:
-      - --exclude
-      - __pycache__
-      - --filter
-      - P private_jobs
+      - --exclude=__pycache__
+      - --filter='P private_jobs'
   remote_user: openbach
 
 - name: Copy the Sources of the User-provided Jobs
@@ -354,8 +342,7 @@
     recursive: yes
     delete: no
     rsync_opts:
-      - --exclude
-      - __pycache__
+      - --exclude=__pycache__
   with_items:
     - "{{ openbach_jobs_folders }}"
   when: openbach_restore_host is not defined and openbach_jobs_folders is defined and openbach_jobs_folders

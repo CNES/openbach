@@ -25,6 +25,15 @@
 
 ---
 
+- hosts: localhost
+  gather_facts: no
+  tags:
+    - tests
+  roles:
+    - role: setup_restore
+      when: openbach_restore_archive is defined
+    - setup
+
 - name: Register resources from hosts
   hosts:
     - agent
@@ -36,15 +45,6 @@
   hosts: localhost
   roles:
     - check_resources
-
-- hosts: localhost
-  gather_facts: no
-  tags:
-    - tests
-  roles:
-    - role: setup_restore
-      when: openbach_restore_archive is defined
-    - setup
 
 - name: Ask Questions
   hosts: controller
