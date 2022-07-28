@@ -100,20 +100,20 @@ export function postGrafanaDashboard(instance: IScenarioInstance, statistics: IG
     });
 
     const dashboard = {
-        name: `Scenario instance #${instance.owner_scenario_instance_id}`
         cells: graphs.map((graph: IGraphIntermediate, index: number) => ({
             h: 4,
+            name: `${graph.name} (#${graph.jobId})`,
+            queries: graph.targets.map((statName: string, id: number) => ({
+                query: `SELECT "${statName}" FROM "openbach"."openbach"."${graph.name}" WHERE time > ${moment(instance.start_date).valueOf()}ms AND time < ${instance.stop_date ? moment(instance.stop_date).add(1, "s").valueOf() + "ms" : "now"} AND "@job_instance_id"='${graph.jobId}' FILL(null)`,
+                source: "",
+                text: `${statName} (${graph.unit})`,
+                type: "influxql",
+            })),
             w: 12,
             x: 0,
             y: 4 * index,
-            name: `${graph.name} (#${graph.jobId})`,
-            queries: graphs.targets.map((statName: string, id: number) => ({
-                type: "influxql",
-                text: `${statName} (${graph.unit})`,
-                source: "",
-                query: `SELECT "${statName}" FROM "openbach"."openbach"."${graph.name}" WHERE time > ${moment(instance.start_date).valueOf()}ms AND time < ${instance.stop_date ? moment(instance.stop_date).add(1, "s").valueOf() + "ms" : "now"} AND "@job_instance_id"='${graph.jobId}' FILL(null)`,
-            }),
-        }),
+        })),
+        name: `Scenario instance #${instance.owner_scenario_instance_id}`,
     };
 
     const params: RequestInit = {

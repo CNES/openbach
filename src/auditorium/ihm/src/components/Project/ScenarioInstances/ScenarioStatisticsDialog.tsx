@@ -6,7 +6,7 @@ import Checkbox from "material-ui/Checkbox";
 import {notify} from "../../../actions/global";
 import {openURL} from "../../../api/common";
 import {postGrafanaDashboard} from "../../../api/influx";
-import {IGrafanaDashboardResult, IGrafanaStatistic, IJobsDisplay} from "../../../interfaces/influx.interface";
+import {IChronografDashboardResult, IGrafanaStatistic, IJobsDisplay} from "../../../interfaces/influx.interface";
 import {IScenarioInstance, isStartJobInstance, isStartScenarioInstance} from "../../../interfaces/scenarioInstance.interface";
 
 import ActionDialog from "../../common/ActionDialog";
@@ -102,7 +102,7 @@ class ScenarioStatisticsDialog extends React.Component<IProps & IDispatchProps, 
     private showInGrafana() {
         const {groupTogether, selected} = this.state;
         const instance = this.props.instance;
-        postGrafanaDashboard(instance, selected, groupTogether).then((APIResult: IGrafanaDashboardResult) => {
+        postGrafanaDashboard(instance, selected, groupTogether).then((APIResult: IChronografDashboardResult) => {
             openURL("/chronograf/sources/1/dashboards/" + APIResult.id);
             this.props.handleCloseDialog();
             this.setState({ groupTogether: false, selected: [], errorMessage: null });
