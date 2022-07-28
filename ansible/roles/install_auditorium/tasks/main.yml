@@ -40,12 +40,11 @@
   with_items:
     - https://dl.influxdata.com/chronograf/releases/chronograf_{{ chronograf_version }}_amd64.deb
     - https://artifacts.elastic.co/downloads/kibana/kibana-{{ kibana_version }}-amd64.deb
-    - https://dl.grafana.com/oss/release/grafana_{{ grafana_version }}_amd64.deb
   become: yes
   environment: "{{ openbach_proxy_env }}"
 
-- name: Configure Grafana
-  template: src=grafana.ini.j2 dest=/etc/grafana/grafana.ini mode=0640
+- name: Configure Chronograf
+  template: src=chronograf.j2 dest=/etc/default/chronograf mode=0640
   become: yes
 
 - name: Configure Kibana
@@ -78,7 +77,7 @@
   systemd: name={{ item }} state=restarted enabled=yes daemon_reload=yes
   with_items:
     - kibana
-    - grafana-server
+    - chronograf
     - nginx
   become: yes
 
@@ -148,56 +147,11 @@
           - { filename: 'dashboard.json', url: 'dashboard/default_dashboard'}
   when: openbach_restore_host is not defined
 
-- name: Wait for Grafana to Start
-  wait_for: port={{ grafana_port }} timeout=60
+- name: Wait for Chronograf to Start
+  wait_for: port={{ chronograf_port }} timeout=60
 
 - block:
-    - name: Authenticate into Grafana
-      uri:
-        url: http://localhost:{{ grafana_port }}/login
-        method: POST
-        body_format: json
-        body:
-          user: "admin"
-          password: "admin"
-          email: ""
-      register: openbach_grafana_login
-
-    - name: Lookup the List of Configured Datasources for Grafana
-      uri:
-        url: http://localhost:{{ grafana_port }}/api/datasources
-        method: GET
-        headers:
-          Cookie: "grafana_remember={{ openbach_grafana_login.cookies.grafana_remember }}; grafana_sess={{ openbach_grafana_login.cookies.grafana_sess }}; grafana_user={{ openbach_grafana_login.cookies.grafana_user }}"
-      register: openbach_grafana_datasources
-
-    - name: Add Our InfluxDB Cluster as Datasource for Grafana
-      uri:
-        url: http://localhost:{{ grafana_port }}/api/datasources
-        method: POST
-        body_format: json
-        body:
-          name: openbach
-          type: influxdb
-          url: http://{{ openbach_collector }}:{{ influxdb_port }}/
-          database: "{{ influxdb_database_name }}"
-          access: proxy
-          user: openbach
-          password: openbach
-        headers:
-          Cookie: "grafana_remember={{ openbach_grafana_login.cookies.grafana_remember }}; grafana_sess={{ openbach_grafana_login.cookies.grafana_sess }}; grafana_user={{ openbach_grafana_login.cookies.grafana_user }}"
-      when: not (openbach_grafana_datasources.json | map(attribute='name') | intersect(['openbach']))
-
-  rescue:
-    - debug:
-        msg: >
-          Automatically setting the collector's InfluxDB cluster as a Grafana's
-          data source failed. You should have details of the error above, but
-          this is not a fatal issue. You can configure the data source manually
-          from Grafana's administrative interface. See the wiki for details.
-
-- block:
-    - name: Authenticate into Grafana
+    - name: Authenticate into Grafana (TODO replace with backup restore on Chronograf)
       uri:
         url: http://localhost:{{ grafana_port }}/login
         method: POST
