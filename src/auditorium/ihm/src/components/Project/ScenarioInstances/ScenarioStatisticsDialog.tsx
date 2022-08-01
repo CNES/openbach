@@ -22,20 +22,21 @@ class ScenarioStatisticsDialog extends React.Component<IProps & IDispatchProps, 
         this.showInGrafana = this.showInGrafana.bind(this);
         this.openGrafana = this.openGrafana.bind(this);
         this.connectToGrafana = this.connectToGrafana.bind(this);
+        this.doCloseDialog = this.doCloseDialog.bind(this);
     }
 
     public render() {
         if (this.state.errorMessage !== null) {
             return (
                 <ActionDialog
-                    title="Cannot create Grafana Dashboard"
+                    title="Cannot create Chronograf Dashboard"
                     modal={false}
                     open={this.props.dialogOpen}
-                    cancel={{label: "Cancel", action: this.props.handleCloseDialog}}
-                    actions={[{label: "Open Grafana", action: this.connectToGrafana}]}
+                    cancel={{label: "Cancel", action: this.doCloseDialog}}
+                    actions={[{label: "Open Chronograf", action: this.connectToGrafana}]}
                 >
-                    <p>Grafana returned the error {this.state.errorMessage} when trying to create the dashboard for the selected statistics.</p>
-                    <p>Would you like to open Grafana to further understand the problem?</p>
+                    <p>Chronograf returned the error {this.state.errorMessage} when trying to create the dashboard for the selected statistics.</p>
+                    <p>Would you like to open Chronograf to further understand the problem?</p>
                 </ActionDialog>
             );
         }
@@ -47,8 +48,8 @@ class ScenarioStatisticsDialog extends React.Component<IProps & IDispatchProps, 
                     title="Select statistics to display"
                     modal={false}
                     open={this.props.dialogOpen}
-                    cancel={{label: "Cancel", action: this.props.handleCloseDialog}}
-                    actions={[{label: "Open Grafana anyway", action: this.openGrafana}]}
+                    cancel={{label: "Cancel", action: this.doCloseDialog}}
+                    actions={[{label: "Open Chronograf anyway", action: this.openGrafana}]}
                 >
                     <p>No jobs were launched by this scenario. Unable to build statistics graphs</p>
                 </ActionDialog>
@@ -68,8 +69,8 @@ class ScenarioStatisticsDialog extends React.Component<IProps & IDispatchProps, 
                 modal={false}
                 open={this.props.dialogOpen}
                 auto={true}
-                cancel={{label: "Cancel", action: this.props.handleCloseDialog}}
-                actions={[{label: "Display selected statistics in Grafana", action: this.showInGrafana}]}
+                cancel={{label: "Cancel", action: this.doCloseDialog}}
+                actions={[{label: "Display selected statistics in Chronograf", action: this.showInGrafana}]}
             >
                 {form}
                 <div><Checkbox
@@ -99,11 +100,16 @@ class ScenarioStatisticsDialog extends React.Component<IProps & IDispatchProps, 
         this.setState({ groupTogether, selected: oldUnitRemoved });
     }
 
+    private doCloseDialog() {
+        this.setState({ errorMessage: null });
+        this.props.handleCloseDialog();
+    }
+
     private showInGrafana() {
         const {groupTogether, selected} = this.state;
         const instance = this.props.instance;
         postGrafanaDashboard(instance, selected, groupTogether).then((APIResult: IChronografDashboardResult) => {
-            openURL("/chronograf/sources/1/dashboards/" + APIResult.id);
+            openURL("/chronograf/sources/0/dashboards/" + APIResult.id);
             this.props.handleCloseDialog();
             this.setState({ groupTogether: false, selected: [], errorMessage: null });
         }).catch((error: Error) => {
@@ -113,7 +119,7 @@ class ScenarioStatisticsDialog extends React.Component<IProps & IDispatchProps, 
     }
 
     private openGrafana() {
-        openURL("/grafana/");
+        openURL("/chronograf/");
     }
 
     private connectToGrafana() {

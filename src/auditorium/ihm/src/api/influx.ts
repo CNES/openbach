@@ -117,14 +117,14 @@ export function postGrafanaDashboard(instance: IScenarioInstance, statistics: IG
     };
 
     const params: RequestInit = {
-        body: JSON.stringify({dashboard, overwrite: true}),
+        body: JSON.stringify(dashboard),
         headers: {
             "Accept": "application/json",
             "Content-Type": "application/json",
         },
         method: "POST",
     };
-    return fetch("/chronograf/api/dashboards/", params)
+    return fetch("/chronograf/api/dashboards", params)
         .then(checkStatus)
         .then((response: Response) => new Promise<IChronografDashboardResult>((resolve) => resolve(response.json<IChronografDashboardResult>())));
 };
