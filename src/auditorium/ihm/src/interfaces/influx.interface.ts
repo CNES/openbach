@@ -49,3 +49,29 @@ export interface IGrafanaDashboardResult {
     version: number;
     message?: string;
 };
+
+
+export interface IChronografQueryResult {
+    type: string;
+    source: string;
+    query: string;
+    text: string;
+};
+
+
+export interface IChronografCellResult {
+    i: string;
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+    name: string;
+    queries: IChronografQueryResult[];
+};
+
+
+export interface IChronografDashboardResult {
+    id: number;
+    name: string;
+    cells: IChronografCellResult[];
+};

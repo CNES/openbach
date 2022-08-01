@@ -19,8 +19,12 @@ server {
         return 301 http://{{ auditorium_ip }}:{{ kibana_port }}/;
     }
 
-    location /grafana/api {
+    location ~ ^/chronograf/api/(.*)$ {
+        set $upstream_base http://{{ auditorium_ip }}:{{ chronograf_port }}/chronograf/v1;
+        set $upstream $upstream_base$1$is_args$args;
+
         proxy_redirect off;
+        proxy_redirect $upstream_base /chronograf/api/;
         proxy_set_header Host $host;
 
         # Nginx cannot handle nested if statements, so this is
@@ -55,11 +59,11 @@ server {
         }
 
         # Actual redirect
-        proxy_pass http://{{ auditorium_ip }}:{{ grafana_port }}/api;
+        proxy_pass $upstream;
     }
 
-    location /grafana {
-        rewrite /grafana(.*) http://{{ auditorium_ip }}:{{ grafana_port }}$1 permanent;
+    location ~ ^/chronograf/(.*) {
+        return 301 http://{{ auditorium_ip }}:{{ chronograf_port }}/$1$is_args$args;
     }
 
     location /influxdb_api/ {
