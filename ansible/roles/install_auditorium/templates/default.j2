@@ -20,7 +20,7 @@ server {
     }
 
     location ~ ^/chronograf/api/(.*)$ {
-        set $upstream_base http://{{ auditorium_ip }}:{{ chronograf_port }}/chronograf/v1;
+        set $upstream_base http://{{ auditorium_ip }}:{{ chronograf_port }}/chronograf/v1/;
         set $upstream $upstream_base$1$is_args$args;
 
         proxy_redirect off;
