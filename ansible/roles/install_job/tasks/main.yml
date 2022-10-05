@@ -181,4 +181,4 @@
     enabled: yes
     daemon_reload: yes
   become: yes
-  when: not is_run_from_conductor
+  when: not (is_run_from_conductor | default(false))

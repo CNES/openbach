@@ -25,12 +25,5 @@
 
 ---
 
-- name: Trust the SSH key of the Controllers by the Agents
-  authorized_key: user=openbach key={{ lookup('file', '{{ openbach_installer_folder }}/controller_key/{{ item }}/home/openbach/.ssh/id_rsa.pub') }}
-  become: yes
-  with_items: "{{ groups.controller | default([]) }}"
-
-- name: Trust the SSH key of the openbach User by the Agents
-  authorized_key: user=openbach key={{ lookup('file', '/home/openbach/.ssh/id_rsa.pub') }} state={{ openbach_controller_key_state | default('present') }}
-  become: yes
-  when: is_run_from_conductor | default(false)
+openbach_repository:
+  - deb https://raw.githubusercontent.com/CNES/net4sat-packages/master/focal/ focal stable

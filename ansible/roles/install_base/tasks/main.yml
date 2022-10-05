@@ -25,6 +25,8 @@
 
 ---
 
+- debug: var=big_fat_testing_variable
+
 - name: Create openbach User
   user: name=openbach shell=/bin/bash
   become: yes

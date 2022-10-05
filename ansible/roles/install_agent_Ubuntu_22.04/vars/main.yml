@@ -25,10 +25,5 @@
 
 ---
 
-- name: restart ntp
-  systemd: name=ntp state=restarted enabled=yes daemon_reload=yes
-  become: yes
-
-- name: restart rsyslog
-  systemd: name=rsyslog state=restarted enabled=yes daemon_reload=yes
-  become: yes
+openbach_repository:
+  - deb https://raw.githubusercontent.com/CNES/net4sat-packages/master/jammy/ jammy stable
