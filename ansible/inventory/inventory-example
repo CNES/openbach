@@ -1,2 +1,14 @@
 [controller]
-172.20.34.75 openbach_name=Controller
+172.20.34.30 openbach_name=Controller
+
+[acq_1]
+172.20.34.29 openbach_name=Acq1
+
+[agent:children]
+acq_1
+
+[collector:children]
+controller
+
+[all:vars]
+ansible_python_interpreter=/usr/bin/python3
