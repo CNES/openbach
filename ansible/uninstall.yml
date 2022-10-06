@@ -78,20 +78,20 @@
   post_tasks:
     - name: Remove Trusted Public Key from the openbach User Authorized Keys
       authorized_key: user=openbach state=absent key={{ lookup('file', '/home/openbach/.ssh/id_rsa.pub') }}
-      when: is_run_from_conductor
+      when: is_run_from_conductor is defined and is_run_from_conductor
 
     - name: Remove Trusted Public Key from the openbach User Authorized Keys
       authorized_key: user=openbach state=absent key={{ lookup('file', '{{ ansible_ssh_private_key_file }}.pub') }}
-      when: is_run_from_conductor and ansible_ssh_private_key_file is defined
+      when: is_run_from_conductor is defined and is_run_from_conductor and ansible_ssh_private_key_file is defined
 
     - name: Wait for the SSH Connection to Close Itself
       wait_for: timeout=60
-      when: not is_run_from_conductor
+      when: not (is_run_from_conductor | default(false))
 
     - name: Remove the openbach User
       user: user=openbach state=absent remove=yes
       become: yes
-      when: not is_run_from_conductor
+      when: not (is_run_from_conductor | default(false))
 
 
 - hosts: localhost

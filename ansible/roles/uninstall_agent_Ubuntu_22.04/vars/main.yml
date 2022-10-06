@@ -25,29 +25,5 @@
 
 ---
 
-- name: Create the Temporary File to Archive the Agent Into
-  tempfile:
-    prefix: openbach_agent_backup_
-    suffix: .tar.gz
-  register: openbach_backup_archive_name
-
-- name: Backup the Agent
-  archive:
-    path:
-      - /opt/openbach/agent
-      - /var/log/openbach
-      - /var/openbach_stats
-    dest: "{{ openbach_backup_archive_name.path }}"
-    format: gz
-  become: yes
-
-- name: Gather the Archive File in the Temporary Directory
-  fetch:
-    src: "{{ openbach_backup_archive_name.path }}"
-    dest: "{{ openbach_backup_folder }}/{{ inventory_hostname }}/openbach_agent.tar.gz"
-    flat: yes
-
-- name: Remove the Archive File on the Agent
-  file:
-    path: "{{ openbach_backup_archive_name.path }}"
-    state: absent
+openbach_repository:
+  - deb https://raw.githubusercontent.com/CNES/net4sat-packages/master/jammy/ jammy stable

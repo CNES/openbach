@@ -34,15 +34,12 @@
       when: openbach_restore_archive is defined
     - setup
 
-- name: Register resources from hosts
+- name: Check resources from hosts
   hosts:
     - agent
     - controller
-  roles:
-    - register_resources
-
-- name: Check resources
-  hosts: localhost
+  tags:
+    - check_resources
   roles:
     - check_resources
 
@@ -108,7 +105,8 @@
 - name: Create Openbach project
   hosts: controller
   roles:
-    - { role: "create_project", when: project_name is defined }
+    - role: create_project
+      when: project_name is defined
 
 - name: Run Various Tests
   hosts: controller

@@ -28,13 +28,12 @@
 - name: Install apt dependencies
   apt:
     pkg:
+    - ansible
     - acl
     - sshpass
-    - postgresql-server-dev-12
+    - postgresql-server-dev-14
     - postgresql
     - pgbouncer
-    - libpq-dev  # For psycopg2, necessary for ansible's postgresql_* modules
-    - python-dev  # For psycopg2, necessary for ansible's postgresql_* modules
     state: present
     update_cache: no
   become: yes
@@ -46,12 +45,11 @@
     name:
       - psycopg2
       - apscheduler
-      - uwsgi
       - fuzzywuzzy
       - python-Levenshtein
       - numpy
-      - ansible
       - django
+      - uwsgi
     executable: pip3
     extra_args: '-U --no-index --find-links=file:///opt/openbach/pip_mirror/python3/'
   become: yes
@@ -345,7 +343,9 @@
       - --exclude=__pycache__
   with_items:
     - "{{ openbach_jobs_folders }}"
-  when: openbach_restore_host is not defined and openbach_jobs_folders is defined and openbach_jobs_folders
+  when:
+    - openbach_restore_host is not defined
+    - openbach_jobs_folders is defined and openbach_jobs_folders
   remote_user: openbach
 
 - name: Copy the version file on the Controller

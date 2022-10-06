@@ -44,7 +44,6 @@
   apt:
     pkg:
       - ntp
-      - python-pip
       - python3-pip
       - python3-setuptools
       - rsyslog
@@ -67,28 +66,25 @@
     delete: yes
   remote_user: openbach
 
-- name: Install pip2 Dependencies
-  pip:
-    name: "{{ item }}"
-    executable: pip2
-    extra_args: "-U --no-index --find-links=file:///opt/openbach/pip_mirror/python2/"
-  with_items:
-    - pip
-    - setuptools
-  become: yes
-
 - name: Install pip3 Dependencies
   pip:
-    name: "{{ item }}"
+    name:
+      - setuptools
+      - apscheduler
+      - psutil
+      - PyYAML
+      - pandas
+      - matplotlib
+    executable: pip3
+    extra_args: "-U" # --no-index --find-links=file:///opt/openbach/pip_mirror/python3/"
+  become: yes
+
+- name: Install pip3 Dependencies API
+  pip:
+    name:
+      - openbach_api
     executable: pip3
     extra_args: "-U --no-index --find-links=file:///opt/openbach/pip_mirror/python3/"
-  with_items:
-    - pip
-    - setuptools
-    - apscheduler
-    - psutil
-    - PyYAML
-    - openbach_api
   become: yes
 
 - name: Configure NTP Server

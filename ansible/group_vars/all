@@ -42,7 +42,3 @@ influxdb_database_precision: ms
 auditorium_broadcast_mode: udp
 auditorium_broadcast_port: 2223
 database_max_cache: 1024m
-is_run_from_conductor: false
-openbach_repository_gpg_key: https://raw.githubusercontent.com/CNES/net4sat-packages/master/gpg/net4sat.gpg.key
-openbach_repository:
-  - deb https://raw.githubusercontent.com/CNES/net4sat-packages/master/ focal stable

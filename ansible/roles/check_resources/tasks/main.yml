@@ -25,52 +25,43 @@
 
 ---
 
-- name: Display various values regarding controller
+- name: Display various values regarding the machine
   debug:
-    msg: >
-      "disk_total: {{ hostvars[item].disk_total }} (needed: {{ controller_disk }}) --
-      disk_available: {{ hostvars[item].disk_available }} (needed: {{ controller_disk }}) --
-      ram: {{ hostvars[item].ram|int }} (needed: {{ controller_ram }}) --
-      cpu: {{ hostvars[item].cpu|int }} (needed: {{ controller_cpu }}) --
-      ipv4: {{ hostvars[item].ipv4 }} --
-      ipv6: {{ hostvars[item].ipv6 }}"
-  with_items: "{{ groups.controller | default([]) }}"
-
-- name: Display various values regarding agents
-  debug:
-    msg: >
-      "disk_total: {{ hostvars[item].disk_total }} (needed: {{ agent_disk }}) --
-      disk_available: {{ hostvars[item].disk_available }} (needed: {{ agent_disk }}) --
-      ram: {{ hostvars[item].ram|int }} (needed: {{ agent_ram }}) --
-      cpu: {{ hostvars[item].cpu|int }} (needed: {{ agent_cpu }}) --
-      ipv4: {{ hostvars[item].ipv4 }} --
-      ipv6: {{ hostvars[item].ipv6 }} --"
-  with_items: "{{ groups.agent | default([]) }}"
-
-- name: Check controller resources
-  set_fact:
-    resources_ctrl: "nok"
-  with_items: "{{ groups.controller | default([]) }}"
-  #when: (hostvars[item].disk_available|int) < controller_disk or (hostvars[item].ram|int) < controller_ram or (hostvars[item].cpu|int) < controller_cpu or (hostvars[item].ipv4 == {} and hostvars[item].ipv6 == {}) or ((hostvars[item].ipv4 != {} and hostvars[item].ipv4.type == 'wifi') or (hostvars[item].ipv6 != {} and hostvars[item].ipv6.type == 'wifi'))
-  when: (hostvars[item].disk_total|int) < controller_disk or (hostvars[item].ram|int) < controller_ram or (hostvars[item].cpu|int) < controller_cpu or (hostvars[item].ipv4 == {} and hostvars[item].ipv6 == {}) or ((hostvars[item].ipv4 != {} and hostvars[item].ipv4.type == 'wifi') or (hostvars[item].ipv6 != {} and hostvars[item].ipv6.type == 'wifi'))
-
-- name: Check agents resources
-  set_fact:
-    resources_agents: "nok"
-  with_items: "{{ groups.agent | default([]) }}"
-  #when: (hostvars[item].disk_available|int) < agent_disk or (hostvars[item].ram|int) < agent_ram or (hostvars[item].cpu|int) < agent_cpu or (hostvars[item].ipv4 == {} and hostvars[item].ipv6 == {}) or ((hostvars[item].ipv4 != {} and hostvars[item].ipv4.type == 'wifi') or (hostvars[item].ipv6 != {} and hostvars[item].ipv6.type == 'wifi'))
-  when: (hostvars[item].disk_total|int) < agent_disk or (hostvars[item].ram|int) < agent_ram or (hostvars[item].cpu|int) < agent_cpu or (hostvars[item].ipv4 == {} and hostvars[item].ipv6 == {}) or ((hostvars[item].ipv4 != {} and hostvars[item].ipv4.type == 'wifi') or (hostvars[item].ipv6 != {} and hostvars[item].ipv6.type == 'wifi'))
-
-- name: Ask to continue installation if resources are not met
-  pause:
-    prompt: "\n{{ continue_var | trim }}"
+    msg: |
+      Total disk: {{ disk_total }} (needed: {{ required_disk }})
+      Available disk: {{ disk_available }} (needed: {{ required_disk }})
+      RAM: {{ ram }} (needed: {{ required_ram }})
+      CPU: {{ cpu }} (needed: {{ required_cpu }})
+      IPv4: {{ ipv4 }}
+      IPv6: {{ ipv6 }}
   vars:
-    continue_var: >
-      The resources are not verified. Continue installation (Enter)?
-      To avoid this task you can cancel this playbook (^C) and
-      restart it using the '--skip-tags check_resources' flag.
-  register: continue_prompt
-  when: (resources_ctrl|default('')) == "nok" or (resources_agents|default('')) == "nok"
-  tags:
-    - check_resources
+    disk_available: "{{ ((ansible_mounts | first)['size_available'] | int / 1000000000) | round(2, 'common') }}"
+    disk_total: "{{ ((ansible_mounts | first)['size_total'] | int / 1000000000) | round(2, 'common') }}"
+    ram: "{{ (ansible_memory_mb.real.total | int / 1000) | round(1, 'ceil') }}"
+    cpu: "{{ ansible_facts.processor_vcpus | int }}"
+    ipv4: "{{ ansible_facts.default_ipv4 }}"
+    ipv6: "{{ ansible_facts.default_ipv6 }}"
+    required_disk: "{{ controller_disk if inventory_hostname in groups.controller else agent_disk }}"
+    required_ram: "{{ controller_ram if inventory_hostname in groups.controller else agent_ram }}"
+    required_cpu: "{{ controller_cpu if inventory_hostname in groups.controller else agent_cpu }}"
 
+- name: Ensure the machine meets the requirements
+  fail:
+    msg: >
+      Installation aborted because your machine does not meet the required resources capabilities.
+
+      To avoid this check, you can restart the playbook using the '--skip-tags check_resources' flag.
+  when: (disk_total < required_disk) or
+        (ram < required_ram) or
+        (cpu < required_cpu) or
+        ((ipv4.type | default('wifi')) == 'wifi' and (ipv6.type | default('wifi')) == 'wifi')
+  vars:
+    disk_available: "{{ ((ansible_mounts | first)['size_available'] | int / 1000000000) | round(2, 'common') }}"
+    disk_total: "{{ ((ansible_mounts | first)['size_total'] | int / 1000000000) | round(2, 'common') }}"
+    ram: "{{ (ansible_memory_mb.real.total|int / 1000) | round(1, 'ceil') }}"
+    cpu: "{{ ansible_facts.processor_vcpus }}"
+    ipv4: "{{ ansible_facts.default_ipv4 }}"
+    ipv6: "{{ ansible_facts.default_ipv6 }}"
+    required_disk: "{{ controller_disk if inventory_hostname in groups.controller else agent_disk }}"
+    required_ram: "{{ controller_ram if inventory_hostname in groups.controller else agent_ram }}"
+    required_cpu: "{{ controller_cpu if inventory_hostname in groups.controller else agent_cpu }}"

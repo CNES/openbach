@@ -44,13 +44,17 @@
         NTP source for the controller ([keep] / IP address)
     register: openbach_ntp_prompt
     when: openbach_ntp_server_address is not defined
+
   - name: Storing the NTP Answer for all the Plays
-    set_fact: openbach_keep_ntp_server_configuration={{ not openbach_ntp_prompt.user_input or openbach_ntp_prompt.user_input in ['k', 'keep'] }}
+    set_fact:
+      openbach_keep_ntp_server_configuration: "{{ not openbach_ntp_prompt.user_input or openbach_ntp_prompt.user_input in ['k', 'keep'] }}"
     when: openbach_ntp_prompt is not skipped
+
   - name: Storing the NTP Answer for all the Plays
     set_fact:
       openbach_keep_ntp_server_configuration: yes
     when: openbach_ntp_prompt is skipped
+
   - name: Storing the NTP Address for all the Plays
     set_fact: openbach_ntp_server_address={{ openbach_ntp_prompt.user_input | lower }}
     when: openbach_ntp_prompt is not skipped
