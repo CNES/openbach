@@ -27,13 +27,13 @@
 
 - name: Display various values regarding the machine
   debug:
-    msg:
-      - "Total disk: {{ disk_total }} (needed: {{ required_disk }})"
-      - "Available disk: {{ disk_available }} (needed: {{ required_disk }})"
-      - "RAM: {{ ram }} (needed: {{ required_ram }})"
-      - "CPU: {{ cpu }} (needed: {{ required_cpu }})"
-      - "IPv4: {{ ipv4 }}"
-      - "IPv6: {{ ipv6 }}"
+    msg: |
+      Total disk: {{ disk_total }} (needed: {{ required_disk }})
+      Available disk: {{ disk_available }} (needed: {{ required_disk }})
+      RAM: {{ ram }} (needed: {{ required_ram }})
+      CPU: {{ cpu }} (needed: {{ required_cpu }})
+      IPv4: {{ ipv4 }}
+      IPv6: {{ ipv6 }}
   vars:
     disk_available: "{{ ((ansible_mounts | first)['size_available'] | int / 1000000000) | round(2, 'common') }}"
     disk_total: "{{ ((ansible_mounts | first)['size_total'] | int / 1000000000) | round(2, 'common') }}"

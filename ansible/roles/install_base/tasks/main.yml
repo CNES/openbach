@@ -47,11 +47,3 @@
   with_items: "{{ openbach_repository }}"
   become: yes
   environment: "{{ openbach_proxy_env }}"
-
-- name: Query the version of RSync
-  local_action: command rsync --version
-  register: openbach_rsync_version_raw
-
-- name: Extract out the version of RSync
-  set_fact:
-    openbach_rsync_version: "{{ openbach_rsync_version_raw.stdout_lines[0] | regex_replace('^rsync\\s+version v?(\\d+\\.\\d+\\.\\d+)\\s+protocol version \\d+$', '\\1') }}"
