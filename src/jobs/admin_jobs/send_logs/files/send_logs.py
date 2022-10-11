@@ -133,21 +133,20 @@ def send_logs(filename, send_log):
                 raise
 
 
-def main(from_date, jobs):
+def main(origin, jobs=None):
     # We don't need to send stats so configure logs only
     collect_agent.register_collect('')
     sock, send_log = build_socket_sender()
-    date_format = '%Y-%m-%dT%H%M%S.log'
+
+    jobs = set(jobs) if jobs else set()
+    origin_timestamp = datetime.timestamp(origin)
 
     with sock:
         for filename in os.listdir(LOGS_DIR):
             job_name, _ = filename.rsplit('_', 1)
-            with suppress(ValueError):
-                file_last_modified_date = os.path.getmtime(LOGS_DIR+'/'+filename)
-                from_date_string = datetime.timestamp(from_date)
-                if jobs and job_name not in jobs:
-                    continue
-                if file_last_modified_date >= from_date_string:
+            file_timestamp = os.path.getmtime(os.path.join(LOGS_DIR, filename))
+            if job_name in jobs and file_timestamp >= origin_timestamp:
+                with suppress(ValueError):
                     send_logs(filename, send_log)
 
 
@@ -156,8 +155,13 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(
             description=__doc__,
             formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('date', nargs=2, help='date and time from which to re-send logs (accepted format: YY-mm-dd HH:MM:SS.fff)')
-    parser.add_argument('-j', '--job_name', action='append', help='name of a Job to send logs from')
+    parser.add_argument(
+            'date', nargs=2,
+            help='date and time from which to re-send logs (accepted format: {})'.format(DATE_FORMAT))
+    parser.add_argument(
+            '-j', '--job_name',
+            action='append',
+            help='name of a Job to send logs from')
 
     # get args
     args = parser.parse_args()
@@ -166,4 +170,4 @@ if __name__ == '__main__':
     except ValueError:
         parser.error('date and time are not in the expected ({}) format'.format(DATE_FORMAT))
     else:
-        main(date, set(args.job_name or []))
+        main(date, args.job_name)

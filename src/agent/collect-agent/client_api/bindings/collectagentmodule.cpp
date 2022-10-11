@@ -552,7 +552,7 @@ static struct PyModuleDef collect_agent_module = {
 
 
 PyMODINIT_FUNC
-PyInit_collect_agent(void)
+PyInit__collect_agent(void)
 {
     PyObject *module;
 

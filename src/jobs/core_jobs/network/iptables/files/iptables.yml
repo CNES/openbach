@@ -29,7 +29,7 @@ general:
   name: iptables
   description: >
       This Job allows to add any iptables rule (you should specify your full chain).
-  job_version: '1.0'
+  job_version: '1.1'
   keywords:
     - iptables
     - rule
@@ -55,7 +55,7 @@ arguments:
   required:
     - name: rule
       type: str
-      count: 1
+      count: '+'
       description: "The iptables rule to apply, e.g '-A INPUT -p tcp -m tcp --dport 80 -j ACCEPT'"
   
 statistics:

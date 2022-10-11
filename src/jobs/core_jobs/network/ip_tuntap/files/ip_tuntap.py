@@ -34,48 +34,23 @@ __credits__ = '''Contributors:
  * David FERNANDES <david.fernandes@viveris.fr>
 '''
 
-import os
 import sys
+import shlex
 import syslog
 import argparse
-import traceback
-import contextlib
 import subprocess
 
 import collect_agent
 
 
-def run_command(cmd):
-    p = subprocess.run(cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
-    if p.returncode:
-        message = "Error when executing command '{}': '{}'".format(
-                    ' '.join(cmd), p.stderr.decode())
-        collect_agent.send_log(syslog.LOG_ERR, message)
-        sys.exit(message)
-    return p.returncode, p.stdout.decode()
-
-@contextlib.contextmanager
-def use_configuration(filepath):
-    success = collect_agent.register_collect(filepath)
-    if not success:
-        message = 'ERROR connecting to collect-agent'
-        collect_agent.send_log(syslog.LOG_ERR, message)
-        sys.exit(message)
-    collect_agent.send_log(syslog.LOG_DEBUG, 'Starting job ' + os.environ.get('JOB_NAME', '!'))
-    try:
-        yield
-    except Exception:
-        message = traceback.format_exc()
-        collect_agent.send_log(syslog.LOG_CRIT, message)
-        raise
-    except SystemExit as e:
-        if e.code != 0:
-            collect_agent.send_log(syslog.LOG_CRIT, 'Abrupt program termination: ' + str(e.code))
-        raise
-
 def main(command, mode, name):
     cmd = ['ip', 'tuntap', command, 'mode', mode, name]
-    run_command(cmd)
+    try:
+        subprocess.run(cmd, stderr=subprocess.PIPE, stdout=subprocess.DEVNULL, check=True)
+    except subprocess.CalledProcessError as p:
+        message = 'Error when executing command {}: {}'.format(shlex.join(cmd), p.stderr.decode())
+        collect_agent.send_log(syslog.LOG_ERR, message)
+        sys.exit(message)
 
 
 if __name__ == '__main__':
@@ -84,13 +59,15 @@ if __name__ == '__main__':
         parser = argparse.ArgumentParser(
                 description=__doc__,
                 formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-        parser.add_argument('command', choices=['add', 'delete'],
+        parser.add_argument(
+                'command', choices=['add', 'delete'],
                 help='the action to perform')
-        parser.add_argument('mode', choices=['tun','tap'],
+        parser.add_argument(
+                'mode', choices=['tun','tap'],
                 help='the mode of the interface')
-        parser.add_argument('name', type=str,
+        parser.add_argument(
+                'name', type=str,
                 help='the name of the interface')
 
         args = parser.parse_args()
         main(args.command, args.mode, args.name)
-

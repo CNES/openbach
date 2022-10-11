@@ -53,25 +53,6 @@ class Operations(Enum):
     DELETE='delete'
     FLUSH='flush'
 
-@contextlib.contextmanager
-def use_configuration(filepath):
-    success = collect_agent.register_collect(filepath)
-    if not success:
-        message = 'ERROR connecting to collect-agent'
-        collect_agent.send_log(syslog.LOG_ERR, message)
-        sys.exit(message)
-    collect_agent.send_log(syslog.LOG_DEBUG, 'Starting job ' + os.environ.get('JOB_NAME', '!'))
-    try:
-        yield
-    except Exception:
-        message = traceback.format_exc()
-        collect_agent.send_log(syslog.LOG_CRIT, message)
-        raise
-    except SystemExit as e:
-        if e.code != 0:
-            collect_agent.send_log(syslog.LOG_CRIT, 'Abrupt program termination: ' + str(e.code))
-        raise
-
 
 def main(operation, iface, address_mask=None):
     command = ['ip', 'address', operation]
@@ -112,39 +93,39 @@ def ip_address_mask(text):
 
 
 if __name__ == '__main__':
-    with use_configuration('/opt/openbach/agent/jobs/ip_address/ip_address_rstats_filter.conf'):
+    with collect_agent.use_configuration('/opt/openbach/agent/jobs/ip_address/ip_address_rstats_filter.conf'):
         # Define Usage
         parser = argparse.ArgumentParser(
                  description=__doc__,
-                 formatter_class=argparse.ArgumentDefaultsHelpFormatter
-        )
+                 formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-        parser.add_argument('interface', type=str,
-                            help='network interface to configure'
-        )
+        parser.add_argument(
+                'interface',
+                type=str,
+                help='network interface to configure')
 
-        operation_cmd = parser.add_subparsers(dest='operation', metavar='operation',
-            help='choose the operation to apply'
-        )
+        operation_cmd = parser.add_subparsers(
+                dest='operation', metavar='operation',
+                help='choose the operation to apply')
         operation_cmd.required = True
 
-        add_parser = operation_cmd.add_parser(Operations.ADD.value,
-            help='add an IP address to an interface'
-        )
-        delete_parser = operation_cmd.add_parser(Operations.DELETE.value,
-            help='remove an IP address from an interface'
-        )
-        flush_parser = operation_cmd.add_parser(Operations.FLUSH.value,
-            help='flush IP addresses of an interface'
-        )
+        add_parser = operation_cmd.add_parser(
+                Operations.ADD.value,
+                help='add an IP address to an interface')
+        delete_parser = operation_cmd.add_parser(
+                Operations.DELETE.value,
+                help='remove an IP address from an interface')
+        flush_parser = operation_cmd.add_parser(
+                Operations.FLUSH.value,
+                help='flush IP addresses of an interface')
 
         for p in [add_parser, delete_parser]:
-            p.add_argument('address_mask', type=ip_address_mask,
-                help='ip address/mask to set to the network interface'
-            )
+            p.add_argument(
+                    'address_mask',
+                    type=ip_address_mask,
+                    help='ip address/mask to set to the network interface')
    
         # get args
         args = parser.parse_args()
-
-        main(args.operation, args.interface,
-            args.address_mask if args.operation != Operations.FLUSH.value else None)
+        operation = Operations(args.operation)
+        main(args.operation, args.interface, args.address_mask if operation is Operation.FLUSH else None)

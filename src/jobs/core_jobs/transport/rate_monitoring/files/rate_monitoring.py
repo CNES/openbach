@@ -37,14 +37,12 @@ __credits__ = '''Contributors:
 '''
 
 import os
+import sys
 import time
 import syslog
 import signal
 import argparse
 import threading
-import traceback
-import contextlib
-from sys import exit
 from functools import partial
 
 os.environ['XTABLES_LIBDIR'] = '$XTABLES_LIBDIR:/usr/lib/x86_64-linux-gnu/xtables' # Required for Ubuntu 20.04
@@ -53,28 +51,10 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 
 import collect_agent
 
-@contextlib.contextmanager
-def use_configuration(filepath):
-    success = collect_agent.register_collect(filepath)
-    if not success:
-        message = 'ERROR connecting to collect-agent'
-        collect_agent.send_log(syslog.LOG_ERR, message)
-        sys.exit(message)
-    collect_agent.send_log(syslog.LOG_DEBUG, 'Starting job ' + os.environ.get('JOB_NAME', '!'))
-    try:
-        yield
-    except Exception:
-        message = traceback.format_exc()
-        collect_agent.send_log(syslog.LOG_CRIT, message)
-        raise
-    except SystemExit as e:
-        if e.code != 0:
-            collect_agent.send_log(syslog.LOG_CRIT, 'Abrupt program termination: ' + str(e.code))
-        raise
 
 def signal_term_handler(chain, rule, signal, frame):
     chain.delete_rule(rule)
-    exit(0)
+    sys.exit(0)
 
 
 def monitor(chain, mutex, previous):
@@ -86,7 +66,6 @@ def monitor(chain, mutex, previous):
     rule = chain.rules[0]
 
     # Get the stats
-    now = int(time.time() * 1000)
     timestamp = int(time.perf_counter() * 1000)
     bytes_count = rule.get_counters()[1]
 
@@ -99,7 +78,7 @@ def monitor(chain, mutex, previous):
     rate = (bytes_count - previous_bytes_count) * 8 / diff_timestamp
 
     # Send the stat to the Collector
-    collect_agent.send_stat(now, rate=rate)
+    collect_agent.send_stat(collect_agent.now(), rate=rate)
 
 
 def main(sampling_interval, chain_name, source_ip=None, destination_ip=None,
@@ -111,7 +90,7 @@ def main(sampling_interval, chain_name, source_ip=None, destination_ip=None,
     except ValueError:
         message = 'ERROR: {} does not exist in FILTER table'.format(chain_name)
         collect_agent.send_log(syslog.LOG_ERR, message)
-        exit(message)
+        sys.exit(message)
 
     # Creation of the Rule
     rule = iptc.Rule(chain=chain)
@@ -157,7 +136,7 @@ def main(sampling_interval, chain_name, source_ip=None, destination_ip=None,
 
 
 if __name__ == '__main__':
-    with use_configuration('/opt/openbach/agent/jobs/rate_monitoring/rate_monitoring_rstats_filter.conf'):
+    with collect_agent.use_configuration('/opt/openbach/agent/jobs/rate_monitoring/rate_monitoring_rstats_filter.conf'):
         # Define Usage
         parser = argparse.ArgumentParser(
                 description=__doc__,
@@ -165,11 +144,22 @@ if __name__ == '__main__':
         parser.add_argument(
                 'sampling_interval', type=int,
                 help='Time interval (in sec) used to calculate rate')
-        parser.add_argument('chain_name', choices=['INPUT','OUTPUT','FORWARD'], help='The iptables chain to monitor')
-        parser.add_argument('-s', '--source-ip', help='The source IPs to monitor (with or without mask[ip/mask])')
-        parser.add_argument('-d', '--destination-ip', help='The destination IPs to monitor(with or without mask [ip/mask])')
-        parser.add_argument('-i', '--in-interface', help='The incomming interface of the packets to monitor')
-        parser.add_argument('-o', '--out-interface', help='The outgoing interface of the packets to monitor')
+        parser.add_argument(
+                'chain_name', choices=['INPUT','OUTPUT','FORWARD'],
+                help='The iptables chain to monitor')
+        parser.add_argument(
+                '-s', '--source-ip',
+                help='The source IPs to monitor (with or without mask[ip/mask])')
+        parser.add_argument(
+                '-d', '--destination-ip',
+                help='The destination IPs to monitor(with or without mask [ip/mask])')
+        parser.add_argument(
+                '-i', '--in-interface',
+                help='The incomming interface of the packets to monitor')
+        parser.add_argument(
+                '-o', '--out-interface',
+                help='The outgoing interface of the packets to monitor')
+
         # Sub-commands functionnality to split server and client mode
         subparsers = parser.add_subparsers(
                 title='Subcommand protocol type', dest='protocol',
@@ -193,4 +183,3 @@ if __name__ == '__main__':
         # get args
         args = vars(parser.parse_args())
         main(**args)
-

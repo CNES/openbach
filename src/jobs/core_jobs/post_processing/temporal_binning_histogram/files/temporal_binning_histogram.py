@@ -34,16 +34,11 @@ __credits__ = '''Contributors:
  * David FERNANDES <david.fernandes@viveris.fr>
 '''
 
-import os
-import sys
-import time
 import syslog
 import os.path
 import argparse
 import tempfile
 import itertools
-import traceback
-import contextlib
 
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -53,30 +48,6 @@ from data_access.post_processing import Statistics, save, _Plot
 
 
 AGGREGATION_OPTIONS = {'year', 'month', 'day', 'hour', 'minute', 'second'}
-
-
-@contextlib.contextmanager
-def use_configuration(filepath):
-    success = collect_agent.register_collect(filepath)
-    if not success:
-        message = 'ERROR connecting to collect-agent'
-        collect_agent.send_log(syslog.LOG_ERR, message)
-        sys.exit(message)
-    collect_agent.send_log(syslog.LOG_DEBUG, 'Starting job ' + os.environ.get('JOB_NAME', '!'))
-    try:
-        yield
-    except Exception:
-        message = traceback.format_exc()
-        collect_agent.send_log(syslog.LOG_CRIT, message)
-        raise
-    except SystemExit as e:
-        if e.code != 0:
-            collect_agent.send_log(syslog.LOG_CRIT, 'Abrupt program termination: ' + str(e.code))
-        raise
-
-
-def now():
-    return int(time.time() * 1000)
 
 
 def main(
@@ -155,11 +126,11 @@ def main(
                     axis.set_title(title)
                 filepath = os.path.join(root, 'temporal_binning_histogram_{}.{}'.format(field, file_ext))
                 save(figure, filepath, pickle, False)
-                collect_agent.store_files(now(), figure=filepath)
+                collect_agent.store_files(collect_agent.now(), figure=filepath)
 
 
 if __name__ == '__main__':
-    with use_configuration('/opt/openbach/agent/jobs/temporal_binning_histogram/temporal_binning_histogram_rstats_filter.conf'):
+    with collect_agent.use_configuration('/opt/openbach/agent/jobs/temporal_binning_histogram/temporal_binning_histogram_rstats_filter.conf'):
         parser = argparse.ArgumentParser(description=__doc__)
         parser.add_argument(
                 '-j', '--jobs', metavar='ID', nargs='+', action='append',
@@ -217,4 +188,3 @@ if __name__ == '__main__':
             args.jobs, args.statistics, args.aggregations, args.bin_sizes, args.offset,
             args.maximum, stats_with_suffixes, args.ylabel, args.title, args.legend_titles,
             use_legend, args.add_global, args.pickle)
-

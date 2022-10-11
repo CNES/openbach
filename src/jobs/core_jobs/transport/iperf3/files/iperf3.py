@@ -40,15 +40,11 @@ __credits__ = '''Contributors:
 '''
 
 
-import os
 import re
 import sys
-import time
 import syslog
 import argparse
-import traceback
 import subprocess
-import contextlib
 from itertools import repeat
 from collections import defaultdict
 
@@ -67,32 +63,9 @@ class AutoIncrementFlowNumber:
         return 'Flow{0.count}'.format(self)
 
 
-@contextlib.contextmanager
-def use_configuration(filepath):
-    success = collect_agent.register_collect(filepath)
-    if not success:
-        message = 'ERROR connecting to collect-agent'
-        collect_agent.send_log(syslog.LOG_ERR, message)
-        sys.exit(message)
-    collect_agent.send_log(
-        syslog.LOG_DEBUG, 'Starting job ' + os.environ.get('JOB_NAME', '!'))
-    try:
-        yield
-    except Exception:
-        message = traceback.format_exc()
-        collect_agent.send_log(syslog.LOG_CRIT, message)
-        raise
-    except SystemExit as e:
-        if e.code != 0:
-            collect_agent.send_log(
-                syslog.LOG_CRIT, 'Abrupt program termination: ' + str(e.code))
-        raise
-
-
 def run_process(cmd):
     try:
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE)
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     except Exception as ex:
         message = 'Error running {} : {}'.format(cmd, ex)
         collect_agent.send_log(syslog.LOG_ERR, message)
@@ -101,16 +74,20 @@ def run_process(cmd):
     return p
 
 
-def _parse_to_bytes(entry):
-    if entry.isnumeric():
-        return int(entry)
-    value, unit = int(entry[:-1]), entry[-1]
+def compact_bytes(value):
+    match = re.fullmatch(r'(\d+)(K|M|G)?', value)
+    if not match:
+        raise argparse.ArgumentError('wrong format: use numbers followed by an optionnal K, M, or G')
+
+    base, unit = match.groups()
     if unit == 'K':
-        return value * 1024
-    if unit == 'M':
-        return value * 1024 * 1024
-    if unit == 'G':
-        return value * 1024 * 1024 * 1024
+        return int(base) * 1024
+    elif unit == 'M':
+        return int(base) * 1024 * 1024
+    elif unit == 'G':
+        return int(base) * 1024 * 1024 * 1024
+    else:
+        return int(base)
 
 
 def multiplier(unit, base):
@@ -156,7 +133,7 @@ def sender(cmd):
                 break
             continue
 
-        timestamp = int(time.time() * 1000)
+        timestamp = collect_agent.now()
         try:
             try:
                 # check if it is a line with total download time
@@ -239,7 +216,7 @@ def receiver(cmd):
                 break
             continue
 
-        timestamp = int(time.time() * 1000)
+        timestamp = collect_agent.now()
         try:
             try:
                 # check if it is a line with total download time
@@ -326,7 +303,7 @@ def client(
 
     cmd.extend(_command_build_helper('-t', time_duration))
     if time_duration is None:
-        if transmitted_size is not None and _parse_to_bytes(transmitted_size) < 1024 * 1024:
+        if transmitted_size is not None and transmitted_size < 1024 * 1024:
             message = 'Error : the number of bytes to transmit is too low.'
             collect_agent.send_log(syslog.LOG_ERR, message)
             sys.exit(message)
@@ -358,7 +335,7 @@ def server(exit, bind, metrics_interval, port, num_flows, reverse):
 
 
 if __name__ == "__main__":
-    with use_configuration('/opt/openbach/agent/jobs/iperf3/iperf3_rstats_filter.conf'):
+    with collect_agent.use_configuration('/opt/openbach/agent/jobs/iperf3/iperf3_rstats_filter.conf'):
         # Define Usage
         parser = argparse.ArgumentParser(
             description=__doc__,
@@ -402,7 +379,7 @@ if __name__ == "__main__":
             '-t', '--time_duration', type=float,
             help='The duration of the transmission (default 10 sec).')
         parser_client.add_argument(
-            '-s', '--transmitted_size', type=str,
+            '-s', '--transmitted_size', type=compact_bytes,
             help='The number of bytes to transmit (if set the time_duration parameter has more priority). You can '
             'use [K/M/G]: set 100M to send 100 MBytes. Needs to be more than 1 MB.')
         parser_client.add_argument(
@@ -447,4 +424,3 @@ if __name__ == "__main__":
         args = vars(parser.parse_args())
         main = args.pop('function')
         main(**args)
-

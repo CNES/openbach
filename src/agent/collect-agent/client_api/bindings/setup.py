@@ -2,12 +2,12 @@ from distutils.core import setup, Extension
 
 
 MAJOR_VERSION = '2'
-MINOR_VERSION = '1'
+MINOR_VERSION = '2'
 DEBUG_VERSION = '0'
 
 
 collect_agent = Extension(
-        'collect_agent',
+        'collect_agent._collect_agent',
         define_macros=[
             ('MAJOR_VERSION', MAJOR_VERSION),
             ('MINOR_VERSION', MINOR_VERSION),
@@ -30,4 +30,5 @@ Collection of tools aimed at OpenBACH agents to
 send informations such as logs, files or statistics
 to their collector.
 ''',
+      packages=['collect_agent'],
       ext_modules=[collect_agent])

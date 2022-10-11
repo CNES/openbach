@@ -37,13 +37,10 @@ __credits__ = '''Contributors:
  * Matthieu PETROU <matthieu.petrou@viveris.fr>
 '''
 
-import os
 import re
 import sys
 import syslog
 import argparse
-import traceback
-import contextlib
 import subprocess
 
 import collect_agent
@@ -52,24 +49,6 @@ import collect_agent
 HANDLE_INGRESS = 'ffff:'
 IFB = 'ifb{}'
 
-@contextlib.contextmanager
-def use_configuration(filepath):
-    success = collect_agent.register_collect(filepath)
-    if not success:
-        message = 'ERROR connecting to collect-agent'
-        collect_agent.send_log(syslog.LOG_ERR, message)
-        sys.exit(message)
-    collect_agent.send_log(syslog.LOG_DEBUG, 'Starting job ' + os.environ.get('JOB_NAME', '!'))
-    try:
-        yield
-    except Exception:
-        message = traceback.format_exc()
-        collect_agent.send_log(syslog.LOG_CRIT, message)
-        raise
-    except SystemExit as e:
-        if e.code != 0:
-            collect_agent.send_log(syslog.LOG_CRIT, 'Abrupt program termination: ' + str(e.code))
-        raise
 
 def run_command(cmd):
     """ Run a command, return return code """
@@ -78,8 +57,9 @@ def run_command(cmd):
         message = "Error when executing command '{}': '{}'".format(
                     ' '.join(cmd), p.stderr.decode())
         collect_agent.send_log(syslog.LOG_ERR, message)
-        exit(message)
+        sys.exit(message)
     return p.returncode, p.stdout.decode()
+
 
 def clear_ingress(interfaces):
     for interface in interfaces.split(','):
@@ -107,7 +87,8 @@ def clear_ingress(interfaces):
     if not ingress_qdiscs: 
        cmd = ['modprobe', '-r', 'ifb']
        run_command(cmd)
-        
+
+
 def clear_egress(interfaces):
     for interface in interfaces.split(','):
         cmd = ['ip', 'link', 'set' , interface, 'qlen', '1000' ]
@@ -119,44 +100,46 @@ def clear_egress(interfaces):
         if interface in ifaces:
            delete_qdisc(interface, 'root')
 
+
 def delete_qdisc(interface, qdisc):
     """ Delete the tc qdisc on an interface """
     cmd = ['tc', 'qdisc', 'del', 'dev', interface, qdisc]
     run_command(cmd)
 
+
 def add_qdisc_ingress(interface, ifb, buffer_size):
     cmds = [
+            ['ip', 'link', 'set', 'dev', ifb, 'up', 'qlen', str(buffer_size)],
+            ['tc', 'qdisc', 'add', 'dev', interface, 'handle', HANDLE_INGRESS, 'ingress'], 
             [
-                'ip', 'link', 'set', 'dev', ifb, 'up', 'qlen', str(buffer_size)
+                'tc', 'filter', 'add', 'dev', interface,
+                'parent', HANDLE_INGRESS, 'u32', 'match',
+                'u32', '0', '0', 'action', 'mirred',
+                'egress', 'redirect', 'dev', ifb,
             ],
-            [
-                'tc', 'qdisc', 'add', 'dev', interface, 'handle', HANDLE_INGRESS, 'ingress'
-            ], 
-
-            [
-                'tc', 'filter', 'add', 'dev', interface, 'parent', HANDLE_INGRESS, 'u32', 'match', 'u32', '0', '0', 
-                      'action', 'mirred', 'egress', 'redirect', 'dev', ifb
-            ]
-           ]
+    ]
     for cmd in cmds:
         run_command(cmd)
+
 
 def add_qdisc_bandwidth(interface, bandwidth):
     """ Add a qdisc to limit the bandwidth on interface """
-    cmds = [[
-                'tc', 'qdisc', 'add', 'dev', interface, 'root',
-                'handle', '1:', 'htb', 'default', '11'
-            ],[
+    cmds = [
+            ['tc', 'qdisc', 'add', 'dev', interface, 'root', 'handle', '1:', 'htb', 'default', '11'],
+            [
                 'tc', 'class', 'add', 'dev', interface, 'parent',
                 '1:', 'classid', '1:1', 'htb', 'rate', '{}bps'.format(bandwidth),
-                'burst', '1000b'
-            ],[
+                'burst', '1000b',
+            ],
+            [
                 'tc', 'class', 'add', 'dev', interface, 'parent',
                 '1:1', 'classid', '1:11', 'htb', 'rate', '{}bit'.format(bandwidth),
-                'burst', '1000b'
-            ]]
+                'burst', '1000b',
+            ],
+    ]
     for cmd in cmds:
         run_command(cmd)
+
 
 def add_qdisc_delay(interface, delay, jitter, delay_distribution, loss_model, loss_model_params, handle, buffer_size):
     """ Add a qdisc to set a delay, and jitter on interface """
@@ -172,7 +155,8 @@ def add_qdisc_delay(interface, delay, jitter, delay_distribution, loss_model, lo
        for param in loss_model_params: 
            cmd.extend(['{}%'.format(str(param))])
     run_command(cmd)
-    
+
+
 def apply_conf(interfaces, mode, delay=None, jitter=None, delay_distribution=None, 
                bandwidth=None, loss_model=None, loss_model_params=None, buffer_size=None):
     collect_agent.send_log(syslog.LOG_DEBUG, 'Starting tc_configure_link job (apply {})'.format(mode))
@@ -220,22 +204,25 @@ def apply_conf(interfaces, mode, delay=None, jitter=None, delay_distribution=Non
                handle = ['parent', '1:11', 'handle', '10:']
             # Add delay
             add_qdisc_delay(IFB.format(str(index)), delay, jitter, delay_distribution, loss_model, loss_model_params, handle, buffer_size)
-        
+
+
 def clear_conf(interfaces, mode):
-    if mode == 'ingress' or mode == 'all':
+    if mode in {'ingress', 'all'}:
         clear_ingress(interfaces)
-    if mode == 'egress' or mode == 'all':
+    if mode in {'egress', 'all'}:
         clear_egress(interfaces)
 
 
 if __name__ == '__main__':
-    with use_configuration('/opt/openbach/agent/jobs/tc_configure_link/tc_configure_link_rstats_filter.conf'):
+    with collect_agent.use_configuration('/opt/openbach/agent/jobs/tc_configure_link/tc_configure_link_rstats_filter.conf'):
         # Define Usage
         parser = argparse.ArgumentParser(
                 description=__doc__,
                 formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-        parser.add_argument('interfaces', type=str, help='Comma-separated list of interfaces to configure')
+        parser.add_argument(
+                'interfaces', type=str,
+                help='Comma-separated list of interfaces to configure')
 
         subparsers = parser.add_subparsers(
                 title='Subcommand operation',
@@ -243,23 +230,43 @@ if __name__ == '__main__':
         subparsers.required=True
 
         parser_apply = subparsers.add_parser('apply', help='Apply configuration')
-        parser_apply.add_argument('-m', '--mode', choices=['ingress', 'egress', 'all'], default='all', 
-                                  help='Targeted network traffic: ingress, egress, or all')
-        
-        parser_apply.add_argument('-b', '--bandwidth', type=str, help='Bandwidth in Mbps or Kbps expressed as [value][M|K]')
-        parser_apply.add_argument('-D', '--delay_distribution', choices=['uniform', 'normal', 'pareto', 'paretonormal'], 
-                                  default='normal', help='Delay  distribution (default=normal)')
-        parser_apply.add_argument('-d', '--delay', type=int, help='Packet delay in ms')
-        parser_apply.add_argument('-j', '--jitter', type=int, help='Delay variation in ms. Warning : this may introduce packets disorder.')
-        parser_apply.add_argument('-L', '--loss_model', choices=['random', 'state', 'gemodel'], 
-                                  default='random', help='Packet loss model (default=random)')
-        parser_apply.add_argument('-l', '--loss_model_params', type=float, nargs='*', help='Parameters of the loss model')
-        parser_apply.add_argument('--buffer_size', type=int, help='Size of the buffer for qlen and netem limit parameter (default=10000)', 
-                                  default=10000)
+        parser_apply.add_argument(
+                '-m', '--mode',
+                choices=['ingress', 'egress', 'all'], default='all',
+                help='Targeted network traffic: ingress, egress, or all')
+        parser_apply.add_argument(
+                '-b', '--bandwidth',
+                help='Bandwidth in Mbps or Kbps expressed as [value][M|K]')
+        parser_apply.add_argument(
+                '-D', '--delay_distribution',
+                choices=['uniform', 'normal', 'pareto', 'paretonormal'], default='normal',
+                help='Delay  distribution (default=normal)')
+        parser_apply.add_argument(
+                '-d', '--delay',
+                type=int,
+                help='Packet delay in ms')
+        parser_apply.add_argument(
+                '-j', '--jitter',
+                type=int,
+                help='Delay variation in ms. Warning : this may introduce packets disorder.')
+        parser_apply.add_argument(
+                '-L', '--loss_model',
+                choices=['random', 'state', 'gemodel'], default='random',
+                help='Packet loss model (default=random)')
+        parser_apply.add_argument(
+                '-l', '--loss_model_params',
+                type=float, nargs='*',
+                help='Parameters of the loss model')
+        parser_apply.add_argument(
+                '--buffer_size',
+                type=int, default=10000,
+                help='Size of the buffer for qlen and netem limit parameter (default=10000)')
 
         parser_clear = subparsers.add_parser('clear', help='Clear configuration')
-        parser_clear.add_argument('-m', '--mode', choices=['ingress', 'egress', 'all'], default='all', 
-                      help='Targeted network traffic: ingress, egress, or all')
+        parser_clear.add_argument(
+                '-m', '--mode',
+                choices=['ingress', 'egress', 'all'], default='all',
+                help='Targeted network traffic: ingress, egress, or all')
 
         parser_apply.set_defaults(function=apply_conf)
         parser_clear.set_defaults(function=clear_conf)
@@ -268,4 +275,3 @@ if __name__ == '__main__':
         args = vars(parser.parse_args())
         main = args.pop('function')
         main(**args)
-

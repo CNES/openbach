@@ -61,7 +61,6 @@ ENVIRON_METADATA = (
 
 
 def send_stats(filename):
-    print(filename)
     with open(filename) as statistics:
         try:
             # Parse the first line independently
@@ -97,18 +96,25 @@ def send_stats(filename):
             collect_agent.send_stat(timestamp, suffix=suffix, **statistic)
 
 
-def main(from_date, jobs, stats_folder='/var/openbach_stats/'):
+def main(origin, jobs=None, stats_folder='/var/openbach_stats/'):
+    jobs = set(jobs) if jobs else set()
+    origin_timestamp = datetime.timestamp(origin)
+
+    connected = False
     for job_name in os.listdir(stats_folder):
         job_folder = os.path.join(stats_folder, job_name)
-        if jobs and job_name not in jobs or not os.path.isdir(job_folder):
+        if job_name not in jobs or not os.path.isdir(job_folder):
             continue
    
         for filename in sorted(os.listdir(job_folder)):
-            with suppress(ValueError):
-                file_last_modified_date = os.path.getmtime(job_folder+'/'+filename)
-                from_date_string = datetime.timestamp(from_date)
-                if file_last_modified_date >= from_date_string:
+            file_timestamp = os.path.getmtime(os.path.join(job_folder, filename))
+            if file_timestamp >= origin_timestamp:
+                with suppress(ValueError):
                     send_stats(os.path.join(stats_folder, job_name, filename))
+                    connected = True
+
+    if connected:
+        collect_agent.remove_stat()
 
 
 if __name__ == "__main__":
@@ -116,8 +122,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
             description=__doc__,
             formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('date', nargs=2, help='date and time from which to re-send stats (accepted format: YY-mm-dd HH:MM:SS.fff")')
-    parser.add_argument('-j', '--job_name', action='append', help='name of a Job to send stats from')
+    parser.add_argument(
+            'date', nargs=2,
+            help='date and time from which to re-send stats (accepted format: {})'.format(DATE_FORMAT))
+    parser.add_argument(
+            '-j', '--job_name',
+            action='append',
+            help='name of a Job to send stats from')
 
     # get args
     args = parser.parse_args()
@@ -126,4 +137,4 @@ if __name__ == "__main__":
     except ValueError:
         parser.error('date and time are not in the expected ({}) format'.format(DATE_FORMAT))
     else:
-        main(date, set(args.job_name or []))
+        main(date, args.job_name)

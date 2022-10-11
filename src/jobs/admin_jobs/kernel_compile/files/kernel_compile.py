@@ -85,4 +85,3 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     main(args.kernel_url, args.target_folder, args.git_branch, args.tag)
-

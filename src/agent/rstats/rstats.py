@@ -43,10 +43,12 @@ __credits__ = '''Contributors:
 
 
 import socket
+import syslog
 import os.path
 import logging
 import functools
 import threading
+import traceback
 import contextlib
 import configparser
 import socketserver
@@ -72,6 +74,28 @@ class BadRequest(ValueError):
     def __init__(self, reason):
         super().__init__(reason)
         self.reason = reason
+
+
+class AutoClosingFileHandler(logging.FileHandler):
+    def __init__(self, filename, encoding=None, errors=None):
+        """
+        Delay appending to the specified file and use it as the stream for logging.
+        """
+        super().__init__(filename, 'a', encoding, True, errors)
+
+    def emit(self, record):
+        """
+        Emit a record.
+
+        Uses the delay mechanic of the parent class to open the
+        proper stream before emitting.
+
+        Closes the stream right after.
+        """
+        super().emit(record)
+        stream = self.setStream(None)
+        if stream and hasattr(stream, 'close'):
+            stream.close()
 
 
 @functools.lru_cache(maxsize=1)
@@ -204,7 +228,7 @@ class Rstats:
                 filename = '{}_{}.stats'.format(self.metadata['job_name'], strftime("%Y-%m-%dT%H%M%S"))
                 logfile = os.path.join(logpath, self.metadata['job_name'], filename)
                 try:
-                    fhd = logging.FileHandler(logfile, mode='a')
+                    fhd = AutoClosingFileHandler(logfile)
                 except OSError:
                     pass
                 else:
@@ -464,10 +488,14 @@ class RstatsRequestHandler(socketserver.BaseRequestHandler):
         data, sock = self.request
         msg = 'KO: Unhandled exception occured\0'
         try:
-            result = self.execute_request(data.decode())
+            data = data.decode()
+            syslog.syslog(syslog.LOG_INFO, data)
+            result = self.execute_request(data)
         except BadRequest as e:
+            syslog.syslog(syslog.LOG_ERR, traceback.format_exc())
             msg = 'KO: {}\0'.format(e.reason)
         except Exception as e:
+            syslog.syslog(syslog.LOG_CRIT, traceback.format_exc())
             msg = 'KO: An error occured: {}\0'.format(e)
         else:
             if result is None:
@@ -475,6 +503,7 @@ class RstatsRequestHandler(socketserver.BaseRequestHandler):
             else:
                 msg = 'OK {}\0'.format(result)
         finally:
+            syslog.syslog(syslog.LOG_INFO, msg)
             sock.sendto(msg.encode(), self.client_address)
 
     def execute_request(self, data):
@@ -507,6 +536,7 @@ class RstatsServer(socketserver.ThreadingMixIn, socketserver.UDPServer):
 
 
 if __name__ == '__main__':
+    syslog.openlog('openbach_rstats', syslog.LOG_PID, syslog.LOG_USER)
     server = RstatsServer(('', 1111), RstatsRequestHandler)
     try:
         server.serve_forever()

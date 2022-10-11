@@ -37,44 +37,18 @@ __credits__ = '''Contributors:
  * Bastien TAURAN <bastien.tauran@viveris.fr>
 '''
 
-import os
 import sys
-import time
 import syslog
 import argparse
 import itertools
-import traceback
-import contextlib
 from contextlib import closing
-import random
-import subprocess
 
 import pyshark
-import pathlib
 
 import collect_agent
 
 
 ETHERNET_HEADER_SIZE = 14
-
-@contextlib.contextmanager
-def use_configuration(filepath):
-    success = collect_agent.register_collect(filepath)
-    if not success:
-        message = 'ERROR connecting to collect-agent'
-        collect_agent.send_log(syslog.LOG_ERR, message)
-        sys.exit(message)
-    collect_agent.send_log(syslog.LOG_DEBUG, 'Starting job ' + os.environ.get('JOB_NAME', '!'))
-    try:
-        yield
-    except Exception:
-        message = traceback.format_exc()
-        collect_agent.send_log(syslog.LOG_CRIT, message)
-        raise
-    except SystemExit as e:
-        if e.code != 0:
-            collect_agent.send_log(syslog.LOG_CRIT, 'Abrupt program termination: ' + str(e.code))
-        raise
 
 
 def build_display_filter(src_ip, dst_ip, src_port, dst_port, proto):
@@ -113,10 +87,6 @@ def pairwise(iterable):
     first, second = itertools.tee(iterable)
     next(second, None)
     return zip(first, second)
-
-
-def now():
-    return int(time.time() * 1000)
 
 
 def suffix(flow_number):
@@ -223,7 +193,7 @@ def gilbert_elliot(capture_file, second_capture_file, src_ip, dst_ip, src_port, 
         else:
             collect_agent.send_log(syslog.LOG_WARNING, "Cannot compute r parameter. Maybe the capture files are too short.")
 
-        collect_agent.send_stat(now(), **statistics)
+        collect_agent.send_stat(collect_agent.now(), **statistics)
 
     except Exception as ex:
         message = 'ERROR when analyzing: {}'.format(ex)
@@ -239,7 +209,7 @@ def one_file(capture_file, src_ip, dst_ip, src_port, dst_port, proto, metrics_in
     Only consider packets matching the specified fields.
     """
     display_filter = build_display_filter(src_ip, dst_ip, src_port, dst_port, proto)
-    To = now()
+    To = collect_agent.now()
     try:
         with closing(pyshark.FileCapture(capture_file, display_filter=display_filter)) as cap_file:
             flow_id_funct = lambda pkt: (pkt.ip.src, pkt[pkt.transport_layer].srcport, 
@@ -300,7 +270,7 @@ def one_file(capture_file, src_ip, dst_ip, src_port, dst_port, proto, metrics_in
 
 
 if __name__ == '__main__':
-    with use_configuration('/opt/openbach/agent/jobs/pcap_postprocessing/pcap_postprocessing_rstats_filter.conf'):
+    with collect_agent.use_configuration('/opt/openbach/agent/jobs/pcap_postprocessing/pcap_postprocessing_rstats_filter.conf'):
         # Define Usage
         parser = argparse.ArgumentParser(
               description='Analyze pcap file to get average packet '
