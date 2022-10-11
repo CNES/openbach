@@ -31,7 +31,7 @@ general:
       This Job configures the delay, the bandwidth or the
       loss on an given interface (it removes the previous
       configuration of the interface).
-  job_version: '3.0'
+  job_version: '3.1'
   keywords:
     - delay
     - bandwidth

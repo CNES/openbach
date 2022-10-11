@@ -6,7 +6,7 @@ general:
       This Job principaly launches the receiver of D-ITG.
       It can be assimilated to a daemon running on the host.
       It is possible to launch multiple instances of the job at the same time.
-  job_version:     '0.5'
+  job_version:     '0.6'
   keywords:        [D-ITG]
   persistent:      True
   need_privileges: False

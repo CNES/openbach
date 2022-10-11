@@ -29,7 +29,7 @@ general:
   name: iptables
   description: >
       This Job allows to add any iptables rule (you should specify your full chain).
-  job_version: '1.1'
+  job_version: '2.0'
   keywords:
     - iptables
     - rule

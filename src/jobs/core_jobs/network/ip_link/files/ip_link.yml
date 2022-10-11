@@ -29,7 +29,7 @@ general:
   name: ip_link
   description: >
       This Job runs ip-link utilities. 
-  job_version: '1.0'
+  job_version: '1.1'
   keywords:
     - ip
     - link

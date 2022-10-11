@@ -30,7 +30,7 @@ general:
   description: >
       This job post-process statistics from other job instances. It compares the
       average value and the confidence interval of several time series.
-  job_version: '3.1'
+  job_version: '3.2'
   keywords:
     - post-processing
     - comparison

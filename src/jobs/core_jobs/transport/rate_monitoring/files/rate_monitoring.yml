@@ -31,7 +31,7 @@ general:
       This Job measures the rate (b/s) of flows with specific
       characteristics (e.g. dest/src IP/port, protocol,
       interface) using iptables chains.
-  job_version: '2.2'
+  job_version: '2.3'
   keywords:
     - rate
     - monitoring

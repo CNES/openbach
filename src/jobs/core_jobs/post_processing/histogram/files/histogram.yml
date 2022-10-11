@@ -29,7 +29,7 @@ general:
   name: histogram
   description: >
       This job post-process statistics from other job instances. It computes/compares the histogram of different statistics.
-  job_version: '3.1'
+  job_version: '3.2'
   keywords:
     - post-processing
     - histogram

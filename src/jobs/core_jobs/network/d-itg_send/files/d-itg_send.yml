@@ -6,7 +6,7 @@ general:
       This Job principaly launches the executable of D-ITG
       that sends data towards a target. The flow is unilateral.
       It is possible to launch multiple instances of the job at the same time.
-  job_version:     '0.8'
+  job_version:     '0.9'
   keywords:        [d-itg, round, trip, time, rate]
   persistent:      True
   need_privileges: False

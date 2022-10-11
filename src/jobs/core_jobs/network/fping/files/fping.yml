@@ -31,7 +31,7 @@ general:
       This Job executes the fping command to measure the rtt delay of a
       group of ICMP packets (with a frequency of count*interval sec. or
       count packets).
-  job_version: '1.0'
+  job_version: '1.1'
   keywords:
     - ping
     - fping

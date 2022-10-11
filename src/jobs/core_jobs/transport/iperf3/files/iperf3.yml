@@ -32,7 +32,7 @@ general:
       generate UDP/TCP traffic with configured parameters (duration,
       bandwidth, parallel flows, ToS, MSS, etc.). It measures
       throughput, sent/lost packets, jitter, etc. 
-  job_version: '2.9'
+  job_version: '2.10'
   keywords:
     - iperf
     - iperf3

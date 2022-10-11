@@ -29,7 +29,7 @@ general:
   name: temporal_binning_histogram
   description: >
       This job post-process data of other jobs. It generates time-aggregated histograms of jobs metrics to perform statistics analysis.
-  job_version: '1.1'
+  job_version: '1.2'
   keywords:
     - post-processing
     - temporal-binning

@@ -29,7 +29,7 @@ general:
   name: time_series
   description: >
       This job post-process statistics from other job instances. It allows to compare the time-series of different jobs/stats.
-  job_version: '3.1'
+  job_version: '3.2'
   keywords:
     - post-processing
     - time-series
