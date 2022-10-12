@@ -1,3 +1,10 @@
+collect-agent (1.4.1) focal; urgency=low
+
+  * Wrap the collect_agent Python extension module into a package to provide
+    utilities / helpers on top of the bound C++ functions
+
+ -- OpenBACH maintainers <admin@openbach.org>  Wed, 12 oct 2022 14:12:08 +0100
+
 collect-agent (1.4.0) focal; urgency=low
 
   * Added a copy parameter to the python bindings of store_files to be able

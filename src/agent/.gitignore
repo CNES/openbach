@@ -1,0 +1,10 @@
+*.dsc
+*.changes
+*.deb
+*.tar.xz
+collect-agent/build
+collect-agent/debian/collect-agent
+collect-agent/debian/files
+collect-agent/debian/debhelper-build-stamp
+collect-agent/debian/collect-agent.debhelper.log
+collect-agent/debian/collect-agent.substvars
