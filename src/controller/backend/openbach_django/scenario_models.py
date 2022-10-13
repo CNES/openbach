@@ -267,9 +267,7 @@ class Scenario(models.Model):
             id_ = extract_value('openbach_functions', index, 'id', expected_type=int)
             label = extract_value('openbach_functions', index, 'label', expected_type=str, mandatory=False)
             label = json_data['openbach_functions'][index].get('label')  # Type checking is done, extract the real value
-            section = extract_value('openbach_functions', index, 'section', expected_type=str, mandatory=False)
-            section = json_data['openbach_functions'][index].get('section')  # Type checking is done, extract the real value
-            possible_function_name = [key for key in function if key not in {'wait', 'id', 'label', 'section'}]
+            possible_function_name = [key for key in function if key not in {'wait', 'id', 'label'}]
             if len(possible_function_name) < 1:
                 raise Scenario.MalformedError(
                         'openbach_functions.{}'.format(index), value=function,
@@ -290,7 +288,7 @@ class Scenario(models.Model):
                         override_error='Unknown OpenBACH Function')
             try:
                 openbach_function = OpenbachFunctionFactory.build_from_arguments(
-                        id_, label, section, scenario, wait_time, function[function_name])
+                        id_, label, scenario, wait_time, function[function_name])
             except KeyError as e:
                 raise Scenario.MalformedError(
                         'openbach_functions.{}.{}'.format(index, function_name),

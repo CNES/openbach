@@ -47,7 +47,7 @@ class OpenbachFunction extends React.Component<IProps & IStoreProps, IState> {
     }
 
     public render() {
-        const {formIndex, formName, reduxForm, sections, onSectionChange} = this.props;
+        const {formIndex, formName, reduxForm} = this.props;
         const openbachFunctions: IOpenbachFunctionForm[] = OpenbachFunction.getFormValues(reduxForm, formName).functions;
         const currentFunction = openbachFunctions[formIndex];
         const otherFunctions = openbachFunctions.filter(
@@ -63,8 +63,6 @@ class OpenbachFunction extends React.Component<IProps & IStoreProps, IState> {
                 <OpenbachFunctionHeader
                     index={formIndex}
                     ids={openbachFunctionReferences}
-                    sections={sections}
-                    onSectionChange={onSectionChange}
                 />
                 <ScenarioDivider />
                 {this.openbachFunctionRenderer(currentFunction, otherFunctions)}
@@ -305,8 +303,6 @@ interface IProps {
     formName: string;
     formIndex: number;
     remove: () => void;
-    sections: string[];
-    onSectionChange: (name: string, index: number) => void;
 };
 
 

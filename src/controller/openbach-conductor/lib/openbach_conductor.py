@@ -2301,16 +2301,25 @@ class StartScenarioInstance(ScenarioInstanceAction):
 
     def _check_jobs(self, start_job_instances):
         uninstalled_jobs = {}
+        unattached_agents = set()
         for start_job_instance in start_job_instances:
             entity = start_job_instance.entity_name
             job = start_job_instance.job_name
             agent = Entity.objects.get(name=entity).agent
-            if not InstalledJob.objects.filter(job__name=job, agent=agent).exists():
-                try:
-                    uninstalled_jobs[entity]['jobs'].append(job)
-                except KeyError:
-                    uninstalled_jobs[entity] = {'agent': agent.json, 'jobs': [job]}
+            if agent is None:
+                unattached_agents.add(entity)
+            else:
+                if not InstalledJob.objects.filter(job__name=job, agent=agent).exists():
+                    try:
+                        uninstalled_jobs[entity]['jobs'].append(job)
+                    except KeyError:
+                        uninstalled_jobs[entity] = {'agent': agent.json, 'jobs': [job]}
 
+        if unattached_agents:
+            raise errors.UnprocessableError(
+                    'Cannot start scenario {}: some entities are missing an attached agent.'.format(self.name),
+                    entities=list(unattached_agents),
+            )
         if uninstalled_jobs:
             raise errors.UnprocessableError(
                     'Cannot start scenario {}: some jobs are missing on agents.'.format(self.name),
