@@ -82,7 +82,7 @@ class LogsBadge extends React.Component<IStoreProps & IDispatchProps, IState> {
                 cancel={{label: "OK", action: this.hideLog}}
                 actions={[{label: "Dismiss", action: this.removeLog}]}
             >
-                <pre>{JSON.stringify(JSON.parse(showLog.message), null, 4)}</pre>
+                <pre>{showLog.message}</pre>
             </ActionDialog>
         );
 

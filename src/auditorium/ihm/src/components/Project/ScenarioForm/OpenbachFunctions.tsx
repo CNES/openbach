@@ -58,14 +58,14 @@ export default class OpenbachFunctions extends React.Component<IProps & IFieldAr
     }
 
     public render() {
-        const openbachFunctions = this.props.fields.map((fieldName: string, index: number, fields: IFieldsProps<IOpenbachFunctionForm>) => {(
+        const openbachFunctions = this.props.fields.map((fieldName: string, index: number, fields: IFieldsProps<IOpenbachFunctionForm>) => (
             <OpenbachFunction
                 key={`${fieldName}_${index}`}
                 formIndex={index}
                 formName={this.props.formName}
                 remove={this.removeOpenBachFunction.bind(this, index)}
             />
-        )});
+        ));
 
         return (
             <List>
