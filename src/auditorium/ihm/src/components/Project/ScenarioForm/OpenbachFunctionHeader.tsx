@@ -21,7 +21,7 @@ const styles: IStyles = {
         display: "inline-block",
         margin: "0px 2%",
         verticalAlign: "top",
-        width: "29.333333333333%",
+        width: "46%",
     },
     hidden: {
         display: "none",
