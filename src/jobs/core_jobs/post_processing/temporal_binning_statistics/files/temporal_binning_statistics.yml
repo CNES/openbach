@@ -118,6 +118,11 @@ arguments:
       count: 0
       flag: '-n'
       description: Do not draw any legend on the graph
+    - name: hide_grid
+      type: None
+      count: 0
+      flag: '-d'
+      description: Do not show grid on the graph
     - name: hide_median
       type: None
       count: 0

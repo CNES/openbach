@@ -77,11 +77,11 @@ class BadRequest(ValueError):
 
 
 class AutoClosingFileHandler(logging.FileHandler):
-    def __init__(self, filename, encoding=None, errors=None):
+    def __init__(self, filename, encoding=None):
         """
         Delay appending to the specified file and use it as the stream for logging.
         """
-        super().__init__(filename, 'a', encoding, True, errors)
+        super().__init__(filename, 'a', encoding, True)
 
     def emit(self, record):
         """

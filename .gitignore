@@ -9,4 +9,4 @@ npm-debug.log
 openbach_frontend/
 *.tar.gz
 junit.xml
-ansible/inventory
+ansible/inventory/

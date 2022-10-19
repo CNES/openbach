@@ -180,7 +180,7 @@ def sender(cmd):
                     statistics['total_transfer']=t_transfer* multiplier(t_transfer_units, 'Bytes')
                     statistics['average_throughput']=a_bandwidth* multiplier(a_bandwidth_units, 'bits/sec')
 
-
+ 
                     if entity=="sender":
                         if flow.upper()=="SUM":
                             suffix=flow
@@ -320,7 +320,6 @@ def receiver(cmd):
 
                     continue
 
-
                 # otherwise test if TCP or UDP traffic
                 flow, duration, _, transfer, transfer_units, bandwidth, bandwidth_units, jitter, jitter_units, packets_stats, datagrams = tokens
                 jitter = float(jitter)
@@ -340,7 +339,7 @@ def receiver(cmd):
 
         try:
             flow_number = flow_map[int(flow)]
-            
+
         except ValueError:
             if flow.upper() != "SUM":
                 continue

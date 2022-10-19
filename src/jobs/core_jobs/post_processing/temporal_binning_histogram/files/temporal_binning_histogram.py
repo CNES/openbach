@@ -33,7 +33,7 @@ __author__ = 'Viveris Technologies'
 __credits__ = '''Contributors:
  * David FERNANDES <david.fernandes@viveris.fr>
 '''
-
+import sys
 import syslog
 import os.path
 import argparse
@@ -43,7 +43,7 @@ import itertools
 import pandas as pd
 import matplotlib.pyplot as plt
 
-import collect_agent
+#import collect_agent
 from data_access.post_processing import Statistics, save, _Plot
 
 
@@ -54,14 +54,18 @@ def main(
         job_instance_ids, statistics_names, aggregations_periods,
         bins_sizes, offset, maximum, stats_with_suffixes, axis_labels,
         figures_titles, legends_titles, use_legend, add_global, pickle):
+
     file_ext = 'pickle' if pickle else 'png'
-    statistics = Statistics.from_default_collector()
+    #statistics = Statistics.from_default_collector()
+    statistics=Statistics('172.20.34.80')
     statistics.origin = 0
     with tempfile.TemporaryDirectory(prefix='openbach-temporal-binning-histogram-') as root:
+
         for job, fields, aggregations, bin_sizes, labels, titles, legend_titles in itertools.zip_longest(
                 job_instance_ids, statistics_names, aggregations_periods,
                 bins_sizes, axis_labels, figures_titles, legends_titles,
                 fillvalue=[]):
+                 
             data_collection = statistics.fetch(
                     job_instances=job,
                     suffix = None if stats_with_suffixes else '',
@@ -69,55 +73,59 @@ def main(
 
             # Drop multi-index columns to easily concatenate dataframes from their statistic names
             df = pd.concat([
-                plot.dataframe.set_axis(plot.dataframe.columns.get_level_values('statistic'), axis=1, inplace=False)
+                plot.dataframe.set_axis(plot.dataframe.columns.get_level_values('statistic'), axis=1, copy=False)
                 for plot in data_collection])
+            
             # Recreate a multi-indexed columns so the plot can function properly
             df.columns = pd.MultiIndex.from_tuples(
                     [('', '', '', '', stat) for stat in df.columns],
                     names=['job', 'scenario', 'agent', 'suffix', 'statistic'])
+
             plot = _Plot(df)
 
             if not fields:
                 fields = list(df.columns.get_level_values('statistic'))
 
             metadata = itertools.zip_longest(fields, labels, bin_sizes, aggregations, legend_titles, titles)
+
             for field, label, bin_size, aggregation, legend, title in metadata:
                 if field not in df.columns.get_level_values('statistic'):
                     message = 'job instances {} did not produce the statistic {}'.format(job, field)
-                    collect_agent.send_log(syslog.LOG_WARNING, message)
+                    #collect_agent.send_log(syslog.LOG_WARNING, message)
                     print(message)
                     continue
 
                 if label is None:
-                    collect_agent.send_log(
+                    """collect_agent.send_log(
                             syslog.LOG_WARNING,
                             'no y-axis label provided for the {} statistic of job '
-                            'instances {}: using the empty string instead'.format(field, job))
+                            'instances {}: using the empty string instead'.format(field, job))"""
                     label = ''
 
                 if aggregation is None:
-                    collect_agent.send_log(
+                    """collect_agent.send_log(
                             syslog.LOG_WARNING,
                             'invalid aggregation value of {} for the {} '
                             'statistic of job instances {}: choose from {}, using '
-                            '"hour" instead'.format(aggregation, field, job, TIME_OPTIONS))
+                            '"hour" instead'.format(aggregation, field, job, TIME_OPTIONS))"""
                     aggregation = 'hour'
 
                 if legend is None and use_legend:
-                    collect_agent.send_log(
+                    """collect_agent.send_log(
                             syslog.LOG_WARNING,
                             'no legend title provided for the {} statistic of job '
-                            'instances {}: using the empty string instead'.format(field, job))
+                            'instances {}: using the empty string instead'.format(field, job))"""
                     legend = ''
 
                 if bin_size is None:
-                    collect_agent.send_log(
+                    """collect_agent.send_log(
                             syslog.LOG_WARNING,
                             'no bin size provided for the {} statistic of job '
-                            'instances {}: using the default value 100 instead'.format(field, job))
+                            'instances {}: using the default value 100 instead'.format(field, job))"""
                     bin_size = 100
 
                 figure, axis = plt.subplots()
+
                 axis = plot.plot_temporal_binning_histogram(
                         axis, label, field, None, bin_size,
                         offset, maximum, aggregation, add_global,
@@ -125,12 +133,13 @@ def main(
                 if title is not None:
                     axis.set_title(title)
                 filepath = os.path.join(root, 'temporal_binning_histogram_{}.{}'.format(field, file_ext))
-                save(figure, filepath, pickle, False)
-                collect_agent.store_files(collect_agent.now(), figure=filepath)
+                #save(figure, filepath, pickle, False)
+                save(figure,'/home/agarba-abdou/openbach-extra/apis/temporal_binding_histogram.png')
+                #collect_agent.store_files(collect_agent.now(), figure=filepath)
 
 
 if __name__ == '__main__':
-    with collect_agent.use_configuration('/opt/openbach/agent/jobs/temporal_binning_histogram/temporal_binning_histogram_rstats_filter.conf'):
+    #with collect_agent.use_configuration('/opt/openbach/agent/jobs/temporal_binning_histogram/temporal_binning_histogram_rstats_filter.conf'):
         parser = argparse.ArgumentParser(description=__doc__)
         parser.add_argument(
                 '-j', '--jobs', metavar='ID', nargs='+', action='append',
