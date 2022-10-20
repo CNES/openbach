@@ -48,7 +48,7 @@
       - "{{ openbach_backup_archive_name.results[1].path }}"
     dest: "{{ openbach_backup_archive_name.results[0].path }}"
     format: gz
-  become: yes
+  # become: yes
 
 - name: Gather the Archive File in the Temporary Directory
   fetch:

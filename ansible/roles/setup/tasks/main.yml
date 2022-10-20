@@ -26,7 +26,9 @@
 ---
 
 - name: Create Temporary Folder
-  tempfile: prefix=openbach_installer_ state=directory
+  tempfile:
+    prefix: openbach_installer_
+    state: directory
   register: openbach_installer_tempdir
 
 - name: Create temporary SSH key
@@ -36,19 +38,31 @@
   when: ansible_ssh_private_key_file is not defined
 
 - name: Add Default Collector if Needed
-  add_host: name={{ item }} groups=collector openbach_controller={{ item }}
+  add_host:
+    name: "{{ item }}"
+    groups: collector
+    openbach_controller: "{{ item }}"
   with_items: "{{ groups.controller | default([]) }}"
   when: ('collector' not in groups) or not groups.collector
 
 - name: Add Default Auditorium if Needed
-  add_host: name={{ item }} groups=auditorium openbach_controller={{ item }}
+  add_host:
+    name: "{{ item }}"
+    groups: auditorium
+    openbach_controller: "{{ item }}"
   with_items: "{{ groups.controller | default([]) }}"
   when: ('auditorium' not in groups) or not groups.auditorium
 
 - name: Add Default Agent on Collectors
-  add_host: name={{ item }} groups=agent openbach_collector={{ item }}
+  add_host:
+    name: "{{ item }}"
+    groups: agent
+    openbach_collector: "{{ item }}"
   with_items: "{{ groups.collector | default([]) }}"
 
 - name: Add Default Agent on Controllers
-  add_host: name={{ item }} groups=agent openbach_controller={{ item }}
+  add_host:
+    name: "{{ item }}"
+    groups: agent
+    openbach_controller: "{{ item }}"
   with_items: "{{ groups.controller | default([]) }}"

@@ -42,7 +42,8 @@
     - setup_remotes
   post_tasks:
     - name: Save the Temporary Backup Folder Path
-      set_fact: openbach_backup_folder={{ hostvars.localhost.openbach_backup_tempdir.path }}
+      set_fact:
+        openbach_backup_folder: "{{ hostvars.localhost.openbach_backup_tempdir.path }}"
 
 - name: Backup Auditoriums
   hosts: auditorium
