@@ -29,7 +29,14 @@
   tempfile:
     prefix: openbach_agent_backup_
     suffix: .tar.gz
+  become: yes
   register: openbach_backup_archive_name
+
+- name: Add Read Permissions to the Archive File
+  file:
+    path: "{{ openbach_backup_archive_name.path }}"
+    mode: a+r
+  become: yes
 
 - name: Backup the Agent
   archive:
@@ -39,6 +46,7 @@
       - /var/openbach_stats
     dest: "{{ openbach_backup_archive_name.path }}"
     format: gz
+  become: yes
 
 - name: Gather the Archive File in the Temporary Directory
   fetch:
@@ -50,3 +58,4 @@
   file:
     path: "{{ openbach_backup_archive_name.path }}"
     state: absent
+  become: yes

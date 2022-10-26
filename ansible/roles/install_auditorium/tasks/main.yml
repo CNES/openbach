@@ -156,20 +156,27 @@
         src: "{{ openbach_archive_root }}/{{ openbach_restore_host }}/openbach_auditorium.tar.gz"
         dest: "/tmp/"
 
-    - name: Lookup for Grafana Dump Filename
-      shell: ls -d /tmp/openbach_auditorium_backup_*_chronograf.json
+    - name: Lookup for Chronograf Dump Folder
+      shell: ls -d /tmp/openbach_auditorium_backup_*_chronograf
+      register: openbach_chronograf_dump_folder
+
+    - name: Lookup for Chronograf Dump Filename
+      shell: ls -1 {{ openbach_chronograf_dump_folder.stdout }}
       register: openbach_chronograf_dump
 
-    - name: Restore Grafana Dashboards
+    - name: Restore Chronograf Dashboards
       uri:
         url: http://localhost:{{ chronograf_port }}/chronograf/v1/dashboards
-        method: PUT
-        body: "{{ lookup('file', openbach_chronograf_dump.stdout) }}"
+        method: POST
+        src: "{{ openbach_chronograf_dump_folder.stdout }}/{{ item }}"
+        remote_src: yes
+        status_code: 201
         body_format: json
+      with_items: "{{ openbach_chronograf_dump.stdout_lines }}"
 
     - name: Remove Extracted Files
       file:
-        path: "{{ openbach_chronograf_dump.stdout }}"
+        path: "{{ openbach_chronograf_dump_folder.stdout }}"
         state: absent
   remote_user: openbach
   when: openbach_restore_host is defined

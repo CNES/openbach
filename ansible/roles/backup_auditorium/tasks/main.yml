@@ -28,27 +28,35 @@
 - name: Create the Temporary Files and Folders to Backup the Auditorium Into
   tempfile:
     prefix: openbach_auditorium_backup_
-    suffix: "{{ item }}"
-    state: file
+    suffix: "{{ item.suffix }}"
+    state: "{{ item.type }}"
   with_items:
-    - .tar.gz
-    - _chronograf.json
+    - suffix: .tar.gz
+      type: file
+    - suffix: _chronograf
+      type: directory
   register: openbach_backup_archive_name
 
-- name: Export the Available Dashboards
+- name: List the Available Dashboards
   uri:
     url: http://localhost:{{ chronograf_port }}/chronograf/v1/dashboards
     method: GET
+    body_format: json
+  register: openbach_backup_chronograf_dashboards
+
+- name: Export the Available Dashboards
+  uri:
+    url: http://localhost:{{ chronograf_port }}/chronograf/v1/dashboards/{{ item }}
+    method: GET
     dest: "{{ openbach_backup_archive_name.results[1].path }}"
     body_format: json
-    # headers:
-    #   Accept: application/json
-    #   Content-Type: application/json
+  with_items: "{{ openbach_backup_chronograf_dashboards.json.dashboards | map(attribute='id') | list }}"
 
 - name: Archive the Exported Dashboards
   archive:
     path: "{{ openbach_backup_archive_name.results[1].path }}"
     dest: "{{ openbach_backup_archive_name.results[0].path }}"
+    # force_archive: yes
 
 - name: Gather the Archive File in the Temporary Directory
   fetch:
