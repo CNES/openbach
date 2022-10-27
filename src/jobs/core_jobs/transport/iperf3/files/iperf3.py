@@ -271,7 +271,7 @@ def receiver(cmd):
                     continue
 
                 flow = tokens[0]
-
+                print(tokens)
                 interval_begin, interval_end = map(float, tokens[1].split("-"))
                 try:
                     flow_number = flow_map[int(flow)]

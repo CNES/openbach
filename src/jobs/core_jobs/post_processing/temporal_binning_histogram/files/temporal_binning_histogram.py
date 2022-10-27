@@ -33,6 +33,7 @@ __author__ = 'Viveris Technologies'
 __credits__ = '''Contributors:
  * David FERNANDES <david.fernandes@viveris.fr>
 '''
+import stat
 import sys
 import syslog
 import os.path
@@ -48,12 +49,53 @@ from data_access.post_processing import Statistics, save, _Plot
 
 
 AGGREGATION_OPTIONS = {'year', 'month', 'day', 'hour', 'minute', 'second'}
+COLORMAP_OPTION ={'jet','dark','seismic','copper','red2green','blue2red','blue2green','paired'}
+UNIT_OPTION={'s', 'ms' ,'bits/s', 'Kbits/s', 'Mbits/s','Gbits/s','Bytes' ,'KBytes', 'MBytes', 'GBytes'}
 
+
+def multiplier(base, unit):
+
+        if unit == base:
+                return 1
+        if unit.startswith('GBytes'):
+                return 1024 * 1024 * 1024
+        if unit.startswith('MBytes'):
+                return 1024 * 1024
+        if unit.startswith('KBytes'):
+                return 1024
+        if unit.startswith('m'):
+                return 0.001
+        if unit.startswith('s'):
+                return 1000
+        if unit.startswith('Gbits'):
+                return 1000 * 1000 * 1000
+        if unit.startswith('Mbits'):
+                return 1000 * 1000
+        if unit.startswith('Kbits'):
+                return 1000
+
+        return 1
+
+def get_colormap(colormap):
+
+        if colormap =='red2green':
+                return 'RdYlGn'
+        if colormap =='blue2red':
+                return'bwr'
+        if colormap =='blue2green':
+                return'brg'
+        if colormap =='dark':
+                return 'Dark2'
+        if colormap == 'paired':
+                return 'Paired'
+        else:
+                return colormap
 
 def main(
         job_instance_ids, statistics_names, aggregations_periods,
         bins_sizes, offset, maximum, stats_with_suffixes, axis_labels,
-        figures_titles, legends_titles, use_legend, add_global, pickle):
+        figures_titles, legends_titles,stat_units,legend_units, use_legend, add_global, pickle,colormap):
+
 
     file_ext = 'pickle' if pickle else 'png'
     #statistics = Statistics.from_default_collector()
@@ -61,34 +103,53 @@ def main(
     statistics.origin = 0
     with tempfile.TemporaryDirectory(prefix='openbach-temporal-binning-histogram-') as root:
 
-        for job, fields, aggregations, bin_sizes, labels, titles, legend_titles in itertools.zip_longest(
+        for job, fields, aggregations, bin_sizes, labels, titles, legend_titles,stat_units,legend_units,colormap in itertools.zip_longest(
                 job_instance_ids, statistics_names, aggregations_periods,
-                bins_sizes, axis_labels, figures_titles, legends_titles,
+                bins_sizes, axis_labels, figures_titles, legends_titles,stat_units,legend_units,colormap,
                 fillvalue=[]):
-                 
+            
+            print(job,fields,sep='\n')
             data_collection = statistics.fetch(
                     job_instances=job,
                     suffix = None if stats_with_suffixes else '',
                     fields=fields)
-
+            
             # Drop multi-index columns to easily concatenate dataframes from their statistic names
             df = pd.concat([
                 plot.dataframe.set_axis(plot.dataframe.columns.get_level_values('statistic'), axis=1, copy=False)
                 for plot in data_collection])
-            
+
+            print(type(df))
             # Recreate a multi-indexed columns so the plot can function properly
             df.columns = pd.MultiIndex.from_tuples(
                     [('', '', '', '', stat) for stat in df.columns],
                     names=['job', 'scenario', 'agent', 'suffix', 'statistic'])
-
+            
+        
             plot = _Plot(df)
-
+            
             if not fields:
                 fields = list(df.columns.get_level_values('statistic'))
 
-            metadata = itertools.zip_longest(fields, labels, bin_sizes, aggregations, legend_titles, titles)
 
-            for field, label, bin_size, aggregation, legend, title in metadata:
+            metadata = itertools.zip_longest(fields, labels, bin_sizes, aggregations, legend_titles,stat_units,legend_units, titles,colormap)
+
+            
+                
+            for field, label, bin_size, aggregation, legend,stat_unit,legend_unit, title,colormap in metadata:
+                
+                if stat_unit is None:
+
+                        stat_unit = ''
+
+                if legend_unit is None:
+                                 
+                        legend_unit=stat_unit
+
+                facteur=multiplier(stat_unit,legend_unit)
+
+                cmap=get_colormap(colormap)
+
                 if field not in df.columns.get_level_values('statistic'):
                     message = 'job instances {} did not produce the statistic {}'.format(job, field)
                     #collect_agent.send_log(syslog.LOG_WARNING, message)
@@ -114,8 +175,12 @@ def main(
                     """collect_agent.send_log(
                             syslog.LOG_WARNING,
                             'no legend title provided for the {} statistic of job '
-                            'instances {}: using the empty string instead'.format(field, job))"""
-                    legend = ''
+                            'instances {}: using statistics name instead'.format(field, job))"""
+                    legend = field
+
+                if legend_unit is None and use_legend:
+
+                        legend_unit=stat_unit
 
                 if bin_size is None:
                     """collect_agent.send_log(
@@ -124,17 +189,24 @@ def main(
                             'instances {}: using the default value 100 instead'.format(field, job))"""
                     bin_size = 100
 
+                if cmap is None:
+
+                    cmap='RdYlGn'
+
                 figure, axis = plt.subplots()
+
 
                 axis = plot.plot_temporal_binning_histogram(
                         axis, label, field, None, bin_size,
                         offset, maximum, aggregation, add_global,
-                        use_legend, legend)
+                        use_legend, legend,stat_unit,legend_unit,cmap,facteur)
+
                 if title is not None:
                     axis.set_title(title)
+
                 filepath = os.path.join(root, 'temporal_binning_histogram_{}.{}'.format(field, file_ext))
                 #save(figure, filepath, pickle, False)
-                save(figure,'/home/agarba-abdou/openbach-extra/apis/temporal_binding_histogram.png')
+                save(figure,'/home/agarba-abdou/openbach-extra/apis/temporal_binding_histogram.png',set_legend=False)
                 #collect_agent.store_files(collect_agent.now(), figure=filepath)
 
 
@@ -179,8 +251,20 @@ if __name__ == '__main__':
                 metavar='LEGEND_TITLE', action='append', default=[],
                 help='Title of the legend')
         parser.add_argument(
+                '-ub', '--stat-unit', dest='stat_units', nargs='+',choices=UNIT_OPTION,
+                metavar='STAT_UNIT', action='append', default=[],
+                help='Unit of the statistic')
+        parser.add_argument(
+                '-u', '--legend-unit', dest='legend_units', nargs='+',choices=UNIT_OPTION,
+                metavar='LEGEND_UNIT', action='append', default=[],
+                help='Unit of the legend')
+        parser.add_argument(
                 '-g', '--global', '--global-bin', dest='add_global', action='store_true',
                 help='Add bin of global measurements')
+        parser.add_argument(
+                '-cm', '--colormap', metavar='COLORMAP',action='append',dest='colormap',
+                choices=COLORMAP_OPTION,nargs='+',default=[],
+                help='Allows to choose colormap for graph ')
         parser.add_argument(
                 '-p', '--pickle', action='store_true',
                 help='Allows to export figures as pickle '
@@ -195,5 +279,5 @@ if __name__ == '__main__':
 
         main(
             args.jobs, args.statistics, args.aggregations, args.bin_sizes, args.offset,
-            args.maximum, stats_with_suffixes, args.ylabel, args.title, args.legend_titles,
-            use_legend, args.add_global, args.pickle)
+            args.maximum, stats_with_suffixes, args.ylabel, args.title, args.legend_titles,args.stat_units,args.legend_units,
+            use_legend, args.add_global, args.pickle, args.colormap)

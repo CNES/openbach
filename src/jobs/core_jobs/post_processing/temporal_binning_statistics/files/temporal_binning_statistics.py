@@ -78,8 +78,7 @@ def main(
             # Recreate a multi-indexed columns so the plot can function properly
             df.columns = pd.MultiIndex.from_tuples(
                     [('', '', '', '', stat) for stat in df.columns],
-                    names=['job', 'scenario', 'agent', 'suffix', 'statistic'])
-
+                    names=['job', 'scenario', 'agent', 'suffix', 'statistic'])  
             
             plot = _Plot(df)
 
