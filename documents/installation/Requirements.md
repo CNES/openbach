@@ -14,7 +14,7 @@ in the future, but the feature needs contributions yet.
 ## Installation Machine (the one from which you install OpenBACH)
 
   * Any Linux flavor;
-  * Ansible (at least version 2.11.12, but due to the separation of versionning scheme between the core and the various modules, it is recommended to install version 4.5+);
+  * Ansible (at least version 2.11.12, but due to the separation of versionning scheme between the core and the modules collections, it is recommended to install version 4.5+);
   * Python 3.8.5 or newer;
   * Optionally the openssh SSH client (see ansible invokation below);
   * Optionally the sshpass program (see ansible invokation below);
