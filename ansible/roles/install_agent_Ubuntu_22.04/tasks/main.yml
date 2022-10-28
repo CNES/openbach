@@ -75,13 +75,6 @@
       - PyYAML
       - pandas
       - matplotlib
-    executable: pip3
-    extra_args: "-U" # --no-index --find-links=file:///opt/openbach/pip_mirror/python3/"
-  become: yes
-
-- name: Install pip3 Dependencies API
-  pip:
-    name:
       - openbach_api
     executable: pip3
     extra_args: "-U --no-index --find-links=file:///opt/openbach/pip_mirror/python3/"

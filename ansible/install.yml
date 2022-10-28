@@ -27,6 +27,7 @@
 
 - hosts: localhost
   gather_facts: no
+  any_errors_fatal: yes
   tags:
     - tests
   roles:
@@ -38,6 +39,7 @@
   hosts:
     - agent
     - controller
+  any_errors_fatal: yes
   tags:
     - check_resources
   roles:
@@ -46,6 +48,7 @@
 - name: Ask Questions
   hosts: controller
   gather_facts: no
+  any_errors_fatal: yes
   tags:
     - questions
   roles:
@@ -56,6 +59,7 @@
     - agent
     - auditorium
   gather_facts: no
+  any_errors_fatal: yes
   tags:
     - tests
   roles:
@@ -63,6 +67,7 @@
 
 - name: Install Agents
   hosts: agent
+  any_errors_fatal: yes
   pre_tasks:
     - name: Configure Default OpenBACH Name
       set_fact: openbach_name={{ openbach_name | default(ansible_hostname + ' ' + ansible_default_ipv4.address) }}
@@ -71,39 +76,46 @@
 
 - name: Install Collectors
   hosts: collector
+  any_errors_fatal: yes
   roles:
     - install_collector
 
 - name: Install Controllers
   hosts: controller
+  any_errors_fatal: yes
   roles:
     - install_controller
 
 - name: Configure Agents
   hosts: agent
   gather_facts: no
+  any_errors_fatal: yes
   roles:
     - configure_ssh_keys
 
 - name: Setup Backend's Database
   hosts: controller
   gather_facts: no
+  any_errors_fatal: yes
   roles:
     - configure_backend
 
 - name: Install Auditoriums
   hosts: auditorium
+  any_errors_fatal: yes
   roles:
     - install_auditorium
 
 - name: Install Default Jobs
   hosts: agent
   gather_facts: no
+  any_errors_fatal: yes
   roles:
     - install_job
 
 - name: Create Openbach project
   hosts: controller
+  any_errors_fatal: yes
   roles:
     - role: create_project
       when: project_name is defined
@@ -111,6 +123,7 @@
 - name: Run Various Tests
   hosts: controller
   gather_facts: no
+  any_errors_fatal: yes
   tags:
     - never
     - tests
@@ -122,6 +135,7 @@
     - agent
     - auditorium
   gather_facts: no
+  any_errors_fatal: yes
   tags:
     - always
   roles:
@@ -129,6 +143,7 @@
 
 - hosts: localhost
   gather_facts: no
+  any_errors_fatal: yes
   tags:
     - always
   roles:
