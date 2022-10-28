@@ -14,7 +14,7 @@ in the future, but the feature needs contributions yet.
 ## Installation Machine (the one from which you install OpenBACH)
 
   * Any Linux flavor;
-  * Ansible (at least version 2.10);
+  * Ansible (at least version 2.11.12, but due to the separation of versionning scheme between the core and the various modules, it is recommended to install version 4.5+);
   * Python 3.8.5 or newer;
   * Optionally the openssh SSH client (see ansible invokation below);
   * Optionally the sshpass program (see ansible invokation below);
@@ -29,12 +29,15 @@ You can check which Python version is used by Ansible by issuing:
 
 ```
 $ ansible --version
-ansible 2.10.5
-  config file = None
+ansible [core 2.13.4]
+  config file = /etc/ansible/ansible.cfg
   configured module search path = ['/home/ubuntu/.ansible/plugins/modules', '/usr/share/ansible/plugins/modules']
-  ansible python module location = /usr/local/lib/python3.8/dist-packages/ansible
+  ansible python module location = /usr/local/lib/python3.10/dist-packages/ansible
+  ansible collection location = /home/ubuntu/.ansible/collections:/usr/share/ansible/collections
   executable location = /usr/local/bin/ansible
-  python version = 3.8.5 (default, Jul 28 2020, 12:59:40) [GCC 9.3.0]
+  python version = 3.10.7 (main, Sep  6 2022, 21:22:27) [GCC 12.2.0]
+  jinja version = 3.1.2
+  libyaml = True
 ```
 
 To better control both the Ansible version installed and the Python version used to run it, we
@@ -42,7 +45,7 @@ advise, [as Ansible do][2], to use `pip`, the Python packet manager, to install 
 
 ```
 $ sudo apt install python3-pip
-$ sudo pip3 install "ansible<2.11"
+$ sudo pip3 install "ansible==4.5.0"
 ```
 
 `pip3` may install the ansible binary in the `.local/bin` folder. You may want to update your
