@@ -75,6 +75,14 @@
       - PyYAML
       - pandas
       - matplotlib
+    executable: pip3
+    extra_args: "-U"
+  environment: "{{ openbach_proxy_env }}"
+  become: yes
+
+- name: Install OpenBach APIs
+  pip:
+    name:
       - openbach_api
     executable: pip3
     extra_args: "-U --no-index --find-links=file:///opt/openbach/pip_mirror/python3/"
