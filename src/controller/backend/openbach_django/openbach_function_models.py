@@ -56,7 +56,6 @@ class OpenbachFunction(ContentTyped):
 
     function_id = models.IntegerField()
     label = models.CharField(max_length=500)
-    section = models.CharField(max_length=500, null=True, blank=True)
     scenario_version = models.ForeignKey(
             'ScenarioVersion',
             models.CASCADE,
@@ -82,14 +81,14 @@ class OpenbachFunction(ContentTyped):
 
     @classmethod
     def build_from_arguments(
-            cls, function_id, label, section,
+            cls, function_id, label,
             scenario, wait_time, arguments):
         if label is None:
             label = str(function_id)
 
         return cls.objects.create(
                 function_id=function_id,
-                label=label, section=section,
+                label=label,
                 scenario_version=scenario,
                 wait_time=wait_time,
                 **arguments)
@@ -123,9 +122,6 @@ class OpenbachFunction(ContentTyped):
             ]
         if wait:
             json_data['wait'] = wait
-
-        if self.section is not None:
-            json_data['section'] = self.section
         return json_data
 
     def set_arguments_count(self, arguments):
@@ -377,7 +373,7 @@ class PushFile(OpenbachFunction):
 
     @classmethod
     def build_from_arguments(
-            cls, function_id, label, section,
+            cls, function_id, label,
             scenario, wait_time, arguments):
         local_path = arguments.pop('local_path')
         if not isinstance(local_path, list):
@@ -415,7 +411,6 @@ class PushFile(OpenbachFunction):
         return super().build_from_arguments(
                 function_id,
                 label,
-                section,
                 scenario,
                 wait_time,
                 {
@@ -473,7 +468,7 @@ class PullFile(OpenbachFunction):
 
     @classmethod
     def build_from_arguments(
-            cls, function_id, label, section,
+            cls, function_id, label,
             scenario, wait_time, arguments):
         local_path = arguments.pop('local_path')
         if not isinstance(local_path, list):
@@ -511,7 +506,6 @@ class PullFile(OpenbachFunction):
         return super().build_from_arguments(
                 function_id,
                 label,
-                section,
                 scenario,
                 wait_time,
                 {
@@ -571,7 +565,7 @@ class StartJobInstance(OpenbachFunction):
 
     @classmethod
     def build_from_arguments(
-            cls, function_id, label, section,
+            cls, function_id, label,
             scenario, wait_time, arguments):
         offset = arguments.pop('offset', None)
         if offset is not None and not isinstance(offset, (int, float, str)):
@@ -591,7 +585,6 @@ class StartJobInstance(OpenbachFunction):
         return super().build_from_arguments(
                 function_id,
                 label,
-                section,
                 scenario,
                 wait_time,
                 {
@@ -740,7 +733,7 @@ class RestartJobInstance(OpenbachFunction):
 
     @classmethod
     def build_from_arguments(
-            cls, function_id, label, section,
+            cls, function_id, label,
             scenario, wait_time, arguments):
         instance_id = arguments.pop('instance_id')
         args = arguments.pop('arguments')
@@ -750,7 +743,6 @@ class RestartJobInstance(OpenbachFunction):
         return super().build_from_arguments(
                 function_id,
                 label,
-                section,
                 scenario,
                 wait_time,
                 {
@@ -886,7 +878,7 @@ class If(OpenbachFunction):
 
     @classmethod
     def build_from_arguments(
-            cls, function_id, label, section,
+            cls, function_id, label,
             scenario, wait_time, arguments):
         condition = Condition.load_from_json(arguments['condition'])
         for name in ('openbach_functions_true_ids', 'openbach_functions_false_ids'):
@@ -897,7 +889,6 @@ class If(OpenbachFunction):
         return super().build_from_arguments(
                 function_id,
                 label,
-                section,
                 scenario,
                 wait_time,
                 {
@@ -932,7 +923,7 @@ class While(OpenbachFunction):
 
     @classmethod
     def build_from_arguments(
-            cls, function_id, label, section,
+            cls, function_id, label,
             scenario, wait_time, arguments):
         condition = Condition.load_from_json(arguments['condition'])
         for name in ('openbach_functions_while_ids', 'openbach_functions_end_ids'):
@@ -943,7 +934,6 @@ class While(OpenbachFunction):
         return super().build_from_arguments(
                 function_id,
                 label,
-                section,
                 scenario,
                 wait_time,
                 {

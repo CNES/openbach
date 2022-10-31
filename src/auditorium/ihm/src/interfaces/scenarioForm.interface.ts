@@ -15,7 +15,6 @@ export interface IOpenbachFunctionForm {
     label: string;
     kind: TOpenbachFunctions;
     wait: IOpenbachFunctionWait;
-    section?: string;
     entity?: string;
     offset?: number;
     interval?: number;

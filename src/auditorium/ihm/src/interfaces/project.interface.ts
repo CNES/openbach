@@ -41,7 +41,6 @@ export interface IScenario {
 export interface IOpenbachFunction {
     id: number;
     label: string;
-    section?: string;
     wait: IOpenbachFunctionWait;
 };
 

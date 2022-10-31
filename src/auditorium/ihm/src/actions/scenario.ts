@@ -183,7 +183,7 @@ function convertFormToScenario(form: IScenarioForm): IScenario {
         description: form.description,
         name: form.name,
         openbach_functions: form.functions.map((func: IOpenbachFunctionForm) => {
-            const {id, kind, label, section, wait} = func;
+            const {id, kind, label, wait} = func;
             if (wait) {
                 const timeNumber = Number(wait.time);
                 wait.time = timeNumber === 0 ? 0 : (timeNumber || wait.time || undefined);
@@ -196,7 +196,7 @@ function convertFormToScenario(form: IScenarioForm): IScenario {
                     const intervalNumber = Number(func.interval);
                     const offsetNumber = Number(func.offset);
                     return {
-                        id, label, section, wait,
+                        id, label, wait,
                         start_job_instance: {
                             entity_name: func.entity,
                             interval: isNaN(intervalNumber) || (intervalNumber === 0 && (func.interval as any) !== "0") ? undefined : intervalNumber,
