@@ -89,7 +89,12 @@ class _BaseSocketCommunicator:
     def receive_message(self):
         size = receive_all(self.socket, 4)
         length, = struct.unpack('>I', size)
-        return receive_all(self.socket, length)
+        response = receive_all(self.socket, length)
+        actual_length = len(response)
+        if actual_length != length:
+            raise errors.UnreachableError(
+                    'Response from the socket truncated at {} bytes instead of the expected {}'
+                    .format(actual_length, length))
 
     def send_message(self, message):
         length = struct.pack('>I', len(message))
@@ -107,10 +112,10 @@ class _BaseSocketCommunicator:
                 else:
                     return self.receive_message()
         except OSError as e:
-            raise errors.UnprocessableError(
+            raise errors.UnreachableError(
                     'Sending message through the socket {} failed: {}'
                     .format(self.socket, e))
-        raise errors.UnprocessableError(
+        raise errors.UnreachableError(
                 'Sending message through the socket {} failed: {}'
                 .format(self.socket, st))
 

@@ -85,6 +85,7 @@ from openbach_django.models import (
         ScenarioInstance, JobInstance, OpenbachFunctionInstance,
         StartJobInstance as StartJobInstanceOpenbachFunction,
         StartScenarioInstance as StartScenarioInstanceOpenbachFunction,
+        FailurePolicy,
 )
 
 from lib.utils import OpenbachJSONEncoder
@@ -171,20 +172,20 @@ def status_manager(job_instance_id, scenario_instance_id, username):
     """
     job_status_manager = StatusJobInstance(job_instance_id, update=True)
     job_status_manager.configure_user(username)
+    try:
+        job_instance = job_status_manager.get_job_instance_or_not_found_error()
+    except errors.ConductorError:
+        StatusManager().remove_job(scenario_instance_id, job_instance_id)
+        return
 
     try:
         job_status_manager.action()
     except errors.ConductorWarning:
-        job_instance = job_status_manager.get_job_instance_or_not_found_error()
         job_instance.set_status('Agent Unreachable')
-        job_stopped = job_instance.is_stopped
     except errors.ConductorError:
-        job_stopped = True
-    else:
-        job_instance = job_status_manager.get_job_instance_or_not_found_error()
-        job_stopped = job_instance.is_stopped
+        job_instance.set_status('Error')
 
-    if job_stopped:
+    if job_instance.is_stopped:
         StatusManager().remove_job(scenario_instance_id, job_instance_id)
 
 
@@ -391,6 +392,7 @@ class PullFile(OpenbachFunctionMixin, PullFileConductor):
 class Reboot(OpenbachFunctionMixin, RebootConductor):
     pass
 
+
 ##############################
 # OpenbachFunctions handling #
 ##############################
@@ -521,6 +523,13 @@ class ScenarioInstanceStatus(threading.Thread):
                 self._join_openbach_functions()
                 return
 
+            for openbach_function_instance in self._requires_restart():
+                openbach_function_instance.retry_performed += 1
+                openbach_function_instance.save()
+                openbach_function_thread = OpenbachFunctionThread(openbach_function_instance)
+                self._openbach_functions.append(openbach_function_thread)
+                openbach_function_thread.start()
+
             for openbach_function_instance in scheduled_openbach_functions.all():
                 function = openbach_function_instance.openbach_function
                 if OpenbachFunctionInstance.objects.filter(
@@ -561,6 +570,13 @@ class ScenarioInstanceStatus(threading.Thread):
                 self._terminate_instance()
                 return
 
+            for openbach_function_instance in self._requires_restart():
+                openbach_function_instance.retry_performed += 1
+                openbach_function_instance.save()
+                openbach_function_thread = OpenbachFunctionThread(openbach_function_instance)
+                self._openbach_functions.append(openbach_function_thread)
+                openbach_function_thread.start()
+
             time.sleep(1)
 
         self.scenario_instance.stop(stop_status='Finished OK')
@@ -569,11 +585,31 @@ class ScenarioInstanceStatus(threading.Thread):
     def stop(self):
         self._is_stopped.set()
 
+    def _requires_restart(self):
+        started_jobs = OpenbachFunctionInstance.objects.filter(
+                id__in=StartJobInstanceOpenbachFunction.objects.values('instances'),
+                scenario_instance=self.scenario_instance).values('started_job')
+        crashed_jobs = JobInstance.objects.filter(id__in=started_jobs, status__startswith='Restart Required')
+        yield from (job.openbach_function_instance for job in crashed_jobs)
+        errored = self.scenario_instance.openbach_functions_instances.filter(status__startswith='Error')
+        yield from (obf for obf in errored if not self._is_openbach_function_marked_as_failed(obf))
+
+
     @staticmethod
     def _has_instances_running(started_jobs, started_scenarios):
         jobs_not_finished = JobInstance.objects.filter(id__in=started_jobs).exclude(status__in=('Stopped', 'Not Running'))
         scenarios_not_finished = ScenarioInstance.objects.filter(id__in=started_scenarios).exclude(status__in=('Stopped', 'Finished OK', 'Finished KO', 'Agents Unreachable'))
         return jobs_not_finished.exists() or scenarios_not_finished.exists()
+
+    @staticmethod
+    def _is_openbach_function_marked_as_failed(openbach_function_instance):
+        try:
+            on_failure = openbach_function_instance.openbach_function.on_failure
+        except FailurePolicy.DoesNotExists:
+            return True
+        else:
+            policy = on_failure.fail_policy
+            return policy is FailurePolicy.Policies.FAIL or (policy is FailurePolicy.Policies.RETRY and on_failure.retry_limit == openbach_function_instance.retry_performed)
 
     def _has_waited_instances_finished(self, function):
         wait_for_finished = OpenbachFunctionInstance.objects.filter(
@@ -595,17 +631,19 @@ class ScenarioInstanceStatus(threading.Thread):
         started_jobs = OpenbachFunctionInstance.objects.filter(
                 id__in=StartJobInstanceOpenbachFunction.objects.values('instances'),
                 scenario_instance=self.scenario_instance).values('started_job')
-        return JobInstance.objects.filter(id__in=started_jobs, status__startswith='Error').exists()
+        crashed_jobs = JobInstance.objects.filter(id__in=started_jobs, status__startswith='Error')
+        return any(self._is_openbach_function_marked_as_failed(job_instance.openbach_function_instance) for job_instance in crashed_jobs)
 
     def _has_agents_disconnected(self):
         started_jobs = OpenbachFunctionInstance.objects.filter(
                 id__in=StartJobInstanceOpenbachFunction.objects.values('instances'),
                 scenario_instance=self.scenario_instance).values('started_job')
-        return JobInstance.objects.filter(id__in=started_jobs, status='Agent Unreachable').exists()
+        unreachable = JobInstance.objects.filter(id__in=started_jobs, status='Agent Unreachable')
+        return any(self._is_openbach_function_marked_as_failed(job_instance.openbach_function_instance) for job_instance in unreachable)
 
     def _has_openbach_functions_crashed(self):
         errored = self.scenario_instance.openbach_functions_instances.filter(status__startswith='Error')
-        return errored.exists()
+        return any(map(self._is_openbach_function_marked_as_failed, errored))
 
     def _join_openbach_functions(self):
         for thread in self._openbach_functions:

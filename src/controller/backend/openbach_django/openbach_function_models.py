@@ -158,6 +158,7 @@ class OpenbachFunctionInstance(models.Model):
             related_name='openbach_functions_instances')
     status = models.CharField(max_length=500, null=True, blank=True)
     launch_date = models.DateTimeField(null=True, blank=True)
+    retry_performed = models.IntegerField(default=0)
 
     def __str__(self):
         return (
@@ -277,6 +278,43 @@ class WaitForFinished(models.Model):
                     'the waited OpenbachFunction not '
                     'referencing the same Scenario')
         super().save(*args, **kwargs)
+
+
+class FailurePolicy(models.Model):
+    """Policy indicating how a given OpenBACH Function
+    should behave upon failure. Absence of such policy is
+    equivalent to the FAIL policy.
+    """
+
+    class Policies(models.TextChoices):
+        IGNORE = 'I'
+        FAIL = 'F'
+        RETRY = 'R'
+
+    openbach_function = models.ForeignKey(
+            OpenbachFunction,
+            models.CASCADE,
+            related_name='on_failure')
+
+    policy = models.CharField(
+            max_length=max(map(len, Policies.values)),
+            choices=Policies.choices,
+            default=Policies.IGNORE)
+    wait_time = OpenbachFunctionParameter(type=float, blank=True, null=True)
+    retry_limit = models.IntegerField(blank=True, null=True)
+
+    @property
+    def fail_policy(self):
+        return self.Policies[self.policy]
+
+    def __str__(self):
+        policy = self.fail_policy
+        if policy is self.Policies.RETRY:
+            delay = 5. if self.delay is None else self.delay
+            retries = 'undefinitely' if self.retry_limit is None else 'at most {} times'.format(self.retry_limit)
+            return 'Failure Policy: Retry every {} seconds {}'.format(delay, retries)
+        else:
+            return 'Failure Policy: {}'.format(policy.label)
 
 
 # From here on, definition of supported OpenBACH functions

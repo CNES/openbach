@@ -241,21 +241,23 @@ class JobInstance(models.Model):
             related_name='private_job_instances')
     stop_date = models.DateTimeField(null=True, blank=True)
     periodic = models.BooleanField()
-    is_stopped = models.BooleanField(default=False)
     openbach_function_instance = models.OneToOneField(
             'OpenbachFunctionInstance',
             models.SET_NULL,
             null=True, blank=True,
             related_name='started_job')
 
+    @property
+    def is_stopped(self):
+        return self.stop_date is not None
+
     def set_status(self, status):
         now = timezone.now()
         self.status = status
         self.update_status = now
         if status == 'Running':
-            self.is_stopped = False
-        elif status != 'Scheduled':
-            self.is_stopped = True
+            self.stop_date = None
+        elif status not in {'Scheduled', 'Agent Unreachable', 'Restart Required'}:
             if self.stop_date is None:
                 self.stop_date = now
         self.save()

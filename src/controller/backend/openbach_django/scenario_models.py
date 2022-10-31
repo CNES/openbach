@@ -53,7 +53,7 @@ from . import openbach_function_models  # So we can getattr from this module
 from .openbach_function_models import (  # Shortcuts
         OpenbachFunction, OpenbachFunctionInstance,
         StartJobInstance, StartJobInstanceArgument,
-        StartScenarioInstance,
+        StartScenarioInstance, FailurePolicy,
         WaitForLaunched, WaitForFinished
 )
 
@@ -267,7 +267,11 @@ class Scenario(models.Model):
             id_ = extract_value('openbach_functions', index, 'id', expected_type=int)
             label = extract_value('openbach_functions', index, 'label', expected_type=str, mandatory=False)
             label = json_data['openbach_functions'][index].get('label')  # Type checking is done, extract the real value
-            possible_function_name = [key for key in function if key not in {'wait', 'id', 'label'}]
+            policy = extract_value('openbach_functions', index, 'on_fail', expected_type=dict, mandatory=False)
+            json_data['openbach_functions'][index]['on_fail'] = policy
+            failure_policy = extract_value('openbach_functions', index, 'on_fail', 'policy', expected_type=str, mandatory=False)
+            failure_retry = extract_value('openbach_functions', index, 'on_fail', 'retry', expected_type=int, mandatory=False) or policy.get('retry')
+            possible_function_name = [key for key in function if key not in {'wait', 'id', 'label', 'on_fail'}]
             if len(possible_function_name) < 1:
                 raise Scenario.MalformedError(
                         'openbach_functions.{}'.format(index), value=function,
@@ -308,6 +312,17 @@ class Scenario(models.Model):
                     raise Scenario.MalformedError(
                             'openbach_functions.{}.{}.{}'.format(index, function_name, name),
                             value=value, expected_type=expected_type)
+
+            if failure_policy:
+                try:
+                    FailurePolicy.objects.create(
+                            openbach_function=openbach_function,
+                            policy=failure_policy,
+                            retry_limit=failure_retry)
+                except ValidationError as e:
+                    raise Scenario.MalformedError(
+                            'openbach_functions.{}.on_fail'.format(index),
+                            override_error=str(e))
 
             # Register required and optional arguments for a start_job_instance
             if function_name == 'start_job_instance':
@@ -471,12 +486,15 @@ class ScenarioInstance(models.Model):
             null=True, blank=True,
             related_name='private_scenario_instances')
     stop_date = models.DateTimeField(null=True, blank=True)
-    is_stopped = models.BooleanField(default=False)
     openbach_function_instance = models.OneToOneField(
             OpenbachFunctionInstance,
             models.CASCADE,
             null=True, blank=True,
             related_name='started_scenario')
+
+    @property
+    def is_stopped(self):
+        return self.stop_date is not None
 
     @property
     def scenario(self):
@@ -486,10 +504,9 @@ class ScenarioInstance(models.Model):
         return 'Scenario Instance {}'.format(self.id)
 
     def stop(self, *, stop_status=None):
-        if not self.is_stopped or stop_status is not None:
+        if self.stop_date is None or stop_status is not None:
             self.status = 'Stopped' if stop_status is None else stop_status
             self.stop_date = timezone.now()
-            self.is_stopped = True
             self.save()
 
     @cached_property

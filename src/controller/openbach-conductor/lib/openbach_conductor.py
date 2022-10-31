@@ -92,6 +92,7 @@ from openbach_django.models import (
         ScenarioArgument, ScenarioArgumentValue,
         StartJobInstance as OpenbachFunctionStartJobInstance,
         StartScenarioInstance as OpenbachFunctionStartScenarioInstance,
+        FailurePolicy,
 )
 from openbach_django.utils import user_to_json
 from . import errors, external_jobs
@@ -1829,18 +1830,14 @@ class JobInstanceAction(ConductorAction):
                     'The Agent associated to this JobInstance was uninstalled',
                     job_name=self.name, job_instance_id=job_instance.id)
 
-        try:
-            baton = OpenBachBaton(agent.address, agent.port)
-            getattr(baton, method)(
-                    job_instance.job_name,
-                    job_instance.id,
-                    scenario_id, owner_id,
-                    job_instance.arguments,
-                    job_instance.start_timestamp,
-                    self.interval)
-        except (AttributeError, errors.ConductorError):
-            job_instance.delete()
-            raise
+        baton = OpenBachBaton(agent.address, agent.port)
+        getattr(baton, method)(
+                job_instance.job_name,
+                job_instance.id,
+                scenario_id, owner_id,
+                job_instance.arguments,
+                job_instance.start_timestamp,
+                self.interval)
 
         job_instance.set_status('Running')
 
@@ -2035,9 +2032,18 @@ class StatusJobInstance(JobInstanceAction):
             try:
                 job_status = OpenBachBaton(agent.address, agent.port).status_job_instance(
                         job_instance.job_name, self.instance_id)
-            except errors.UnprocessableError:
+            except errors.UnreachableError:
                 job_status = 'Agent Unreachable'
+            except errors.UnprocessableError:
+                job_status = 'Error'
             finally:
+                try:
+                    on_failure = job_instance.openbach_function_instance.openbach_function.on_failure
+                except (OpenbachFunctionInstance.DoesNotExist, FailurePolicy.DoesNotExist):
+                    pass
+                else:
+                    if on_failure.fail_policy is FailurePolicy.Policies.RETRY:
+                        job_status = 'Restart Required'
                 job_instance.set_status(job_status)
 
         status = job_instance.json
