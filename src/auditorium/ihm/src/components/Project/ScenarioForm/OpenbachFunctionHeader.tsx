@@ -21,7 +21,7 @@ const styles: IStyles = {
         display: "inline-block",
         margin: "0px 2%",
         verticalAlign: "top",
-        width: "46%",
+        width: "29.333333333333%",
     },
     hidden: {
         display: "none",
@@ -60,6 +60,11 @@ export default class OpenbachFunctionHeader extends React.Component<IProps, {}> 
                         type="string"
                         text="label"
                         fullWidth={true}
+                    />
+                </div>
+                <div style={styles.container}>
+                    <FailPolicy
+                        formName={`functions[${this.props.index}].on_fail`}
                     />
                 </div>
                 <div style={styles.container}>
