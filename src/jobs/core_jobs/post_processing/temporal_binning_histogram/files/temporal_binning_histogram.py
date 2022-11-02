@@ -108,7 +108,7 @@ def main(
                 bins_sizes, axis_labels, figures_titles, legends_titles,stat_units,legend_units,colormap,
                 fillvalue=[]):
             
-            print(job,fields,sep='\n')
+           
             data_collection = statistics.fetch(
                     job_instances=job,
                     suffix = None if stats_with_suffixes else '',
@@ -119,7 +119,7 @@ def main(
                 plot.dataframe.set_axis(plot.dataframe.columns.get_level_values('statistic'), axis=1, copy=False)
                 for plot in data_collection])
 
-            print(type(df))
+            
             # Recreate a multi-indexed columns so the plot can function properly
             df.columns = pd.MultiIndex.from_tuples(
                     [('', '', '', '', stat) for stat in df.columns],
@@ -206,7 +206,7 @@ def main(
 
                 filepath = os.path.join(root, 'temporal_binning_histogram_{}.{}'.format(field, file_ext))
                 #save(figure, filepath, pickle, False)
-                save(figure,'/home/agarba-abdou/openbach-extra/apis/temporal_binding_histogram.png',set_legend=False)
+                save(figure,'/home/agarba-abdou/temporal_binding_histogram_{}.{}'.format(field, file_ext),set_legend=False)
                 #collect_agent.store_files(collect_agent.now(), figure=filepath)
 
 

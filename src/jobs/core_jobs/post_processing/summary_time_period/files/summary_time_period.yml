@@ -1,0 +1,108 @@
+#   OpenBACH is a generic testbed able to control/configure multiple
+#   network/physical entities (under test) and collect data from them. It is
+#   composed of an Auditorium (HMIs), a Controller, a Collector and multiple
+#   Agents (one for each network entity that wants to be tested).
+#   
+#   
+#   Copyright © 2016-2020 CNES
+#   
+#   
+#   This file is part of the OpenBACH testbed.
+#   
+#   
+#   OpenBACH is a free software : you can redistribute it and/or modify it under
+#   the terms of the GNU General Public License as published by the Free Software
+#   Foundation, either version 3 of the License, or (at your option) any later
+#   version.
+#   
+#   This program is distributed in the hope that it will be useful, but WITHOUT
+#   ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS
+#   FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+#   details.
+#   
+#   You should have received a copy of the GNU General Public License along with
+#   this program. If not, see http://www.gnu.org/licenses/.
+
+---
+
+general:
+  name: summary_time_period
+  description: >
+      This job post-process data of other jobs. It generates period-aggregated table of jobs metrics mean and median to perform statistics analysis.
+  job_version: '1.1'
+  keywords:
+    - post-processing
+    - summary-period
+    - statistics
+    - mean
+    - median
+    - evolution
+    - aggregation
+  persistent: no
+
+platform_configuration:
+  - ansible_system: Debian
+    ansible_distribution: Ubuntu
+    ansible_distribution_version: '20.04'
+    command: '/usr/bin/env python3 /opt/openbach/agent/jobs/summary_time_period/summary_time_period.py'
+    command_stop:
+  - ansible_system: Debian
+    ansible_distribution: Ubuntu
+    ansible_distribution_version: '22.04'
+    command: '/usr/bin/env python3 /opt/openbach/agent/jobs/summary_time_period/summary_time_period.py'
+    command_stop:
+
+
+arguments:
+  required:
+  optional:
+    - name: agents
+      type: agent
+      count: '+'
+      flag: '-n'
+      repeatable: yes
+      description: Agent name to fetch data from
+    - name: jobs
+      type: str
+      count: '+'
+      flag: '-j'
+      repeatable: yes
+      description: The job name to plot data from
+    - name: statistics
+      type: str
+      count: '+'
+      flag: '-s'
+      repeatable: yes
+      description: statistics names to be analysed
+    - name: aggregation
+      type: str
+      count: '+'
+      flag: '-a'
+      repeatable: yes
+      choices:
+        - second
+        - minute
+        - hour
+        - day
+        - month
+        - year
+      description: The time criteria for values aggregation
+    - name: begin_date
+      type: str
+      count: '+'
+      flag: '-b'
+      repeatable: yes
+      description: Start date in form YYYY:MM:DD hh:mm:ss
+    - name: end_date
+      type: str
+      count: '+'
+      flag: '-e'
+      repeatable: yes
+      description: End date in form YYYY:MM:DD hh:mm:ss
+    - name: no_suffix
+      type: None
+      count: 0
+      flag: '-w'
+      description: Do not plot statistics with suffixes
+
+statistics:

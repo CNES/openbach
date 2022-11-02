@@ -118,7 +118,7 @@ def main(
                     axis.set_title(title)
                 filepath = os.path.join(root, 'temporal_binning_statistics_{}.{}'.format(field, file_ext))
                 #save(figure, filepath, pickle)
-                save(figure, '/home/agarba-abdou/openbach-extra/apis/temporal_binding_statistics.png',False)
+                save(figure, '/home/agarba-abdou/temporal_binding_statistics_{}.{}'.format(field, file_ext),False)
                 #collect_agent.store_files(collect_agent.now(), figure=filepath)
 
 
