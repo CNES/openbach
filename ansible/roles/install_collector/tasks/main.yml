@@ -227,9 +227,10 @@
       - fail:
           msg: >
             It appears that a previous OpenBACH database is still present in
-            InfluxDB. To avoid loss of data we won't overwrite it. Please
-            remove this database manually before retrying; or run the playbook
-            with the '--skip-tags restore_influxdb_database' option.
+            InfluxDB. To avoid loss of data we won't overwrite it. If you
+            know what you are doing, remove this database manually before
+            retrying; or run the playbook with the
+            '--skip-tags restore_influxdb_database' option.
     tags:
       - restore_influxdb_database
 
@@ -292,9 +293,10 @@
       - fail:
           msg: >
             It appears that a previous OpenBACH database is still present in
-            ElasticSearch. To avoid loss of data we won't overwrite it. Please
-            remove this database manually before retrying; or run the playbook
-            with the '--skip-tags restore_elasticsearch_database' option.
+            ElasticSearch. To avoid loss of data we won't overwrite it. If
+            you know what you are doing, remove this database manually before
+            retrying; or run the playbook with the
+            '--skip-tags restore_elasticsearch_database' option.
     always:
       - name: Delete the Temporary Snapshot Store
         uri:
