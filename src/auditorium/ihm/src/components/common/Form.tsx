@@ -13,7 +13,7 @@ export const FormField = Field as new () => Field;
 export const ReduxFormMultiSelectField = Field as new () => Field;
 
 
-export class TextFormField extends React.Component<IProps, {}> {
+export class TextFormField extends React.Component<IProps & {inputProps?: object}, {}> {
     public render() {
         return (
             <TextField
@@ -26,6 +26,7 @@ export class TextFormField extends React.Component<IProps, {}> {
                 multiLine={this.props.multiLine}
                 style={this.props.style}
                 floatingLabelStyle={this.props.customStyle}
+                inputProps={this.props.inputProps}
                 {...this.props.input}
             />
         );

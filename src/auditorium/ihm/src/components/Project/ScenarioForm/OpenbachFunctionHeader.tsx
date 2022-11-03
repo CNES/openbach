@@ -4,6 +4,8 @@ import MenuItem from "material-ui/MenuItem";
 
 import {OpenbachFunctionsList, TOpenbachFunctions} from "../../../interfaces/project.interface";
 import {FormField, HiddenFormField, SelectFormField, TextFormField} from "../../common/Form";
+
+import FailPolicy from "./FailPolicy";
 import WaitFor from "./WaitFor";
 
 
@@ -83,6 +85,8 @@ export default class OpenbachFunctionHeader extends React.Component<IProps, {}> 
                         component={TextFormField}
                         fullWidth={false}
                         text="Waiting time"
+                        type="number"
+                        inputProps={{step: 0.1}}
                     />
                     <p style={styles.text}>seconds after</p>
                 </div>
