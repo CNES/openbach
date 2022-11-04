@@ -227,64 +227,86 @@ class OpenbachFunctionInstance(models.Model):
         return self.openbach_function.instance_value('wait_time', parameters)
 
 
-class WaitForLaunched(models.Model):
-    """Waiting condition that will prevent an OpenBACH Function
-    to start before an other one is already started.
+class WaitingCondition(models.Model):
+    """Abstract base class containing scheduling informations
+    for an OpenBACH function waiting on an other one. Each
+    awaitable lifecycle event of an OpenBACH function have an
+    associated concrete subclass.
+
+    Subclasses must implement an `openbach_function_instance`
+    ForeignKey with the appropriate `related_name` so the
+    director can easily get back to there for its scheduling
+    decision making.
     """
+
+    class Meta:
+        abstract = True
 
     openbach_function_waited = models.ForeignKey(
             OpenbachFunction,
             on_delete=models.CASCADE,
             related_name='+')
+
+    def __str__(self):
+        action = self.__class__.__name__.split('WaitFor')[-1].lower()
+        return ('{0.openbach_function_instance} waits for '
+                '{0.openbach_function_waited} to be {1}'.format(self, action))
+
+    def save(self, *args, **kwargs):
+        own_scenario = self.openbach_function_instance.scenario
+        waited_scenario = self.openbach_function_waited.scenario
+        if waited_scenario != own_scenario:
+            name = self.__class__.__name__
+            raise IntegrityError(
+                    f'Trying to save a {name} instance '
+                    'with the associated OpenbachFunction and '
+                    'the waited OpenbachFunction not '
+                    'referencing the same Scenario')
+        super().save(*args, **kwargs)
+
+
+class WaitForRunning(WaitingCondition):
+    """Waiting condition that will prevent an OpenBACH Function
+    to start before an other one is already running.
+    """
+
+    openbach_function_instance = models.ForeignKey(
+            OpenbachFunction,
+            on_delete=models.CASCADE,
+            related_name='running_waiters')
+
+
+class WaitForEnded(WaitingCondition):
+    """Waiting condition that will prevent an OpenBACH Function
+    to start before an other one is done executing.
+    """
+
+    openbach_function_instance = models.ForeignKey(
+            OpenbachFunction,
+            on_delete=models.CASCADE,
+            related_name='ended_waiters')
+
+
+class WaitForLaunched(WaitingCondition):
+    """Waiting condition that will prevent an OpenBACH Function to
+    start before an other one has already started their job/scenario.
+    """
+
     openbach_function_instance = models.ForeignKey(
             OpenbachFunction,
             on_delete=models.CASCADE,
             related_name='launched_waiters')
 
-    def __str__(self):
-        return ('{0.openbach_function_instance} waits for '
-                '{0.openbach_function_waited} to be launched'.format(self))
 
-    def save(self, *args, **kwargs):
-        own_scenario = self.openbach_function_instance.scenario
-        waited_scenario = self.openbach_function_waited.scenario
-        if waited_scenario != own_scenario:
-            raise IntegrityError(
-                    'Trying to save a WaitForLaunched instance '
-                    'with the associated OpenbachFunction and '
-                    'the waited OpenbachFunction not '
-                    'referencing the same Scenario')
-        super().save(*args, **kwargs)
-
-
-class WaitForFinished(models.Model):
-    """Waiting condition that will prevent an OpenBACH Function
-    to start before an other one is completely finished.
+class WaitForFinished(WaitingCondition):
+    """Waiting condition that will prevent an OpenBACH Function to
+    start before an other one have their job/scenario completely finished.
     """
 
-    openbach_function_waited = models.ForeignKey(
-            OpenbachFunction,
-            models.CASCADE,
-            related_name='+')
     openbach_function_instance = models.ForeignKey(
             OpenbachFunction,
             on_delete=models.CASCADE,
             related_name='finished_waiters')
-
-    def __str__(self):
-        return ('{0.openbach_function_instance} waits for '
-                '{0.openbach_function_waited} to finish'.format(self))
-
-    def save(self, *args, **kwargs):
-        own_scenario = self.openbach_function_instance.scenario
-        waited_scenario = self.openbach_function_waited.scenario
-        if waited_scenario != own_scenario:
-            raise IntegrityError(
-                    'Trying to save a WaitForFinished instance '
-                    'with the associated OpenbachFunction and '
-                    'the waited OpenbachFunction not '
-                    'referencing the same Scenario')
-        super().save(*args, **kwargs)
 
 
 class FailurePolicy(models.Model):

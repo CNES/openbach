@@ -54,7 +54,8 @@ from .openbach_function_models import (  # Shortcuts
         OpenbachFunction, OpenbachFunctionInstance,
         StartJobInstance, StartJobInstanceArgument,
         StartScenarioInstance, FailurePolicy,
-        WaitForLaunched, WaitForFinished
+        WaitForRunning, WaitForEnded,
+        WaitForLaunched, WaitForFinished,
 )
 
 
@@ -373,61 +374,35 @@ class Scenario(models.Model):
         # Start again the looping to be sure all referenced
         # indexes have been created
         for index, function in enumerate(openbach_functions):
-            wait_launched = extract_value(
-                    'openbach_functions', index, 'wait',
-                    'launched_ids', expected_type=list, mandatory=False)
-            for idx, launched_id in enumerate(wait_launched):
-                if not isinstance(launched_id, int):
-                    raise Scenario.MalformedError(
-                            'openbach_functions.{}.wait.'
-                            'launched_ids.{}'.format(index, idx),
-                            value=launched_id, expected_type=int)
-                try:
-                    waited_function = scenario.openbach_functions.get(function_id=launched_id)
-                except OpenbachFunction.DoesNotExist:
-                    raise Scenario.MalformedError(
-                            'openbach_functions.{}.wait.'
-                            'launched_ids.{}'.format(index, idx),
-                            value=launched_id, override_error='The '
-                            'referenced openbach function does not exist')
-                else:
-                    waited_function = waited_function.get_content_model()
-                openbach_function_instance = scenario.openbach_functions.get(
-                        function_id=function['id']).get_content_model()
-                WaitForLaunched.objects.create(
-                        openbach_function_waited=waited_function,
-                        openbach_function_instance=openbach_function_instance)
-            wait_finished = extract_value(
-                    'openbach_functions', index, 'wait',
-                    'finished_ids', expected_type=list, mandatory=False)
-            for idx, launched_id in enumerate(wait_finished):
-                if not isinstance(launched_id, int):
-                    raise Scenario.MalformedError(
-                            'openbach_functions.{}.wait.'
-                            'finished_ids.{}'.format(index, idx),
-                            value=launched_id, expected_type=int)
-                try:
-                    waited_function = scenario.openbach_functions.get(function_id=launched_id)
-                except OpenbachFunction.DoesNotExist:
-                    raise Scenario.MalformedError(
-                            'openbach_functions.{}.wait.'
-                            'finished_ids.{}'.format(index, idx),
-                            value=launched_id, override_error='The '
-                            'referenced openbach function does not exits')
-                else:
-                    waited_function = waited_function.get_content_model()
-                if not isinstance(waited_function, (StartJobInstance, StartScenarioInstance)):
-                    raise Scenario.MalformedError(
-                            'openbach_functions.{}.wait.'
-                            'finished_ids.{}'.format(index, idx),
-                            value=launched_id, override_error='The referenced '
-                            'openbach function is neither a start_job_instance '
-                            'nor a start_scenario_instance.')
-                openbach_function_instance = scenario.openbach_functions.get(
-                        function_id=function['id']).get_content_model()
-                WaitForFinished.objects.create(
-                        openbach_function_waited=waited_function,
-                        openbach_function_instance=openbach_function_instance)
+            def waiter_factory(ids_key, Factory):
+                waited = extract_value(
+                        'openbach_functions', index, 'wait', ids_key,
+                        expected_type=list, mandatory=False)
+                for idx, launched_id in enumerate(waited):
+                    if not isinstance(launched_id, int):
+                        raise Scenario.MalformedError(
+                                'openbach_functions.{}.wait.'
+                                '{}.{}'.format(index, ids_key, idx),
+                                value=launched_id, expected_type=int)
+                    try:
+                        waited_function = scenario.openbach_functions.get(function_id=launched_id)
+                    except OpenbachFunction.DoesNotExist:
+                        raise Scenario.MalformedError(
+                                'openbach_functions.{}.wait.'
+                                'launched_ids.{}'.format(index, idx),
+                                value=launched_id, override_error='The '
+                                'referenced openbach function does not exist')
+                    else:
+                        waited_function = waited_function.get_content_model()
+                    openbach_function_instance = scenario.openbach_functions.get(
+                            function_id=function['id']).get_content_model()
+                    Factory.objects.create(
+                            openbach_function_waited=waited_function,
+                            openbach_function_instance=openbach_function_instance)
+            waiter_factory('running_ids', WaitForRunning)
+            waiter_factory('ended_ids', WaitForEnded)
+            waiter_factory('launched_ids', WaitForLaunched)
+            waiter_factory('finished_ids', WaitForFinished)
 
         # Check that all arguments are used
         scenario_arguments = {
