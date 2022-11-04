@@ -47,6 +47,7 @@ class ScenarioBuilder extends React.Component<IProps & IStoreProps & IDispatchPr
             id: func.id,
             kind: functionType,
             label: func.label,
+            on_fail: func.on_fail,
             parameters: {},
             scenarioArguments: {},
             subcommands: {},

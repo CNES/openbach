@@ -96,6 +96,7 @@ export default class OpenbachFunctions extends React.Component<IProps & IFieldAr
             id: newGuid,
             kind: undefined,
             label: undefined,
+            on_fail: undefined,
             parameters: {},
             wait: undefined,
         });

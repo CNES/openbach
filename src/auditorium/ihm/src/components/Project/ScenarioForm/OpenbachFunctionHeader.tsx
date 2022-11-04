@@ -44,10 +44,6 @@ const styles: IStyles = {
 
 
 export default class OpenbachFunctionHeader extends React.Component<IProps, {}> {
-    constructor(props) {
-        super(props);
-    }
-
     public render() {
         const openbachFunctions = OpenbachFunctionsList.map((openbachFunction) => (
             <MenuItem key={openbachFunction} value={openbachFunction} primaryText={openbachFunction} />
@@ -66,7 +62,8 @@ export default class OpenbachFunctionHeader extends React.Component<IProps, {}> 
                 </div>
                 <div style={styles.container}>
                     <FailPolicy
-                        formName={`functions[${this.props.index}].on_fail`}
+                        parameterName={`functions[${this.props.index}].on_fail`}
+                        currentPolicy={this.props.failPolicy}
                     />
                 </div>
                 <div style={styles.container}>
@@ -93,12 +90,12 @@ export default class OpenbachFunctionHeader extends React.Component<IProps, {}> 
                 <div style={styles.wait}>
                     <WaitFor
                         text="are started and"
-                        formName={`functions[${this.props.index}].wait.launched_ids`}
+                        parameterName={`functions[${this.props.index}].wait.launched_ids`}
                         ids={this.props.ids}
                     />
                     <WaitFor
                         text="are finished."
-                        formName={`functions[${this.props.index}].wait.finished_ids`}
+                        parameterName={`functions[${this.props.index}].wait.finished_ids`}
                         ids={this.props.ids}
                     />
                 </div>
@@ -111,4 +108,5 @@ export default class OpenbachFunctionHeader extends React.Component<IProps, {}> 
 interface IProps {
     index: number;
     ids: Array<{value: number, label: string}>;
+    failPolicy?: string;
 };

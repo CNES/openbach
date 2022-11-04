@@ -61,6 +61,7 @@ class OpenbachFunction extends React.Component<IProps & IStoreProps, IState> {
         const innerComponent = (
             <Paper zDepth={1} style={{paddingBottom: "15px"}}>
                 <OpenbachFunctionHeader
+                    failPolicy={currentFunction ? currentFunction.on_fail ? currentFunction.on_fail.policy : undefined : undefined}
                     index={formIndex}
                     ids={openbachFunctionReferences}
                 />

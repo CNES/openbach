@@ -183,11 +183,15 @@ function convertFormToScenario(form: IScenarioForm): IScenario {
         description: form.description,
         name: form.name,
         openbach_functions: form.functions.map((func: IOpenbachFunctionForm) => {
-            const {id, kind, label, wait} = func;
+            const {id, kind, label, on_fail, wait} = func;
             if (wait) {
                 const timeNumber = Number(wait.time);
                 wait.time = timeNumber === 0 ? 0 : (timeNumber || wait.time || undefined);
             }
+	    if (on_fail) {
+                const retryLimit = Number(on_fail.retry);
+                on_fail.retry = retryLimit === 0 ? 0 : (retryLimit || on_fail.retry || undefined);
+	    }
             switch (kind) {
                 case "start_job_instance":
                     const formParameters = func.parameters[func.job] || {};
@@ -196,7 +200,7 @@ function convertFormToScenario(form: IScenarioForm): IScenario {
                     const intervalNumber = Number(func.interval);
                     const offsetNumber = Number(func.offset);
                     return {
-                        id, label, wait,
+                        id, label, on_fail, wait,
                         start_job_instance: {
                             entity_name: func.entity,
                             interval: isNaN(intervalNumber) || (intervalNumber === 0 && (func.interval as any) !== "0") ? undefined : intervalNumber,
@@ -206,7 +210,7 @@ function convertFormToScenario(form: IScenarioForm): IScenario {
                     };
                 case "stop_job_instances":
                     return {
-                        id, label, wait,
+                        id, label, on_fail, wait,
                         stop_job_instances: {openbach_function_ids: func.jobs},
                     };
                 case "start_scenario_instance":
@@ -214,17 +218,17 @@ function convertFormToScenario(form: IScenarioForm): IScenario {
                     const scenarioArguments = func.scenarioArguments && func.scenarioArguments[scenario_name] || {};
 
                     return {
-                        id, label, wait,
+                        id, label, on_fail, wait,
                         start_scenario_instance: {scenario_name, arguments: scenarioArguments},
                     };
                 case "stop_scenario_instance":
                     return {
-                        id, label, wait,
+                        id, label, on_fail, wait,
                         stop_scenario_instance: {openbach_function_id: func.scenarioID},
                     };
                 case "while":
                     return {
-                        id, label, wait,
+                        id, label, on_fail, wait,
                         while: {
                             condition: func.condition,
                             openbach_functions_end: func.conditionFalse,
@@ -233,7 +237,7 @@ function convertFormToScenario(form: IScenarioForm): IScenario {
                     };
                 case "if":
                     return {
-                        id, label, wait,
+                        id, label, on_fail, wait,
                         if: {
                             condition: func.condition,
                             openbach_functions_false: func.conditionFalse,

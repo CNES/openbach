@@ -1,31 +1,27 @@
 import * as React from "react";
+import {connect} from "react-redux";
 
 import MenuItem from "material-ui/MenuItem";
 import {FormField, HiddenFormField, SelectFormField, TextFormField} from "../../common/Form";
 
 
 const FAIL_POLICIES = [
-    <MenuItem key=0 value="Fail" primaryText="Fail"/>,
-    <MenuItem key=1 value="Ignore" primaryText="Ignore"/>,
-    <MenuItem key=2 value="Retry" primaryText="Retry"/>,
+    <MenuItem key={0} value="Fail" primaryText="Fail"/>,
+    <MenuItem key={1} value="Ignore" primaryText="Ignore"/>,
+    <MenuItem key={2} value="Retry" primaryText="Retry"/>,
 ];
 
 
-class FailPolicy extends React.Component<IProps & IStoreProps, {}> {
+class FailPolicy extends React.Component<IProps, {}> {
     public render() {
-        const {formName, reduxForm} = this.props;
-        let hidden: boolean = true;
-        let form = reduxForm;
-        formName.split(".").forEach((part: string) => {if (form) { form = form[part]; } });
-        if (form) {
-            hidden = form.values.policy === "Retry";
-        }
+        const {parameterName, currentPolicy} = this.props;
+        const hidden = currentPolicy !== "Retry";
 
         return (
             <div>
                 <div>
                     <FormField
-                        name={formName + ".policy"}
+                        name={parameterName + ".policy"}
                         text="Fail Policy"
                         fullWidth={true}
                         component={SelectFormField}
@@ -34,7 +30,7 @@ class FailPolicy extends React.Component<IProps & IStoreProps, {}> {
                 </div>
                 <div>
                     <FormField
-                        name={formName + ".retry"}
+                        name={parameterName + ".retry"}
                         component={hidden ? HiddenFormField : TextFormField}
                         type="number"
                         text="Retry Limit"
@@ -44,7 +40,7 @@ class FailPolicy extends React.Component<IProps & IStoreProps, {}> {
                 </div>
                 <div>
                     <FormField
-                        name={formName + ".delay"}
+                        name={parameterName + ".delay"}
                         component={hidden ? HiddenFormField : TextFormField}
                         type="number"
                         text="Retry Delay"
@@ -58,18 +54,9 @@ class FailPolicy extends React.Component<IProps & IStoreProps, {}> {
 
 
 interface IProps {
-    formName: string;
+    parameterName: string;
+    currentPolicy?: string;
 };
 
 
-interface IStoreProps {
-    reduxForm: any;
-};
-
-
-const mapStoreToProps = (store): IStoreProps => ({
-    reduxForm: store.form,
-});
-
-
-export default connect<IStoreProps, {}, IProps>(mapStoreToProps)(FailPolicy);
+export default FailPolicy;

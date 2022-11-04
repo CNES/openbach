@@ -41,6 +41,7 @@ export interface IScenario {
 export interface IOpenbachFunction {
     id: number;
     label: string;
+    on_fail: IOpenbachFunctionFailPolicy;
     wait: IOpenbachFunctionWait;
 };
 
@@ -49,6 +50,13 @@ export interface IOpenbachFunctionWait {
     time: number;
     launched_ids: number[];
     finished_ids: number[];
+};
+
+
+export interface IOpenbachFunctionFailPolicy {
+    policy: string;
+    delay?: number;
+    retry?: number;
 };
 
 
