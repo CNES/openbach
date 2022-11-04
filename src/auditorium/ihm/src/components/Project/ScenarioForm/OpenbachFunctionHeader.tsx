@@ -89,12 +89,22 @@ export default class OpenbachFunctionHeader extends React.Component<IProps, {}> 
                 </div>
                 <div style={styles.wait}>
                     <WaitFor
-                        text="are started and"
+                        text="openbach functions are first running and"
+                        parameterName={`functions[${this.props.index}].wait.running_ids`}
+                        ids={this.props.ids}
+                    />
+                    <WaitFor
+                        text="openbach functions are ended and"
+                        parameterName={`functions[${this.props.index}].wait.ended_ids`}
+                        ids={this.props.ids}
+                    />
+                    <WaitFor
+                        text="jobs/scenarios are started and"
                         parameterName={`functions[${this.props.index}].wait.launched_ids`}
                         ids={this.props.ids}
                     />
                     <WaitFor
-                        text="are finished."
+                        text="jobs/scenarios are finished."
                         parameterName={`functions[${this.props.index}].wait.finished_ids`}
                         ids={this.props.ids}
                     />

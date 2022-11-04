@@ -48,6 +48,8 @@ export interface IOpenbachFunction {
 
 export interface IOpenbachFunctionWait {
     time: number;
+    running_ids: number[];
+    ended_ids: number[];
     launched_ids: number[];
     finished_ids: number[];
 };
