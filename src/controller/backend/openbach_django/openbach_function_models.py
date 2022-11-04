@@ -107,6 +107,13 @@ class OpenbachFunction(ContentTyped):
         json_data['id'] = self.function_id
         json_data['label'] = self.label
 
+        try:
+            on_failure = self.on_failure
+        except FailurePolicy.DoesNotExist:
+            pass
+        else:
+            json_data['on_fail'] = on_failure.json
+
         wait = {}
         if self.wait_time != 0:
             wait['time'] = self.wait_time
@@ -291,7 +298,7 @@ class FailurePolicy(models.Model):
         FAIL = 'F'
         RETRY = 'R'
 
-    openbach_function = models.ForeignKey(
+    openbach_function = models.OneToOneField(
             OpenbachFunction,
             models.CASCADE,
             related_name='on_failure')
@@ -306,6 +313,19 @@ class FailurePolicy(models.Model):
     @property
     def fail_policy(self):
         return self.Policies[self.policy]
+
+    @property
+    def json(self):
+        policy = self.fail_policy
+        json_data = {'policy': policy.label}
+
+        if policy is self.Policies.RETRY:
+            if self.wait_time is not None:
+                json_data['delay'] = self.wait_time
+            if self.retry_limit is not None:
+                json_data['retry'] = self.retry_limit
+
+        return json_data
 
     def __str__(self):
         policy = self.fail_policy

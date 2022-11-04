@@ -317,8 +317,12 @@ class Scenario(models.Model):
                 try:
                     FailurePolicy.objects.create(
                             openbach_function=openbach_function,
-                            policy=failure_policy,
+                            policy=FailurePolicy.Policies[failure_policy.upper()],
                             retry_limit=failure_retry)
+                except KeyError:
+                    raise Scenario.MalformedError(
+                            'openbach_functions.{}.on_fail'.format(index),
+                            override_error='Unknown failure policy \'{}\''.format(failure_policy))
                 except ValidationError as e:
                     raise Scenario.MalformedError(
                             'openbach_functions.{}.on_fail'.format(index),

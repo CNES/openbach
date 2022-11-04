@@ -2090,7 +2090,7 @@ class ListJobInstance(JobInstanceAction):
         for job_instance in JobInstance.objects.filter(
                 job_name=installed_job.job.name,
                 agent_name=installed_job.agent.name,
-                is_stopped=False):
+                stop_date__isnull=True):
             with suppress(errors.ConductorError):
                 status = StatusJobInstance(job_instance.id, self.update)
                 self.share_user(status)
@@ -2265,7 +2265,7 @@ class ScenarioInstanceAction(ConductorAction):
                     scenario_name=self.name, project_name=self.project)
 
         if quiet:
-            queryset = ScenarioInstance.objects.select_related('scenario_version__scenario').only('scenario_version__scenario__name', 'id', 'status', 'start_date', 'is_stopped')
+            queryset = ScenarioInstance.objects.select_related('scenario_version__scenario').only('scenario_version__scenario__name', 'id', 'status', 'start_date', 'stop_date')
         else:
             queryset = ScenarioInstance.objects.select_related('scenario_version__scenario__project')
 
@@ -3624,12 +3624,12 @@ class KillAll(ConductorAction):
 
     @require_connected_user(admin=True)
     def _action(self):
-        for scenario in ScenarioInstance.objects.filter(is_stopped=False):
+        for scenario in ScenarioInstance.objects.filter(stop_date__isnull=True):
             stop_scenario = StopScenarioInstance(scenario.id)
             self.share_user(stop_scenario)
             stop_scenario.action()
 
-        for job in JobInstance.objects.filter(is_stopped=False):
+        for job in JobInstance.objects.filter(stop_date__isnull=True):
             stop_job = StopJobInstance(job.id)
             self.share_user(stop_job)
             stop_job.action()
