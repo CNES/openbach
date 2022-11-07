@@ -332,6 +332,9 @@ class FailurePolicy(models.Model):
     wait_time = OpenbachFunctionParameter(type=float, blank=True, null=True)
     retry_limit = models.IntegerField(blank=True, null=True)
 
+    def requires_restart(self, attempts):
+        return self.fail_policy is self.Policies.RETRY and (self.retry_limit is None or self.retry_limit > attemps)
+
     @property
     def fail_policy(self):
         return self.Policies[self.policy]

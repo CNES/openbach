@@ -92,7 +92,6 @@ from openbach_django.models import (
         ScenarioArgument, ScenarioArgumentValue,
         StartJobInstance as OpenbachFunctionStartJobInstance,
         StartScenarioInstance as OpenbachFunctionStartScenarioInstance,
-        FailurePolicy,
 )
 from openbach_django.utils import user_to_json
 from . import errors, external_jobs
@@ -2037,13 +2036,6 @@ class StatusJobInstance(JobInstanceAction):
             except errors.UnprocessableError:
                 job_status = 'Error'
             finally:
-                try:
-                    on_failure = job_instance.openbach_function_instance.openbach_function.on_failure
-                except (OpenbachFunctionInstance.DoesNotExist, FailurePolicy.DoesNotExist):
-                    pass
-                else:
-                    if on_failure.fail_policy is FailurePolicy.Policies.RETRY:
-                        job_status = 'Restart Required'
                 job_instance.set_status(job_status)
 
         status = job_instance.json
