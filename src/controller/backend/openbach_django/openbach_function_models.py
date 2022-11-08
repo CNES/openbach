@@ -156,6 +156,13 @@ class OpenbachFunction(ContentTyped):
 class OpenbachFunctionInstance(models.Model):
     """Data associated to an Openbach Function instance"""
 
+    class Status(models.TextChoices):
+        SCHEDULED = 'P'
+        RUNNING = 'R'
+        STOPPED = 'S'
+        FINISHED = 'F'
+        ERROR = 'E'
+
     openbach_function = models.ForeignKey(
             OpenbachFunction,
             models.CASCADE,
@@ -163,7 +170,9 @@ class OpenbachFunctionInstance(models.Model):
     scenario_instance = models.ForeignKey(
             'ScenarioInstance', models.CASCADE,
             related_name='openbach_functions_instances')
-    status = models.CharField(max_length=500, null=True, blank=True)
+    status = models.CharField(
+            max_length=max(map(len, Status.values)),
+            choices=Status.choices)
     launch_date = models.DateTimeField(null=True, blank=True)
     retry_performed = models.IntegerField(default=0)
 
@@ -176,9 +185,12 @@ class OpenbachFunctionInstance(models.Model):
                 self.id, self.scenario_instance.id))
 
     def start(self):
-        self.status = 'Running'
+        self.status = self.Status.RUNNING
         self.launch_date = timezone.now()
         self.save()
+
+    def get_status(self):
+        return self.Status(self.status)
 
     def set_status(self, status):
         self.status = status
@@ -199,7 +211,7 @@ class OpenbachFunctionInstance(models.Model):
         from .job_models import JobInstance
 
         json_data = self.openbach_function.json
-        json_data['status'] = self.status
+        json_data['status'] = self.Status[self.status].label
         json_data['launch_date'] = self.launch_date
 
         with suppress(ScenarioInstance.DoesNotExist):
@@ -337,7 +349,7 @@ class FailurePolicy(models.Model):
 
     @property
     def fail_policy(self):
-        return self.Policies[self.policy]
+        return self.Policies(self.policy)
 
     @property
     def json(self):

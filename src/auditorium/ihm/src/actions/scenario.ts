@@ -188,10 +188,10 @@ function convertFormToScenario(form: IScenarioForm): IScenario {
                 const timeNumber = Number(wait.time);
                 wait.time = timeNumber === 0 ? 0 : (timeNumber || wait.time || undefined);
             }
-	    if (on_fail) {
+            if (on_fail) {
                 const retryLimit = Number(on_fail.retry);
                 on_fail.retry = retryLimit === 0 ? 0 : (retryLimit || on_fail.retry || undefined);
-	    }
+            }
             switch (kind) {
                 case "start_job_instance":
                     const formParameters = func.parameters[func.job] || {};

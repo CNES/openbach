@@ -83,20 +83,18 @@ export function getIconForJobState(status: any) {
 };
 
 
-export function getIconForScenarioStatus(status: TScenarioInstanceStatus) {
+export function getIconForScenarioStatus(status: TScenarioInstanceStatus | "Unknown") {
     switch (status) {
         case "Running":
             return <CircularProgress color={green500} size={24}/>;
         case "Scheduling":
             return <ScheduleIcon color={grey500} />;
-        case "Finished OK":
+        case "Finished Ok":
             return <CheckCircleIcon color={cyan500} />;
-        case "Finished KO":
+        case "Finished Ko":
             return <ErrorIcon color={red500} />;
         case "Stopped":
             return <StopIcon color={indigo500} />;
-        case "Stopped, out of controll":
-            return <StopIcon color={red500} />;
         case "Agents Unreachable":
             return <Unreachable color={orange500} />;
         default:
@@ -105,7 +103,7 @@ export function getIconForScenarioStatus(status: TScenarioInstanceStatus) {
 };
 
 
-export function getIconForFunctionStatus(status: TOpenbachFunctionInstanceStatus) {
+export function getIconForFunctionStatus(status: TOpenbachFunctionInstanceStatus | "Unknown") {
     switch (status) {
         case "Scheduled":
             return <ScheduleIcon color={grey500} />;
@@ -123,7 +121,7 @@ export function getIconForFunctionStatus(status: TOpenbachFunctionInstanceStatus
 };
 
 
-export function getIconForJobStatus(status: TJobInstanceStatus) {
+export function getIconForJobStatus(status: TJobInstanceStatus | "Unknown") {
     switch (status) {
         case "Not Scheduled":
             return <CheckCircleIcon color={grey500}/>;

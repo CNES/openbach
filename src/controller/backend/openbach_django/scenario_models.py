@@ -455,10 +455,20 @@ class ScenarioVersion(models.Model):
 class ScenarioInstance(models.Model):
     """Data associated to a Scenario instance"""
 
+    class Status(models.TextChoices):
+        SCHEDULING = 'P'
+        RUNNING = 'R'
+        AGENTS_UNREACHABLE = 'AU'
+        FINISHED_KO = 'KO'
+        FINISHED_OK = 'OK'
+        STOPPED = 'S'
+
     scenario_version = models.ForeignKey(
             ScenarioVersion, models.CASCADE,
             related_name='instances')
-    status = models.CharField(max_length=500, null=True, blank=True)
+    status = models.CharField(
+            max_length=max(map(len, Status.values)),
+            choices=Status.choices)
     start_date = models.DateTimeField(null=True, blank=True)
     started_by = models.ForeignKey(
             User, models.CASCADE,
@@ -470,6 +480,9 @@ class ScenarioInstance(models.Model):
             models.CASCADE,
             null=True, blank=True,
             related_name='started_scenario')
+
+    def get_status(self):
+        return self.Status(self.Status)
 
     @property
     def is_stopped(self):
@@ -484,7 +497,7 @@ class ScenarioInstance(models.Model):
 
     def stop(self, *, stop_status=None):
         if self.stop_date is None or stop_status is not None:
-            self.status = 'Stopped' if stop_status is None else stop_status
+            self.status = self.Status.STOPPED if stop_status is None else stop_status
             self.stop_date = timezone.now()
             self.save()
 
@@ -533,7 +546,7 @@ class ScenarioInstance(models.Model):
                 'scenario_instance_id': self.id,
                 'owner_scenario_instance_id': owner_id,
                 'sub_scenario_instance_ids': sorted(self.sub_scenario_ids),
-                'status': self.status,
+                'status': self.get_status().label,
                 'start_date': self.start_date,
                 'stop_date': self.stop_date,
                 'arguments': parameters,
@@ -545,7 +558,7 @@ class ScenarioInstance(models.Model):
         return {
                 'scenario_name': self.scenario.name,
                 'scenario_instance_id': self.id,
-                'status': self.status,
+                'status': self.get_status().label,
                 'start_date': self.start_date,
                 'sub_scenario_instance_ids': sorted(self.sub_scenario_ids),
         }

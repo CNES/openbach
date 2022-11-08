@@ -228,8 +228,23 @@ class ScenarioInstanceListItem extends React.Component<IProps & IStoreProps & ID
 
         const startDate = new Date(start_date);
         startDate.setMilliseconds(0);
-        const url = "/kibana/app/kibana#/dashboard/default_dashboard?_g=(refreshInterval:(" + display + "),time:(from:'" + startDate.toISOString() + "',mode:absolute,to:" + stopDate + "))&_a=(description:'',filters:!(),fullScreenMode:!f,options:(darkTheme:!f,useMargins:!f),panels:!((gridData:(h:3,i:'2',w:6,x:6,y:0),id:vertical_bar,panelIndex:'2',type:visualization,version:'6.2.4'),(columns:!(_source),gridData:(h:8,i:'6',w:12,x:0,y:3),id:log_search,panelIndex:'6',sort:!('@timestamp',desc),type:search,version:'6.2.4'),(gridData:(h:3,i:'7',w:6,x:0,y:0),id:pie,panelIndex:'7',type:visualization,version:'6.2.4')),query:(language:lucene,query:'owner_scenario_instance_id:" + owner_scenario_instance_id + "'),timeRestore:!f,title:openbach_dashboard,uiState:(),viewMode:view)";
-        openURL(url);
+        const url = [
+            "/kibana/app/kibana#/dashboard/default_dashboard?_g=(refreshInterval:(",
+            display,
+            "),time:(from:'",
+            startDate.toISOString(),
+            "',mode:absolute,to:",
+            stopDate,
+            "))&_a=(description:'',filters:!(),fullScreenMode:!f,options:(darkTheme:!f,useMargins:!f),",
+            "panels:!((gridData:(h:3,i:'2',w:6,x:6,y:0),id:vertical_bar,panelIndex:'2',",
+            "type:visualization,version:'6.2.4'),(columns:!(_source),gridData:(h:8,i:'6',w:12,x:0,y:3),",
+            "id:log_search,panelIndex:'6',sort:!('@timestamp',desc),type:search,version:'6.2.4'),",
+            "(gridData:(h:3,i:'7',w:6,x:0,y:0),id:pie,panelIndex:'7',type:visualization,version:'6.2.4')),",
+            "query:(language:lucene,query:'owner_scenario_instance_id:",
+            owner_scenario_instance_id,
+            "'),timeRestore:!f,title:openbach_dashboard,uiState:(),viewMode:view)",
+        ];
+        openURL(url.join(""));
     }
 };
 

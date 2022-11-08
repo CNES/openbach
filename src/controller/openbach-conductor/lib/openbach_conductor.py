@@ -555,7 +555,7 @@ class AgentAction(ConductorAction):
         except errors.ConductorError:
             agent.set_reachable(False)
             agent.set_available(False)
-            agent.set_status('Agent unreachable')
+            agent.set_status(Agent.Status.AGENT_UNREACHABLE)
             agent.save()
             return
 
@@ -564,10 +564,10 @@ class AgentAction(ConductorAction):
             OpenBachBaton(agent.address, agent.port).check_connection()
         except errors.UnprocessableError:
             agent.set_available(False)
-            agent.set_status('Agent reachable but daemon not available')
+            agent.set_status(Agent.Status.AGENT_REACHABLE_BUT_DAEMON_UNAVAILABLE)
         else:
             agent.set_available(True)
-            agent.set_status('Available')
+            agent.set_status(Agent.Status.AVAILABLE)
         agent.save()
 
     def _check_user_can_use_agent(self):
@@ -617,7 +617,7 @@ class InstallAgent(ThreadedAction, AgentAction):
                 agent.delete()
                 raise
         agent.set_available(True)
-        agent.set_status('Available')
+        agent.set_status(Agent.Status.AVAILABLE)
         agent.save()
 
         if not created:
@@ -638,7 +638,7 @@ class InstallAgent(ThreadedAction, AgentAction):
         agent.rstats_port = self.rstats_port
         agent.set_reachable(True)
         agent.set_available(False)
-        agent.set_status('Installing...')
+        agent.set_status(Agent.Status.INSTALLING)
         agent.collector = collector
         agent.save()
 
@@ -677,7 +677,7 @@ class UninstallAgent(ThreadedAction, AgentAction):
                     agent.collector.json,
                     jobs=installed_jobs)
         except errors.ConductorError:
-            agent.set_status('Uninstall failed')
+            agent.set_status(Agent.Status.UNINSTALL_FAILED)
             agent.save()
             raise
         finally:
@@ -710,10 +710,10 @@ class AttachAgent(InstallAgent):
             jobs.update(OpenBachBaton(agent.address, agent.port).list_jobs())
         except errors.UnprocessableError:
             agent.set_available(False)
-            agent.set_status('Agent reachable but daemon not available')
+            agent.set_status(Agent.Status.AGENT_REACHABLE_BUT_DAEMON_UNAVAILABLE)
         else:
             agent.set_available(True)
-            agent.set_status('Available')
+            agent.set_status(Agent.Status.AVAILABLE)
         agent.save()
 
         self._populate_jobs(jobs)
@@ -746,7 +746,7 @@ class DetachAgent(UninstallAgent):
             start_playbook('assign_collector', agent.address, agent.port, collector.json)
             start_playbook('disable_controller_access', self.address)
         except errors.ConductorError:
-            agent.set_status('Detach failed')
+            agent.set_status(Agent.Status.DETACH_FAILED)
             agent.save()
             raise
         finally:
@@ -822,17 +822,17 @@ class ListAgents(AgentAction):
         if address in agents_in_error:
             agent.set_reachable(False)
             agent.set_available(False)
-            agent.set_status('Agent unreachable')
+            agent.set_status(Agent.Status.AGENT_UNREACHABLE)
         else:
             agent.set_reachable(True)
             try:
                 OpenBachBaton(address, agent.port).check_connection()
             except errors.UnprocessableError:
                 agent.set_available(False)
-                agent.set_status('Agent reachable but daemon not available')
+                agent.set_status(Agent.Status.AGENT_REACHABLE_BUT_DAEMON_UNAVAILABLE)
             else:
                 agent.set_available(True)
-                agent.set_status('Available')
+                agent.set_status(Agent.Status.AVAILABLE)
         agent.save()
         return agent.json
 
@@ -852,14 +852,14 @@ class ListAgents(AgentAction):
             agent.set_reachable(True)
             if statuses['openbach_agent.service'] == 'running':
                 agent.set_available(True)
-                agent.set_status('Available')
+                agent.set_status(Agent.Status.AVAILABLE)
             else:
                 agent.set_available(False)
-                agent.set_status('Agent reachable but daemon not available')
+                agent.set_status(Agent.Status.AGENT_REACHABLE_BUT_DAEMON_UNAVAILABLE)
         else:
             agent.set_reachable(False)
             agent.set_available(False)
-            agent.set_status('Agent unreachable')
+            agent.set_status(Agent.Status.AGENT_UNREACHABLE)
         agent.save()
 
         if statuses['ntp.service'] == 'running':
@@ -1838,7 +1838,7 @@ class JobInstanceAction(ConductorAction):
                 job_instance.start_timestamp,
                 self.interval)
 
-        job_instance.set_status('Running')
+        job_instance.set_status(JobInstance.Status.RUNNING)
 
 
 class StartJobInstance(ThreadedAction, JobInstanceAction):
@@ -1881,7 +1881,7 @@ class StartJobInstance(ThreadedAction, JobInstanceAction):
                 agent=agent, agent_name=agent.name,
                 entity_name=entity.name if entity else '',
                 collector=agent.collector,
-                status='Scheduled',
+                status=JobInstance.Status.SCHEDULED,
                 update_status=now,
                 start_date=now,
                 periodic=False)
@@ -2036,6 +2036,7 @@ class StatusJobInstance(JobInstanceAction):
             except errors.UnprocessableError:
                 job_status = 'Error'
             finally:
+                job_status = job_instance.get_status(job_status.title())
                 job_instance.set_status(job_status)
 
         status = job_instance.json
@@ -2338,7 +2339,7 @@ class StartScenarioInstance(ScenarioInstanceAction):
 
         scenario_instance = ScenarioInstance.objects.create(
                 scenario_version=scenario,
-                status='Scheduling',
+                status=ScenarioInstance.Status.SCHEDULING,
                 start_date=timezone.now(),
                 started_by=starting_user,
                 openbach_function_instance=self.openbach_function_instance)
@@ -2367,7 +2368,7 @@ class StartScenarioInstance(ScenarioInstanceAction):
             openbach_function_instance = OpenbachFunctionInstance.objects.create(
                     openbach_function=openbach_function,
                     scenario_instance=scenario_instance,
-                    status='Scheduled')
+                    status=OpenbachFunctionInstance.Status.SCHEDULED)
             try:
                 openbach_function_instance.validate_arguments()
             except ValidationError as e:

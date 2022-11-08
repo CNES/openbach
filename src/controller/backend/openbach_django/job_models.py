@@ -222,6 +222,16 @@ class StatisticInstance(models.Model):
 class JobInstance(models.Model):
     """Data associated to a Job instance"""
 
+    class Status(models.TextChoices):
+        SCHEDULED = 'P'
+        RUNNING = 'R'
+        ERROR = 'E'
+        STOPPED = 'S'
+        AGENT_UNREACHABLE = 'U'
+        NOT_RUNNING = 'NR'
+        NOT_SCHEDULED = 'NS'
+        UNKNOWN = '?'
+
     job_name = models.CharField(max_length=500)
     agent_name = models.CharField(max_length=500)
     entity_name = models.CharField(max_length=500)
@@ -232,7 +242,10 @@ class JobInstance(models.Model):
     collector = models.ForeignKey(
             'Collector', models.CASCADE,
             related_name='+')
-    status = models.CharField(max_length=500)
+    status = models.CharField(
+            max_length=max(map(len, Status.values)),
+            choices=Status.choices,
+            default=Status.UNKNOWN)
     update_status = models.DateTimeField()
     start_date = models.DateTimeField()
     started_by = models.ForeignKey(
@@ -251,13 +264,22 @@ class JobInstance(models.Model):
     def is_stopped(self):
         return self.stop_date is not None
 
+    def get_status(self, override_status=None):
+        if override_status is None:
+            return self.Status(self.status)
+
+        for status in self.Status:
+            if status.label == override_status:
+                return status
+        return self.Status.UNKNOWN
+
     def set_status(self, status):
         now = timezone.now()
         self.status = status
         self.update_status = now
-        if status == 'Running':
+        if status in {self.Status.SCHEDULED, self.Status.RUNNING}:
             self.stop_date = None
-        elif status not in {'Scheduled', 'Agent Unreachable', 'Restart Required'}:
+        elif status not in {self.Status.UNKNOWN, self.Status.AGENT_UNREACHABLE}:
             if self.stop_date is None:
                 self.stop_date = now
         self.save()
@@ -436,7 +458,7 @@ class JobInstance(models.Model):
                 'id': self.id,
                 'arguments': arguments,
                 'update_status': self.update_status.astimezone(tz),
-                'status': self.status,
+                'status': self.get_status(),
                 'start_date': self.start_date.astimezone(tz),
                 'stop_date': stop_date,
         }
