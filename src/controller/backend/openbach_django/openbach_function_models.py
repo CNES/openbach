@@ -211,7 +211,7 @@ class OpenbachFunctionInstance(models.Model):
         from .job_models import JobInstance
 
         json_data = self.openbach_function.json
-        json_data['status'] = self.Status[self.status].label
+        json_data['status'] = self.get_status().label
         json_data['launch_date'] = self.launch_date
 
         with suppress(ScenarioInstance.DoesNotExist):

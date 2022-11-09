@@ -95,6 +95,7 @@ class _BaseSocketCommunicator:
             raise errors.UnreachableError(
                     'Response from the socket truncated at {} bytes instead of the expected {}'
                     .format(actual_length, length))
+        return response
 
     def send_message(self, message):
         length = struct.pack('>I', len(message))

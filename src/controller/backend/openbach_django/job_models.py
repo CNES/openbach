@@ -458,7 +458,7 @@ class JobInstance(models.Model):
                 'id': self.id,
                 'arguments': arguments,
                 'update_status': self.update_status.astimezone(tz),
-                'status': self.get_status(),
+                'status': self.get_status().label,
                 'start_date': self.start_date.astimezone(tz),
                 'stop_date': stop_date,
         }

@@ -482,7 +482,7 @@ class ScenarioInstance(models.Model):
             related_name='started_scenario')
 
     def get_status(self):
-        return self.Status(self.Status)
+        return self.Status(self.status)
 
     @property
     def is_stopped(self):

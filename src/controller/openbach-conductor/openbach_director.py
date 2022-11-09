@@ -530,11 +530,6 @@ class ScenarioInstanceStatus(threading.Thread):
                 id__in=StartScenarioInstanceOpenbachFunction.objects.values('instances'),
                 scenario_instance=self.scenario_instance).values('started_scenario')
 
-        errored_functions = self.scenario_instance.openbach_functions_instances.filter(
-                status=OpenbachFunctionInstance.Status.ERROR)
-        planned_functions = self.scenario_instance.openbach_functions_instances.filter(PLANNED_FUNCTIONS)
-        unfinished_functions = self.scenario_instance.openbach_functions_instances.filter(UNFINISHED_FUNCTIONS)
-
         # Create all openbach functions threads with respect to dependencies
         while True:
             if self._is_stopped.is_set():
@@ -545,6 +540,8 @@ class ScenarioInstanceStatus(threading.Thread):
             for failed_job_instance in JobInstance.objects.filter(JOBS_UNREACHABLE | JOBS_ERRORED, id__in=spawned_jobs):
                 openbach_function_instance = failed_job_instance.openbach_function_instance
                 if self._openbach_function_requires_restart(openbach_function_instance):
+                    failed_job_instance.openbach_function_instance = None
+                    failed_job_instance.save()
                     self._launch_openbach_function_instance(openbach_function_instance, True)
                 elif self._is_openbach_function_marked_as_failed(openbach_function_instance):
                     if failed_job_instance.get_status() is JobInstance.Status.AGENT_UNREACHABLE:
@@ -557,6 +554,8 @@ class ScenarioInstanceStatus(threading.Thread):
             for failed_scenario_instance in ScenarioInstance.objects.filter(SCENARIOS_ERRORED | SCENARIOS_UNREACHABLE, id__in=spawned_scenarios):
                 openbach_function_instance = failed_scenario_instance.openbach_function_instance
                 if self._openbach_function_requires_restart(openbach_function_instance):
+                    failed_scenario_instance.openbach_function_instance = None
+                    failed_scenario_instance.save()
                     self._launch_openbach_function_instance(openbach_function_instance, True)
                 elif self._is_openbach_function_marked_as_failed(openbach_function_instance):
                     if failed_scenario_instance.get_status() is ScenarioInstance.Status.AGENTS_UNREACHABLE:
@@ -566,7 +565,7 @@ class ScenarioInstanceStatus(threading.Thread):
                     self._join_openbach_functions()
                     return
 
-            for failed_obf_instance in errored_functions:
+            for failed_obf_instance in self.scenario_instance.openbach_functions_instances.filter(status=OpenbachFunctionInstance.Status.ERROR):
                 if self._openbach_function_requires_restart(failed_obf_instance):
                     self._launch_openbach_function_instance(failed_obf_instance, True)
                 elif self._is_openbach_function_marked_as_failed(failed_obf_instance):
@@ -574,7 +573,7 @@ class ScenarioInstanceStatus(threading.Thread):
                     self._join_openbach_functions()
                     return
 
-            for openbach_function_instance in planned_functions:
+            for openbach_function_instance in self.scenario_instance.openbach_functions_instances.filter(PLANNED_FUNCTIONS):
                 function = openbach_function_instance.openbach_function
                 if OpenbachFunctionInstance.objects.filter(
                         openbach_function__id__in=function.running_waiters.values('openbach_function_waited'),
@@ -582,7 +581,7 @@ class ScenarioInstanceStatus(threading.Thread):
                     # Wait for running openbach functions are not all started yet
                     continue
                 if OpenbachFunctionInstance.objects.filter(
-                        openbach_function__id__in=function.ended_waiter.values('openbach_function_waited'),
+                        openbach_function__id__in=function.ended_waiters.values('openbach_function_waited'),
                         scenario_instance=self.scenario_instance).filter(UNFINISHED_FUNCTIONS).exists():
                     # Wait for ended openbach functions are not all started yet
                     continue
@@ -595,7 +594,7 @@ class ScenarioInstanceStatus(threading.Thread):
                 if self._has_waited_instances_finished(function):
                     self._launch_openbach_function_instance(openbach_function_instance)
 
-            if unfinished_functions.exists():
+            if self.scenario_instance.openbach_functions_instances.filter(UNFINISHED_FUNCTIONS).exists():
                 time.sleep(0.2)
                 continue
 
@@ -611,27 +610,27 @@ class ScenarioInstanceStatus(threading.Thread):
     def stop(self):
         self._is_stopped.set()
 
-    def _launch_openbach_function_instance(openbach_function_instance, use_retry=False):
+    def _launch_openbach_function_instance(self, openbach_function_instance, use_retry=False):
         wait_time = None
         if use_retry:
             wait_time = openbach_function_instance.openbach_function.on_failure.wait_time
             openbach_function_instance.retry_performed += 1
             openbach_function_instance.save()
-        openbach_function_thread = OpenbachFunctionThread(openbach_function_instance)
+        openbach_function_thread = OpenbachFunctionThread(openbach_function_instance, wait_time)
         self._openbach_functions.append(openbach_function_thread)
         openbach_function_thread.start()
 
     @staticmethod
     def _has_instances_running(started_jobs, started_scenarios):
         jobs_not_finished = JobInstance.objects.filter(~JOBS_STOPPED, id__in=started_jobs)
-        scenarios_not_finished = ScenarioInstance.objects.filter(~SCENARIO_ENDED, id__in=started_scenarios)
+        scenarios_not_finished = ScenarioInstance.objects.filter(~SCENARIOS_ENDED, id__in=started_scenarios)
         return jobs_not_finished.exists() or scenarios_not_finished.exists()
 
     @staticmethod
     def _openbach_function_requires_restart(openbach_function_instance):
         try:
             on_failure = openbach_function_instance.openbach_function.on_failure
-        except FailurePolicy.DoesNotExists:
+        except FailurePolicy.DoesNotExist:
             return False
         else:
             return on_failure.requires_restart(openbach_function_instance.retry_performed)
@@ -640,7 +639,7 @@ class ScenarioInstanceStatus(threading.Thread):
     def _is_openbach_function_marked_as_failed(openbach_function_instance):
         try:
             on_failure = openbach_function_instance.openbach_function.on_failure
-        except FailurePolicy.DoesNotExists:
+        except FailurePolicy.DoesNotExist:
             return True
         else:
             return not (
@@ -744,7 +743,7 @@ def main(socket_name=DEFAULT_UNIX_DOMAIN):
 
     # Restart previous scenarios in case of a crash
     status_manager = StatusManager()
-    unfinished_scenarios = ScenarioInstance.objects.exclude(SCENARIO_ENDED)
+    unfinished_scenarios = ScenarioInstance.objects.exclude(SCENARIOS_ENDED)
     for scenario in unfinished_scenarios:
         owner = scenario.started_by
         owner_name = None if owner is None else owner.get_username()
