@@ -165,15 +165,15 @@ def sender(cmd):
                         l_jitter=float(l_jitter)
                         t_plr=float(total_datagrams[1:-2])
 
-                        statistics['total_datagrams']=total
-                        statistics['total_pkts_lost']=t_lost
+                        statistics['total_sent_pkts']=total
+                        statistics['total_lost_pkts']=t_lost
                         statistics['total_plr']=t_plr
 
                     except ValueError:
 
                         #if TCP
                         flow, duration, _, t_transfer, t_transfer_units, a_bandwidth, a_bandwidth_units, t_retries,entity = tokens
-                        statistics['total_retries']=int(t_retries)
+                        statistics['total_retransmission']=int(t_retries)
 
                     t_transfer=float(t_transfer)
                     a_bandwidth=float(a_bandwidth)
@@ -292,9 +292,9 @@ def receiver(cmd):
                         t_lost, total = map(int, t_pkts_stat.split('/'))
                         t_plr=float(total_datagrams[1:-2])
 
-                        statistics['total_pkts_lost']=t_lost
+                        statistics['total_lost_pkts']=t_lost
                         statistics['last_jitter']=l_jitter* multiplier(l_jitter_unit, 's')
-                        statistics['total_datagrams']=total
+                        statistics['total_sent_pkts']=total
                         statistics['total_plr']=t_plr
 
                     except ValueError:

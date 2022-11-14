@@ -42,8 +42,8 @@ import tempfile
 import itertools
 
 import matplotlib.pyplot as plt
-#--------------------------#
-#import collect_agent
+
+import collect_agent
 from data_access.post_processing import Statistics, _Plot, save
 
 
@@ -56,8 +56,7 @@ def main(
     plot = _Plot.plot_cumulative_histogram if cumulative else _Plot.plot_histogram
     legends = iter(legend)
 
-    #statistics = Statistics.from_default_collector()
-    statistics=Statistics('172.20.34.80')
+    statistics = Statistics.from_default_collector()
     with tempfile.TemporaryDirectory(prefix='openbach-histogram-') as root:
         for fields, label, title, filename in itertools.zip_longest(statistics_names, labels, titles, filenames):
             figure, axis = plt.subplots()
@@ -75,15 +74,12 @@ def main(
             else:
                 filename = 'histogram_{}.{}'.format('_'.join(fields), file_ext)
             filepath = os.path.join(root, filename)
-            #save(figure, filepath, pickle,False)
-            save(figure,'/home/agarba-abdou/openbach-extra/apis/{}'.format(filename))
-            #figure.show()           
-            #---------------------------------------------------------------#
-            #collect_agent.store_files(collect_agent.now(), figure=filepath)
+            save(figure, filepath, pickle,False)
+            collect_agent.store_files(collect_agent.now(), figure=filepath)
 
 
 if __name__ == '__main__':
-    #with collect_agent.use_configuration('/opt/openbach/agent/jobs/histogram/histogram_rstats_filter.conf'):
+    with collect_agent.use_configuration('/opt/openbach/agent/jobs/histogram/histogram_rstats_filter.conf'):
         parser = argparse.ArgumentParser(description=__doc__)
     
         parser.add_argument(

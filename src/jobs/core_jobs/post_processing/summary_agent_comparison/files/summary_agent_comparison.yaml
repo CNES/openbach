@@ -26,17 +26,18 @@
 ---
 
 general:
-  name: summary_time_period
+  name: summary_agent_comparison
   description: >
-      This job post-process data of other jobs. It generates period-aggregated table of jobs metrics mean and median to perform statistics analysis.
+      This job post-process data of other jobs. It generates period-aggregated table of jobs metrics to perform statistics analysis.
   job_version: '1.1'
   keywords:
     - post-processing
-    - summary-period
+    - agent-comparison
     - statistics
     - mean
     - median
-    - evolution
+    - min
+    - max
     - aggregation
   persistent: no
 
@@ -44,12 +45,12 @@ platform_configuration:
   - ansible_system: Debian
     ansible_distribution: Ubuntu
     ansible_distribution_version: '20.04'
-    command: '/usr/bin/env python3 /opt/openbach/agent/jobs/summary_time_period/summary_time_period.py'
+    command: '/usr/bin/env python3 /opt/openbach/agent/jobs/summary_agent_comparison/summary_agent_comparison.py'
     command_stop:
   - ansible_system: Debian
     ansible_distribution: Ubuntu
     ansible_distribution_version: '22.04'
-    command: '/usr/bin/env python3 /opt/openbach/agent/jobs/summary_time_period/summary_time_period.py'
+    command: '/usr/bin/env python3 /opt/openbach/agent/jobs/summary_agent_comparisond/summary_agent_comparison.py'
     command_stop:
 
 
@@ -62,6 +63,12 @@ arguments:
       flag: '-n'
       repeatable: yes
       description: Agent name to fetch data from
+    - name: agents-title
+      type: str
+      count: '+'
+      flag: '-a'
+      repeatable: yes
+      description: Agent name to display on the figure
     - name: jobs
       type: str
       count: '+'
@@ -74,6 +81,12 @@ arguments:
       flag: '-s'
       repeatable: yes
       description: statistics names to be analysed
+    - name: functions
+      type: str
+      count: '+'
+      flag: '-f'
+      repeatable: yes
+      description: Mathematical function to compute
     - name: begin-date
       type: str
       count: '+'
@@ -86,6 +99,12 @@ arguments:
       flag: '-e'
       repeatable: yes
       description: End date in form YYYY:MM:DD hh:mm:ss
+    - name: num-bars
+      type: int
+      count: '+'
+      flag: '-nb'
+      repeatable: yes
+      description: Number of reception bars
     - name: start-journey
       type: str
       count: '+'
@@ -110,18 +129,6 @@ arguments:
       flag: '-r'
       repeatable: yes
       description: Reference value for comparison
-    - name: level
-      type: int
-      count: '+'
-      flag: '-l'
-      repeatable: yes
-      description: Percentage level to observe the evolution
-    - name: path_to_file
-      type: str
-      count: '+'
-      flag: '-p'
-      repeatable: yes
-      description: Path to xlsx file
     - name: stat_unit
       type: str
       count: '+'
@@ -166,15 +173,4 @@ arguments:
       count: 0
       flag: '-w'
       description: Do not plot statistics with suffixes
-    - name: no_median
-      type: None
-      count: 0
-      flag: '--no_median'
-      description: Do not compute median
-    - name: no_mean
-      type: None
-      count: 0
-      flag: '--no_mean'
-      description: Do not compute mean
-
 statistics:

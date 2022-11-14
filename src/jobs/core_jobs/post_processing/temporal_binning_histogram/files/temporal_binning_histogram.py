@@ -49,7 +49,7 @@ from data_access.post_processing import Statistics, save, _Plot
 
 
 AGGREGATION_OPTIONS = {'year', 'month', 'day', 'hour', 'minute', 'second'}
-COLORMAP_OPTION ={'jet','dark','seismic','copper','red2green','blue2red','blue2green','paired'}
+COLORMAP_OPTION ={'jet':'jet', 'dark':'Dark2','seismic':'seismic','copper':'copper','red2green':'RdYlGn','blue2red':'bwr','blue2green':'brg','paired':'Paired'}
 UNIT_OPTION={'s', 'ms' ,'bits/s', 'Kbits/s', 'Mbits/s','Gbits/s','Bytes' ,'KBytes', 'MBytes', 'GBytes'}
 
 
@@ -76,20 +76,6 @@ def multiplier(base, unit):
 
         return 1
 
-def get_colormap(colormap):
-
-        if colormap =='red2green':
-                return 'RdYlGn'
-        if colormap =='blue2red':
-                return'bwr'
-        if colormap =='blue2green':
-                return'brg'
-        if colormap =='dark':
-                return 'Dark2'
-        if colormap == 'paired':
-                return 'Paired'
-        else:
-                return colormap
 
 def main(
         job_instance_ids, statistics_names, aggregations_periods,
@@ -148,7 +134,9 @@ def main(
 
                 facteur=multiplier(stat_unit,legend_unit)
 
-                cmap=get_colormap(colormap)
+                if colormap is None:
+                        colormap='red2green'
+                cmap=COLORMAP_OPTION[colormap]
 
                 if field not in df.columns.get_level_values('statistic'):
                     message = 'job instances {} did not produce the statistic {}'.format(job, field)
@@ -189,9 +177,6 @@ def main(
                             'instances {}: using the default value 100 instead'.format(field, job))"""
                     bin_size = 100
 
-                if cmap is None:
-
-                    cmap='RdYlGn'
 
                 figure, axis = plt.subplots()
 
@@ -228,7 +213,7 @@ if __name__ == '__main__':
         parser.add_argument(
                 '-b', '--bin-size', dest='bin_sizes', type=int,
                 metavar='BIN_SIZE', nargs='+', action='append', default=[],
-                help='Size of the bins')
+                help='Size of the bins in the desired legend unit')
         parser.add_argument(
                 '-o', '--offset', type=int, default=0,
                 help='Offset of the bins')
