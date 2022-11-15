@@ -39,7 +39,7 @@ class ScenarioBuilder extends React.Component<IProps & IStoreProps & IDispatchPr
     }
 
     private static convertFunction(func: IOpenbachFunction, jobs: IJob[]): IOpenbachFunctionForm {
-        const meta = ["id", "label", "wait"];
+        const meta = ["id", "label", "wait", "on_fail"];
         const kinds = Object.keys(func).filter((name: string) => !meta.includes(name));
         const functionType = kinds.length === 1 ? (kinds[0] as TOpenbachFunctions) : null;
 
