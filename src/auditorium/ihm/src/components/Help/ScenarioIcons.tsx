@@ -53,6 +53,9 @@ const openbachFunctionStatus: IOpenbachFunctionHelp[] = [{
     description: "Error",
     name: "Error",
 }, {
+    description: "Function experienced error but has been retried",
+    name: "Retried",
+}, {
     description: "Unknown",
     name: "Unknown",
 }];

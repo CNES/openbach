@@ -3,7 +3,7 @@ import {IOpenbachFunctionWait, IStartJobInstance, IStartScenarioInstance, IStopJ
 
 
 export type TScenarioInstanceStatus = "Scheduling" | "Running" | "Finished Ok" | "Finished Ko" | "Stopped" | "Agents Unreachable";
-export type TOpenbachFunctionInstanceStatus = "Scheduled" | "Running" | "Finished" | "Stopped" | "Error";
+export type TOpenbachFunctionInstanceStatus = "Scheduled" | "Running" | "Finished" | "Stopped" | "Error" | "Retried";
 export type TJobInstanceStatus = "Not Scheduled" | "Scheduled" | "Running" | "Not Running" | "Error" | "Stopped" | "Agent Unreachable";
 
 

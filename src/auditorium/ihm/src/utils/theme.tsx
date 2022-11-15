@@ -6,6 +6,7 @@ import {cyan500, green500, grey500, indigo500, lightBlue500, lightGreen500, oran
 import getMuiTheme from "material-ui/styles/getMuiTheme";
 
 import RunningIcon from "material-ui/svg-icons/action/autorenew";
+import RetriedIcon from "material-ui/svg-icons/action/autorenew";
 import CheckCircleIcon from "material-ui/svg-icons/action/check-circle";
 import DeleteIcon from "material-ui/svg-icons/action/delete";
 import UnknownIcon from "material-ui/svg-icons/action/help-outline";
@@ -115,6 +116,8 @@ export function getIconForFunctionStatus(status: TOpenbachFunctionInstanceStatus
             return <ErrorIcon color={indigo500} />;
         case "Error":
             return <ErrorIcon color={red500} />;
+        case "Retried":
+            return <RetriedIcon color={orange500} />;
         default:
             return <UnknownIcon color={grey500} />;
     }
