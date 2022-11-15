@@ -617,6 +617,7 @@ class ScenarioInstanceStatus(threading.Thread):
     def _launch_openbach_function_instance(self, openbach_function_instance, use_retry=False):
         if use_retry:
             retries_left = openbach_function_instance.retries_left - 1
+            openbach_function_instance.set_status(OpenbachFunctionInstance.Status.RETRIED)
             openbach_function_instance = OpenbachFunctionInstance.objects.create(
                     openbach_function=openbach_function_instance.openbach_function,
                     scenario_instance=openbach_function_instance.scenario_instance,

@@ -323,7 +323,9 @@ class Scenario(models.Model):
 
                 if actual_policy is FailurePolicy.Policies.RETRY:
                     failure_retry = extract_value('openbach_functions', index, 'on_fail', 'retry', expected_type=int)
-                    failure_delay = extract_value('openbach_functions', index, 'on_fail', 'delay', expected_type=float, mandatory=False, default=5.0)
+                    failure_delay = extract_value(
+                            'openbach_functions', index, 'on_fail', 'delay',
+                            expected_type=(int, float, str), mandatory=False, default=5.0)
                     try:
                         FailurePolicy.objects.create(
                                 openbach_function=openbach_function,

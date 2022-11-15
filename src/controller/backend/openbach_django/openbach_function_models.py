@@ -162,6 +162,7 @@ class OpenbachFunctionInstance(models.Model):
         STOPPED = 'S'
         FINISHED = 'F'
         ERROR = 'E'
+        RETRIED = '*'
 
     openbach_function = models.ForeignKey(
             OpenbachFunction,
