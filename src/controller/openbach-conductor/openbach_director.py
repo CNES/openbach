@@ -116,7 +116,6 @@ UNFINISHED_FUNCTIONS = Q(status__in=(
     OpenbachFunctionInstance.Status.RUNNING,
 ))
 
-JOBS_STOPPED = Q(status__in=(JobInstance.Status.STOPPED, JobInstance.Status.NOT_RUNNING))
 SCENARIOS_STOPPED = Q(status__in=(ScenarioInstance.Status.STOPPED, ScenarioInstance.Status.FINISHED_OK))
 SCENARIOS_ERRORED = Q(status=ScenarioInstance.Status.FINISHED_KO)
 SCENARIOS_UNREACHABLE = Q(status=ScenarioInstance.Status.AGENTS_UNREACHABLE)
@@ -594,7 +593,7 @@ class ScenarioInstanceStatus(threading.Thread):
 
     @staticmethod
     def _has_instances_running(started_jobs, started_scenarios):
-        jobs_not_finished = JobInstance.objects.filter(~JOBS_STOPPED, id__in=started_jobs)
+        jobs_not_finished = JobInstance.objects.filter(stop_date__isnull=True, id__in=started_jobs)
         scenarios_not_finished = ScenarioInstance.objects.filter(~SCENARIOS_ENDED, id__in=started_scenarios)
         return jobs_not_finished.exists() or scenarios_not_finished.exists()
 
