@@ -43,16 +43,15 @@
 - name: Install pip3 Dependencies
   pip:
     name:
-      - psycopg2
-      - apscheduler
-      - fuzzywuzzy
-      - python-Levenshtein
-      - numpy
-      - django
-      - uwsgi
+      - psycopg2==2.8.6
+      - fuzzywuzzy==0.18.0
+      - python-Levenshtein==0.12.2
+      - django==3.0
+      - uwsgi==2.0.20
     executable: pip3
-    extra_args: '-U --no-index --find-links=file:///opt/openbach/pip_mirror/python3/'
+    extra_args: '-U'
   become: yes
+  environment: "{{ openbach_proxy_env }}"
 
 - name: Check the installed version of Ansible
   command: python3 -c "from distutils.version import LooseVersion; from ansible import __version__; print(LooseVersion(__version__) < '2.9')"
