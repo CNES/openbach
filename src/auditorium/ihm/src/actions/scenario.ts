@@ -191,6 +191,8 @@ function convertFormToScenario(form: IScenarioForm): IScenario {
             if (on_fail) {
                 const retryLimit = Number(on_fail.retry);
                 on_fail.retry = retryLimit === 0 ? 0 : (retryLimit || on_fail.retry || undefined);
+                const retryDelay = Number(on_fail.delay);
+                on_fail.delay = retryDelay === 0 ? 0 : (retryDelay || on_fail.delay || undefined);
             }
             switch (kind) {
                 case "start_job_instance":
