@@ -174,7 +174,10 @@ class OpenbachFunctionInstance(models.Model):
             max_length=max(map(len, Status.values)),
             choices=Status.choices)
     launch_date = models.DateTimeField(null=True, blank=True)
-    retry_performed = models.IntegerField(default=0)
+
+    # Secondary attributes, computed from openbach_function
+    retries_left = models.IntegerField(null=True, blank=True)
+    wait_time = models.FloatField(default=0.0)
 
     def __str__(self):
         return (
@@ -233,10 +236,53 @@ class OpenbachFunctionInstance(models.Model):
         parameters = self.scenario_instance.parameters
         self.openbach_function.get_arguments(parameters, None)
 
-    @property
-    def wait_time(self):
+        try:
+            on_failure = self.openbach_function.on_failure
+        except FailurePolicy.DoesNotExist:
+            policy = FailurePolicy.Policies.FAIL
+        else:
+            policy = on_failure.fail_policy
+
+        if policy is FailurePolicy.Policies.FAIL:
+            self.retries_left = 0
+        elif policy is FailurePolicy.Policies.IGNORE:
+            self.retries_left = None
+        elif policy is FailurePolicy.Policies.RETRY:
+            # Validate on_failure.wait_time here so we don't need to do it in validate_restart later
+            OpenbachFunction.instance_value(on_failure, 'wait_time', parameters)
+            self.retries_left = OpenbachFunction.instance_value(on_failure, 'retry_limit', parameters)
+
+        self.wait_time = self.openbach_function.instance_value('wait_time', parameters)
+        self.save()
+
+    def validate_restart(self, retries_left):
         parameters = self.scenario_instance.parameters
-        return self.openbach_function.instance_value('wait_time', parameters)
+        on_failure = self.openbach_function.on_failure
+
+        retry_limit = OpenbachFunction.instance_value(on_failure, 'retry_limit', parameters)
+        wait_time = OpenbachFunction.instance_value(on_failure, 'wait_time', parameters)
+        if retries_left >= max(retry_limit, 0):
+            # Acceptable approximation over more generic ValueError
+            raise FailurePolicy.DoesNotExist
+
+        self.retries_left = retries_left
+        self.wait_time = wait_time
+        self.save()
+
+    @property
+    def status_retry_delay(self):
+        try:
+            on_failure = self.openbach_function.on_failure
+        except FailurePolicy.DoesNotExist:
+            pass
+        else:
+            if on_failure.fail_policy is FailurePolicy.Policies.RETRY:
+                parameters = self.scenario_instance.parameters
+                retries = OpenbachFunction.instance_value(on_failure, 'retry_limit', parameters)
+                delay = OpenbachFunction.instance_value(on_failure, 'wait_time', parameters)
+                return retries * delay
+
+        return 0.0
 
 
 class WaitingCondition(models.Model):
@@ -342,7 +388,7 @@ class FailurePolicy(models.Model):
             choices=Policies.choices,
             default=Policies.IGNORE)
     wait_time = OpenbachFunctionParameter(type=float, blank=True, null=True)
-    retry_limit = models.IntegerField(blank=True, null=True)
+    retry_limit = OpenbachFunctionParameter(type=int, blank=True, null=True)
 
     def requires_restart(self, attempts):
         return self.fail_policy is self.Policies.RETRY and (self.retry_limit is None or self.retry_limit > attemps)

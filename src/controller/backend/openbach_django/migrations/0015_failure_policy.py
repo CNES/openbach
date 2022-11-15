@@ -45,7 +45,7 @@ class Migration(migrations.Migration):
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('policy', models.CharField(choices=[('I', 'Ignore'), ('F', 'Fail'), ('R', 'Retry')], default='I', max_length=1)),
                 ('wait_time', openbach_django.base_models.OpenbachFunctionParameter(blank=True, null=True, type=float)),
-                ('retry_limit', models.IntegerField(blank=True, null=True)),
+                ('retry_limit', openbach_django.base_models.OpenbachFunctionParameter(blank=True, null=True, type=int)),
                 ('openbach_function', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='on_failure', to='openbach_django.OpenbachFunction')),
             ],
         ),

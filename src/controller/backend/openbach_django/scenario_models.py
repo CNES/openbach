@@ -271,7 +271,6 @@ class Scenario(models.Model):
             policy = extract_value('openbach_functions', index, 'on_fail', expected_type=dict, mandatory=False)
             json_data['openbach_functions'][index]['on_fail'] = policy
             failure_policy = extract_value('openbach_functions', index, 'on_fail', 'policy', expected_type=str, mandatory=False)
-            failure_retry = extract_value('openbach_functions', index, 'on_fail', 'retry', expected_type=int, mandatory=False) or policy.get('retry')
             possible_function_name = [key for key in function if key not in {'wait', 'id', 'label', 'on_fail'}]
             if len(possible_function_name) < 1:
                 raise Scenario.MalformedError(
@@ -316,18 +315,27 @@ class Scenario(models.Model):
 
             if failure_policy:
                 try:
-                    FailurePolicy.objects.create(
-                            openbach_function=openbach_function,
-                            policy=FailurePolicy.Policies[failure_policy.upper()],
-                            retry_limit=failure_retry)
+                    actual_policy = FailurePolicy.Policies[failure_policy.upper()]
                 except KeyError:
                     raise Scenario.MalformedError(
                             'openbach_functions.{}.on_fail'.format(index),
                             override_error='Unknown failure policy \'{}\''.format(failure_policy))
-                except ValidationError as e:
-                    raise Scenario.MalformedError(
-                            'openbach_functions.{}.on_fail'.format(index),
-                            override_error=str(e))
+
+                if actual_policy is FailurePolicy.Policies.RETRY:
+                    failure_retry = extract_value('openbach_functions', index, 'on_fail', 'retry', expected_type=int)
+                    failure_delay = extract_value('openbach_functions', index, 'on_fail', 'delay', expected_type=float, mandatory=False, default=5.0)
+                    try:
+                        FailurePolicy.objects.create(
+                                openbach_function=openbach_function,
+                                policy=actual_policy,
+                                retry_limit=failure_retry,
+                                wait_time=failure_delay)
+                    except ValidationError as e:
+                        raise Scenario.MalformedError(
+                                'openbach_functions.{}.on_fail'.format(index),
+                                override_error=str(e))
+                else:
+                    FailurePolicy.objects.create(openbach_function=openbach_function, policy=actual_policy)
 
             # Register required and optional arguments for a start_job_instance
             if function_name == 'start_job_instance':

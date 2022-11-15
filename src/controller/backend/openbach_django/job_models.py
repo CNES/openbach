@@ -275,14 +275,20 @@ class JobInstance(models.Model):
 
     def set_status(self, status):
         now = timezone.now()
-        self.status = status
-        self.update_status = now
+        if status is not self.get_status():
+            self.status = status
+            self.update_status = now
         if status in {self.Status.SCHEDULED, self.Status.RUNNING}:
             self.stop_date = None
         elif status not in {self.Status.UNKNOWN, self.Status.AGENT_UNREACHABLE}:
             if self.stop_date is None:
                 self.stop_date = now
         self.save()
+
+    @property
+    def last_status(self):
+        now = timezone.now()
+        return (now - self.update_status).total_seconds()
 
     @property
     def scenario_id(self):
