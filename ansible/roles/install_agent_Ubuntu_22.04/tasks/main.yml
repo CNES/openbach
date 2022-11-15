@@ -69,10 +69,10 @@
 - name: Install pip3 Dependencies
   pip:
     name:
-      - setuptools
-      - apscheduler
-      - psutil
-      - PyYAML
+      - apscheduler==3.7.0
+      - psutil==5.8.0
+      - PyYAML==5.4.1
+      - requests==2.22.0
       - pandas
       - matplotlib
     executable: pip3
