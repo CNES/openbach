@@ -40,6 +40,43 @@
     mode: 0440
   become: yes
 
+- block:
+  - name: Install Build Dependencies
+    apt:
+      pkg:
+        - build-essential
+        - debhelper
+        - python3-dev
+      state: latest
+      update_cache: yes
+    become: yes
+    environment: "{{ openbach_proxy_env }}"
+
+  - name: Push Source Files for the Collect-Agent Library
+    synchronize:
+      src: ../src/agent/collect-agent/
+      dest: /tmp/collect-agent/
+      recursive: yes
+      delete: yes
+      rsync_opts:
+        - --exclude=__pycache__
+        - --exclude=build
+
+  - name: Build the Collect-Agent Library
+    shell: dpkg-buildpackage -rfakeroot -us -uc
+    args:
+      chdir: /tmp/collect-agent/
+
+  - name: Gather Version and Architecture of Compiled Package
+    shell: ls -1 /tmp/collect-agent_*.deb
+    register: openbach_collect_agent_built_package
+
+  - name: Install the Collect-Agent Library
+    apt:
+      deb: "{{ openbach_collect_agent_built_package.stdout }}"
+    become: yes
+  when: ansible_architecture != 'x86_64'
+
 - name: Install apt dependencies
   apt:
     pkg:
@@ -48,7 +85,7 @@
       - python3-setuptools
       - rsyslog
       - rsync
-      - grub2
+      - grub-common
       - collect-agent
     state: latest
     update_cache: yes
