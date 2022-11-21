@@ -55,78 +55,63 @@ platform_configuration:
 
 arguments:
   required:
-  optional:
     - name: agents
-      type: agent
-      count: '+'
-      flag: '-n'
-      repeatable: yes
+      type: str
+      count: 1
       description: Agent name to fetch data from
     - name: jobs
       type: str
-      count: '+'
-      flag: '-j'
-      repeatable: yes
+      count: 1
       description: The job name to plot data from
     - name: statistics
       type: str
-      count: '+'
-      flag: '-s'
-      repeatable: yes
+      count: 1
       description: statistics names to be analysed
+    - name: reference
+      type: int
+      count: 1
+      description: Reference value for comparison
+
+  optional:
     - name: begin-date
       type: str
-      count: '+'
+      count: 1
       flag: '-b'
-      repeatable: yes
-      description: Start date in form YYYY:MM:DD hh:mm:ss
+      description: Start date in format YYYY:MM:DD hh:mm:ss
     - name: end-date
       type: str
-      count: '+'
+      count: 1
       flag: '-e'
-      repeatable: yes
-      description: End date in form YYYY:MM:DD hh:mm:ss
+      description: End date in format YYYY:MM:DD hh:mm:ss
     - name: start-journey
       type: str
-      count: '+'
+      count: 1
       flag: '-sj'
-      repeatable: yes
       description: Starting time of the day
     - name: start-evening
       type: str
-      count: '+'
+      count: 1
       flag: '-se'
-      repeatable: yes
       description: Starting time of the evening
     - name: start-night
       type: str
-      count: '+'
+      count: 1
       flag: '-sn'
-      repeatable: yes
       description: Starting time of the night
-    - name: reference
-      type: int
-      count: '+'
-      flag: '-r'
-      repeatable: yes
-      description: Reference value for comparison
     - name: level
       type: int
-      count: '+'
+      count: 1
       flag: '-l'
-      repeatable: yes
       description: Percentage level to observe the evolution
     - name: path_to_file
       type: str
-      count: '+'
+      count: 1
       flag: '-p'
-      repeatable: yes
-      description: Path to xlsx file
+      description: Path to xlsx file for evolution calculation
     - name: stat_unit
       type: str
-      count: '+'
+      count: 1
       flag: '-ub'
-      repeatable: yes
       description: The unit of the statistic
       choices:
        - s
@@ -140,9 +125,8 @@ arguments:
        - GBytes
     - name: table_unit
       type: str
-      count: '+'
+      count: 1
       flag: '-u'
-      repeatable: yes
       description: Unit to show on the table
       choices:
        - s
@@ -157,9 +141,8 @@ arguments:
        - GBytes
     - name: stat-title
       type: str
-      count: '+'
+      count: 1
       flag: '-t'
-      repeatable: yes
       description: Statistics names to display on the table
     - name: no_suffix
       type: None

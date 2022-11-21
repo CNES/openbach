@@ -45,7 +45,7 @@ import itertools
 import pandas as pd
 import matplotlib.pyplot as plt
 
-#import collect_agent
+import collect_agent
 from data_access.post_processing import Statistics, save, _Plot
 
 
@@ -54,12 +54,11 @@ TIME_OPTIONS = {'year', 'month', 'day', 'hour', 'minute', 'second'}
 
 def main(
         job_instance_ids, statistics_names, aggregations_periods, percentiles,
-        stats_with_suffixes, axis_labels, figures_titles, use_legend,hide_grid, median,
+        stats_with_suffixes, axis_labels, figures_titles, use_legend,use_grid, median,
         average, deviation, boundaries, min_max, pickle):
 
     file_ext = 'pickle' if pickle else 'png'
-    #statistics = Statistics.from_default_collector()
-    statistics=Statistics('172.20.34.80')
+    statistics = Statistics.from_default_collector()
     statistics.origin = 0
     with tempfile.TemporaryDirectory(prefix='openbach-temporal-binning-statistics-') as root:
         for job, fields, aggregations, labels, titles in itertools.zip_longest(
@@ -72,7 +71,7 @@ def main(
             
             # Drop multi-index columns to easily concatenate dataframes from their statistic names
             df = pd.concat([
-                plot.dataframe.set_axis(plot.dataframe.columns.get_level_values('statistic'), axis=1, copy=False)
+                plot.dataframe.set_axis(plot.dataframe.columns.get_level_values('statistic'), axis=1, inplace=False)
                 for plot in data_collection])
             
             # Recreate a multi-indexed columns so the plot can function properly
@@ -88,23 +87,23 @@ def main(
             for field, label, aggregation, title in itertools.zip_longest(fields, labels, aggregations, titles):
                 if field not in df.columns.get_level_values('statistic'):
                     message = 'job instances {} did not produce the statistic {}'.format(job, field)
-                    #collect_agent.send_log(syslog.LOG_WARNING, message)
+                    collect_agent.send_log(syslog.LOG_WARNING, message)
                     print(message)
                     continue
 
                 if label is None:
-                    """collect_agent.send_log(
+                    collect_agent.send_log(
                             syslog.LOG_WARNING,
                             'no y-axis label provided for the {} statistic of job '
-                            'instances {}: using the empty string instead'.format(field, job))"""
+                            'instances {}: using the empty string instead'.format(field, job))
                     label = ''
 
                 if aggregation is None:
-                    """collect_agent.send_log(
+                    collect_agent.send_log(
                             syslog.LOG_WARNING,
                             'invalid aggregation value of {} for the {} '
                             'statistic of job instances {}: choose from {}, using '
-                            '"hour" instead'.format(aggregation, field, job, TIME_OPTIONS))"""
+                            '"hour" instead'.format(aggregation, field, job, TIME_OPTIONS))
                     aggregation = 'hour'
 
                 figure, axis = plt.subplots()
@@ -113,17 +112,16 @@ def main(
                         axis, label, field, None,
                         percentiles, aggregation,
                         median, average, deviation, boundaries,
-                        min_max, use_legend,hide_grid)
+                        min_max, use_legend,use_grid)
                 if title is not None:
                     axis.set_title(title)
                 filepath = os.path.join(root, 'temporal_binning_statistics_{}.{}'.format(field, file_ext))
-                #save(figure, filepath, pickle)
-                save(figure, '/home/agarba-abdou/temporal_binding_statistics_{}.{}'.format(field, file_ext),False)
-                #collect_agent.store_files(collect_agent.now(), figure=filepath)
+                save(figure, filepath, pickle)
+                collect_agent.store_files(collect_agent.now(), figure=filepath)
 
 
 if __name__ == '__main__':
-    #with collect_agent.use_configuration('/opt/openbach/agent/jobs/temporal_binning_statistics/temporal_binning_statistics_rstats_filter.conf'):
+    with collect_agent.use_configuration('/opt/openbach/agent/jobs/temporal_binning_statistics/temporal_binning_statistics_rstats_filter.conf'):
         parser = argparse.ArgumentParser(description=__doc__)
         parser.add_argument(
                 '-j', '--jobs', metavar='ID', nargs='+', action='append',
@@ -191,7 +189,7 @@ if __name__ == '__main__':
         draw_deviation = not args.hide_deviation
         draw_boundaries = not args.hide_boundaries
         draw_min_max = not args.hide_min_max
-        hide_grid = not args.hide_grid
+        use_grid = not args.hide_grid
 
         if not draw_percentiles :
             args.percentiles = None
@@ -203,5 +201,5 @@ if __name__ == '__main__':
             sys.exit(message)
 
         main(args.jobs, args.statistics, args.aggregations, args.percentiles, stats_with_suffixes,
-                args.ylabel, args.title, use_legend,hide_grid, draw_median, draw_average,
+                args.ylabel, args.title, use_legend,use_grid, draw_median, draw_average,
                 draw_deviation, draw_boundaries, draw_min_max, args.pickle)

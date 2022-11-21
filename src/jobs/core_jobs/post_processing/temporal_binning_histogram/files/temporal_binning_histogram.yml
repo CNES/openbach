@@ -83,7 +83,7 @@ arguments:
       count: '+'
       flag: '-b'
       repeatable: yes
-      description: Size of the bins
+      description: Size of the bins in the desired legend unit
     - name: offset
       type: int
       count: 1

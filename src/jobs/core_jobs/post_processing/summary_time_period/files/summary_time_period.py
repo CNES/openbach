@@ -38,10 +38,11 @@ __credits__ = '''Contributors:
 import itertools
 import tempfile
 import argparse
+import syslog
+import os
 
 import pandas as pd
-import matplotlib.pyplot as plt
-from datetime import datetime,timedelta
+from datetime import datetime
 from openpyxl import Workbook,load_workbook
 from dateutil.parser import parse
 from openpyxl.utils import get_column_letter
@@ -49,91 +50,72 @@ from openpyxl.styles import Alignment,Side, Border,Font,PatternFill
 
 
 
-#import collect_agent
-from data_access.post_processing import Statistics, save, _Plot
+import collect_agent
+from data_access.post_processing import Statistics
 
 UNIT_OPTION={'s', 'ms' ,'bits/s', 'Kbits/s', 'Mbits/s','Gbits/s','Bytes' ,'KBytes', 'MBytes', 'GBytes'}
-
-
-def aggregator_factory(mapping):
-    def aggregator(pd_datetime):
-      for moment, intervals in mapping.items():
-        for interval in intervals:
-           if pd_datetime in interval:
-             return moment
-      return 'undefined'
-    return aggregator
 
 
 def worksheet_style(worksheet,title):
 
    worksheet.title=title
-   fill=PatternFill(fill_type='solid',start_color='00333399',end_color='FF000000')
-   side =Side(border_style='thin', color='000000')  
-   for i,col in enumerate(worksheet.columns,1):
-      worksheet['{}1'.format(get_column_letter(i))].fill=fill
-      worksheet['{}1'.format(get_column_letter(i))].font=Font(size=12,bold=True,color='00FFFFFF')
-      for cell in col:
-         cell.border = Border(top=side, bottom=side, left=side, right=side)
+   fill_color=PatternFill(fill_type='solid',start_color='00333399',end_color='FF000000')
+   border_color =Side(border_style='thin', color='000000')  
+   for index,column in enumerate(worksheet.columns,1):
+      worksheet['{}1'.format(get_column_letter(index))].fill=fill_color
+      worksheet['{}1'.format(get_column_letter(index))].font=Font(size=12,bold=True,color='00FFFFFF')
+      for cell in column:
+         cell.border = Border(top=border_color, bottom=border_color, left=border_color, right=border_color)
          cell.alignment=Alignment(horizontal='center',vertical='center')
-      worksheet.row_dimensions[i].height = 30
-      worksheet.column_dimensions[get_column_letter(i)].width = 20
-   for i,row in enumerate(worksheet.rows,1):
-       worksheet['{}{}'.format(get_column_letter(1),i)].fill=fill
-       worksheet['{}{}'.format(get_column_letter(1),i)].font=Font(size=12,bold=True,color='00FFFFFF')
+      worksheet.row_dimensions[index].height = 30
+      worksheet.column_dimensions[get_column_letter(index)].width = 20
+   for index,_ in enumerate(worksheet.rows,1):
+       worksheet['{}{}'.format(get_column_letter(1),index)].fill=fill_color
+       worksheet['{}{}'.format(get_column_letter(1),index)].font=Font(size=12,bold=True,color='00FFFFFF')
 
-def compute_evol(path_to_file,field):
+def get_evol_value(path_to_file,field,stats):
+
    workbook_ref=load_workbook(path_to_file)
    sheet_ref=workbook_ref[field]
-   means_ref=[]
-   medians_ref=[]
-   mean_letter=get_col_letter(sheet_ref,'Moyenne')
-   median_letter=get_col_letter(sheet_ref,'Médiane')
-       
-   for cell in sheet_ref[mean_letter]:
-      if cell.value !='Moyenne':
-        means_ref.append(cell.value)
-   for cell in sheet_ref[median_letter]:
-      if cell.value != 'Médiane':
-        medians_ref.append(cell.value)
-   return means_ref,medians_ref
+   stats_ref=[]
+   col_letter=_get_column_letter(sheet_ref,stats)
 
-def get_col_letter(worksheet,value):
+ 
+   for cell in sheet_ref[col_letter]:
+        if cell.value != stats:
+                stats_ref.append(cell.value)
+   
+   return stats_ref
+
+def _get_column_letter(worksheet,value):
    for num,col in enumerate(worksheet.columns,1):
       for cell in col:
-         if cell.value==value:
+          if cell.value==value:
             column_letter=get_column_letter(num)
    return column_letter
 
-def ref_style(worksheet,percent,column_title):
+def reference_style(worksheet,percent,column_title):
 
-   column_letter=get_col_letter(worksheet,column_title)
-
+   column_letter=_get_column_letter(worksheet,column_title)
    for index,cell in enumerate(worksheet[column_letter],1):
       if cell.value !=column_title:
-         if percent<=33:
-            worksheet['{}{}'.format(column_letter,index)].font=Font(color="FF0000")
-         elif percent>34 and percent<=66:
+         if percent <= 33:
+            worksheet['{}{}'.format(column_letter,index)].font=Font(color="ff0000")
+         elif percent>34 and percent <= 66:
             worksheet['{}{}'.format(column_letter,index)].font=Font(color="ff7f00")
-         elif percent>67:
-               worksheet['{}{}'.format(column_letter,index)].font=Font(color="00FF00")
+         elif percent > 67:     
+            worksheet['{}{}'.format(column_letter,index)].font=Font(color="00ff00")
 
-def get_state(level,value,value_ref):
-   palier=round((value_ref*level)/100)
+def get_evol_state(level,value,value_ref):
+   palier=(value_ref*level)/100
    diff=value-value_ref
-   evol=round((diff*100)/value_ref)
-   if diff<0:
-      if abs(diff)<=palier:
-         state='Stable'
-      if abs(diff)>palier:
-         state='En baisse'
-   if diff>0:
-      if diff > palier:
-         state='En hausse'
-      if diff <= palier:
-         state='Stable'
-   else:
-      state='Stable'
+   evol=(diff*100)/value_ref
+   if abs(diff)<= palier:
+        state= '\u268C' #Stable
+   if diff > palier:
+        state= '\u2197' #En hausse
+   if diff < (-palier):
+        state='\u2198'  #En baisse
    return evol,state
 
 def multiplier(base, unit):
@@ -158,207 +140,189 @@ def multiplier(base, unit):
                 return 1000
 
         return 1
+
 def main(
-        agent_name,job_name, statistics_names,begin_date,end_date,start_journey,start_evening,start_night,reference,level,path_to_file,
-        stat_units,table_units,stat_title,compute_median,compute_mean, stats_with_suffixes):
+        agent_name,job_name, statistic_name,begin_date,end_date,start_journey,start_evening,start_night,reference,
+        level,path_to_file,stat_unit,table_unit,stat_title,compute_median,compute_mean, stats_with_suffixes):
 
     file_ext='xlsx'
-    #statistics = Statistics.from_default_collector()
-    statistics=Statistics('172.20.34.80')
+    statistics = Statistics.from_default_collector()
     statistics.origin = 0
     with tempfile.TemporaryDirectory(prefix='openbach-summary_time_period-') as root:       
-        for agent,job,fields,begin_date,end_date,start_journey,start_evening,start_night,reference,level,path_to_file,stat_units,table_units,stat_title in itertools.zip_longest(
-            agent_name,job_name, statistics_names,begin_date,end_date,start_journey,start_evening,start_night,reference,level,path_to_file,stat_units,table_units,stat_title,
-             fillvalue=[]):
-
-             
-            if agent is not None and len(agent) == 1:
-               agent_name = agent[0]
         
-            if job is not None and len(job) == 1:
-               job_name=job[0]
 
-            if len(begin_date) > 1 :
-                begin_date=' '.join(begin_date)
-            if len(end_date) > 1:
-                end_date = ' '.join(end_date)
-
-            if not begin_date and not end_date:
+        if not begin_date and not end_date:
                 timestamp=None
-            else:
+        else:
                 begin_date=parse(begin_date)
                 end_date=parse(end_date)
                 timestamp=[int(datetime.timestamp(begin_date)*1000),int(datetime.timestamp(end_date)*1000)]
-              
-            data_collection = statistics.fetch_all(
-                    job=job_name,agent=agent_name,
-                    suffix = None if stats_with_suffixes else '',
-                    fields=fields,timestamps=timestamp)
-             
-            metadata = itertools.zip_longest(agent,job,fields,start_journey,start_evening,start_night,reference,level,path_to_file,stat_units,table_units,stat_title)
-            for agent,job,field ,start_journey,start_evening,start_night,reference,level,path_to_file,stat_unit,table_unit,stat_title in metadata:
+
+        
+        data_collection = statistics.fetch_all(
+                job=job_name,agent=agent_name,
+                suffix = None if stats_with_suffixes else '',
+                fields=[statistic_name],timestamps=timestamp)
+        
+        df=data_collection.dataframe
+
+        workbook=Workbook() 
+        worksheet=workbook.active 
+        
+        if not level:
+                level=10
+        if not start_journey :
+                start_journey=7
+        if not start_evening:
+                start_evening=18
+        if not start_night :
+                start_night=0 
+
+        df.index=pd.to_datetime(df.index,unit='ms')
+
+        if not table_unit:
+                table_unit=''
+        facteur=multiplier(stat_unit,table_unit)
+
+        means,_=data_collection.compute_function(df,'moyenne',facteur,start_journey,start_evening,start_night)
+        medians,_=data_collection.compute_function(df,'mediane',facteur,start_journey,start_evening,start_night)
+        moments=list(means.index)
+        means=means.round(2)
+        medians=medians.round(2)
+        if not path_to_file :
+
+                if not compute_mean and compute_median:
                 
-                df=data_collection.dataframe
-                if level is None:
-                  level=10
-                if field not in df.columns.get_level_values('statistic'):
-                    message = 'job instances {} did not produce the statistic {}'.format(job, field)
-                    #collect_agent.send_log(syslog.LOG_WARNING, message)
-                    print(message)
-                    continue
+                   worksheet.append([f'{statistic_name} {table_unit}','Médiane','% Médiane Cible'])
+                   for (moment ,median) in  zip(moments,list(medians)):
+                        percent=(median*100)/reference
+                        worksheet.append([moment,median,2,f'{percent}%'])
+                        reference_style(worksheet,percent,'% Médiane Cible')
 
-                df.index=pd.to_datetime(df.index,unit='ms')
+                if not compute_median and compute_mean:
+                   worksheet.append([f'{statistic_name} {table_unit}','Moyenne','% Moyenne Cible']) 
+                   for (moment, mean ) in  zip(moments,list(means)):
+                        percent=(mean*100)/reference
+                        worksheet.append([moment,mean,f'{percent}%'])
+                        reference_style(worksheet,percent,'% Moyenne Cible')
 
-                if table_unit is None:
-                  table_unit=''
-                facteur=multiplier(stat_unit,table_unit)
+                if compute_mean and compute_median:
+                
+                   worksheet.append([f'{statistic_name} {table_unit}','Moyenne','% Moyenne Cible','Médiane','% Médiane Cible'])
+                
+                   for (moment, mean ,median) in  zip(moments,list(means),list(medians)):
+                        percent_median=(median*100)/reference
+                        percent_mean=(mean*100)/reference
+                        worksheet.append([moment,mean,f'{percent_mean}%',median,f'{percent_median}%'])
+                        reference_style(worksheet,percent_mean,'% Moyenne Cible')
+                        reference_style(worksheet,percent_median,'% Médiane Cible')
 
-                means,moments=data_collection.compute_function(field,'moyenne',facteur,
-                                                      start_journey=7 if not start_journey else start_journey,
-                                                      start_evening=18 if not start_evening else start_evening,
-                                                      start_night=0 if not start_night else start_night)
-                medians,_=data_collection.compute_function(field,'mediane',facteur,
-                                                      start_journey=7 if not start_journey else start_journey,
-                                                      start_evening=18 if not start_evening else start_evening,
-                                                      start_night=0 if not start_night else start_night)
+        else:
 
-                workbook=Workbook() 
-                worksheet=workbook.active 
+                if not compute_mean and compute_median:
 
-                if path_to_file is None:
+                        medians_ref=get_evol_value(path_to_file,statistic_name,'Médiane')
+                        worksheet.append([f'{statistic_name} {table_unit}','Médiane','% Médiane Cible','Evolution de la Médiane'])
+                        for (moment ,median,median_ref) in  itertools.zip_longest(moments,list(medians),medians_ref,fillvalue=0):
+                           percent=(median*100)/reference
+                           if median_ref!=0:
+                                evol,state=get_evol_state(level,median,median_ref)
+                                row=[moment,median,f'{percent}%', f'{state} {evol}%']
+                           else:
+                                row=[moment,median,f'{percent}%','NaN']
+                        worksheet.append(row)
+                        reference_style(worksheet,percent,'% Médiane Cible')
 
-                   if not compute_mean and compute_median:
-                       
-                        worksheet.append([f'{field} {table_unit}',f'Médiane {table_unit}','% Médiane Cible'])
-                        for (moment ,median) in  zip(moments,list(medians)):
-                           percent=round((median*100)/reference)
-                           worksheet.append([moment,round(median,2),f'{percent}%'])
-                           ref_style(worksheet,percent,'% Médiane Cible')
+                if not compute_median and compute_mean:
 
-                   if not compute_median and compute_mean:
-                        worksheet.append([f'{field} {table_unit}',f'Moyenne {table_unit}','% Moyenne Cible']) 
-                        for (moment, mean ) in  zip(moments,list(means)):
-                           percent=round((mean*100)/reference)
-                           worksheet.append([moment,round(mean,2),f'{percent}%'])
-                           ref_style(worksheet,percent,'% Moyenne Cible')
+                        means_ref=get_evol_value(path_to_file,statistic_name,'Moyenne')                          
+                        worksheet.append([f'{statistic_name} {table_unit}','Moyenne','% Moyenne Cible','Evolution de Moyenne']) 
+                        for (moment, mean,mean_ref ) in  itertools.zip_longest(moments,list(means),means_ref,fillvalue=0):
+                           percent=(mean*100)/reference
+                           if mean_ref!=0:
+                                evol,state=get_evol_state(level,mean,mean_ref)
+                                row=[moment,mean,f'{percent}%', f'{state} {evol}%']
+                           else:
+                                row=[moment,mean,f'{percent}%','NaN']
+                        worksheet.append(row)
+                        reference_style(worksheet,percent,'% Moyenne Cible')
 
-                   if compute_mean and compute_median:
-                        
-                        worksheet.append([f'{field} {table_unit}','Moyenne','% Moyenne Cible','Médiane','% Médiane Cible'])
-                        
-                        for (moment, mean ,median) in  zip(moments,list(means),list(medians)):
-                           percent_median=round((median*100)/reference)
-                           percent_mean=round((mean*100)/reference)
-                           worksheet.append([moment,round(mean,2),f'{percent_mean}%',round(median,2),f'{percent_median}%'])
-                           ref_style(worksheet,percent_mean,'% Moyenne Cible')
-                           ref_style(worksheet,percent_median,'% Médiane Cible')
+                if compute_mean and compute_median:
 
-                else:
-                        means_ref,medians_ref=compute_evol(path_to_file,field)
-                        if not compute_mean and compute_median:
-                            
-                           worksheet.append([f'{field} {table_unit}','Médiane','% Médiane Cible','Evolution de la Médiane'])
-                           for (moment ,median,median_ref) in  itertools.zip_longest(moments,list(medians),medians_ref,fillvalue=0):
-                              percent=round((median*100)/reference)
-                              if median_ref!=0:
-                                 evol,state=get_state(level,median,median_ref)
-                                 row=[moment,round(median,2),f'{percent}%', f'{state}: {evol}%']
-                              else:
-                                 row=[moment,round(median,2),f'{percent}%','NaN']
-                              worksheet.append(row)
-                              ref_style(worksheet,percent,'% Médiane Cible')
-
-
-                        if not compute_median and compute_mean:                            
-                           worksheet.append([f'{field} {table_unit}','Moyenne','% Moyenne Cible','Evolution de la Moyenne']) 
-                           for (moment, mean,mean_ref ) in  itertools.zip_longest(moments,list(means),means_ref,fillvalue=0):
-                              percent=round((mean*100)/reference)
-                              if mean_ref!=0:
-                                 evol,state=get_state(level,mean,mean_ref)
-                                 row=[moment,round(mean,2),f'{percent}%', f'{state}: {evol}%']
-                              else:
-                                 row=[moment,round(mean,2),f'{percent}%''NaN']
-                              worksheet.append(row)
-                              ref_style(worksheet,percent,'% Moyenne Cible')
-
-                        if compute_mean and compute_median:                               
-                           worksheet.append([f'{field} {table_unit}','Moyenne','% Moyenne Cible','Evolution de la Moyenne','Médiane ','% Médiane Cible','Evolution de la Médiane'])
-                           for (moment, mean ,median,mean_ref,median_ref) in   itertools.zip_longest(moments,list(means),list(medians),means_ref,medians_ref,fillvalue=0):
-                              percent_median=round((median*100)/reference)
-                              percent_mean=round((mean*100)/reference)
-                              if mean_ref!=0 and median_ref!=0:              
-                                 evol_mean,state_mean=get_state(level,mean,mean_ref)
-                                 evol_median,state_median=get_state(level,median,median_ref) 
-                                 row=[moment,round(mean,2),f'{percent_mean}%', f'{state_mean}: {evol_mean}%',
-                                             round(median,2),f'{percent_median}%', f'{state_median}: {evol_median}%']
-                              else:
-                                 row=[moment,round(mean,2),f'{percent_mean}%','NaN',round(median,2),f'{percent_median}%','NaN']
-                              worksheet.append(row)
-                              ref_style(worksheet,percent_mean,'% Moyenne Cible')
-                              ref_style(worksheet,percent_median,'% Médiane Cible')
-                    
-                if stat_title is None:
-                  stat_title =field
-                worksheet_style(worksheet,stat_title)     
-                        
-                #filepath = os.path.join(root, 'summary_time_periode_{}.{}'.format(field, file_ext))       
-                filepath='/home/agarba-abdou/summary_time_period_{}.{}'.format(field,file_ext)
-                workbook.save(filepath)
-                #collect_agent.store_files(collect_agent.now(), figure=filepath)
+                        medians_ref=get_evol_value(path_to_file,statistic_name,'Médiane') 
+                        means_ref=get_evol_value(path_to_file,statistic_name,'Moyenne')                               
+                        worksheet.append([f'{statistic_name} {table_unit}','Moyenne','% Moyenne Cible','Evolution de Moyenne','Médiane','% Médiane Cible','Evolution de Médiane'])
+                        for (moment, mean ,median,mean_ref,median_ref) in   itertools.zip_longest(moments,list(means),list(medians),means_ref,medians_ref,fillvalue=0):
+                           percent_median=(median*100)/reference
+                           percent_mean=(mean*100)/reference
+                           if mean_ref!=0 and median_ref!=0:              
+                                evol_mean,state_mean=get_evol_state(level,mean,mean_ref)
+                                evol_median,state_median=get_evol_state(level,median,median_ref) 
+                                row=[moment,mean,f'{percent_mean}%', f'{state_mean} {evol_mean}%',
+                                        median,f'{percent_median}%', f'{state_median} {evol_median}%']
+                           else:
+                                row=[moment,mean,f'{percent_mean}%','NaN',median,f'{percent_median}%','NaN']
+                        worksheet.append(row)
+                        reference_style(worksheet,percent_mean,'% Moyenne Cible')
+                        reference_style(worksheet,percent_median,'% Médiane Cible')
+                
+        if not stat_title:
+                stat_title =statistic_name
+        worksheet_style(worksheet,stat_title)     
+                
+        filepath = os.path.join(root, 'summary_time_period_{}.{}'.format(statistic_name, file_ext))    
+        workbook.save(filepath)
+        collect_agent.store_files(collect_agent.now(), figure=filepath)
 
 if __name__ == '__main__':
-    #with collect_agent.use_configuration('/opt/openbach/agent/jobs/temporal_binning_histogram/temporal_binning_histogram_rstats_filter.conf'):
+    with collect_agent.use_configuration('/opt/openbach/agent/jobs/summary_time_period/summary_time_period_rstats_filter.conf'):
         parser = argparse.ArgumentParser(description=__doc__)
         parser.add_argument(
-                '-n', '--agent', metavar='AGENT_NAME', nargs='+', action='append',dest='agents',
-                required=True, type=str, default=[],
+                metavar='AGENT_NAME',dest='agents',
+                type=str, default=[],
                 help='Agent name to fetch data from')
         parser.add_argument(
-                '-j', '--jobs', metavar='JOB_NAME', nargs='+', action='append',
-                required=True, type=str, default=[],dest='jobs',
+                metavar='JOB_NAME', type=str, default=[],dest='jobs',
                 help='job name to fetch data from')
         parser.add_argument(
-                '-s', '--stat', '--statistic', dest='statistics',
-                metavar='STATISTIC', nargs='+', action='append', default=[],
-                help='statistics names to be analysed')
+                metavar='STATISTIC' ,dest='statistics',
+                default=[],help='statistics names to be analysed')
         parser.add_argument(
-                '-b', '--begin-date',metavar='BIGIN_DATE',nargs='+' ,dest='begin_date',
-                default=[],help='Start date in form YYYY:MM:DD hh:mm:ss', action='append')
+                metavar='REFERENCE',dest='reference',type=int,
+                default=[],help='Reference value for comparison in desired stat unit')
+        parser.add_argument(
+                '-b', '--begin-date',metavar='BIGIN_DATE' ,dest='begin_date',
+                default=[],help='Start date in format YYYY:MM:DD hh:mm:ss')
+        parser.add_argument(
+                '-e', '--end-date',metavar='END_DATE',dest='end_date',
+                default=[],help='End date in format YYYY:MM:DD hh:mm:ss')
 
         parser.add_argument(
-                '-e', '--end-date',metavar='END_DATE',nargs='+' ,dest='end_date',
-                default=[],help='End date in form YYYY:MM:DD hh:mm:ss', action='append')
-
+                '-sj', '--start-journey',metavar='START_JOURNEY' ,dest='start_journey',
+                default=[],help='starting time of the day')
         parser.add_argument(
-                '-sj', '--start-journey',metavar='START_JOURNEY',nargs='+' ,dest='start_journey',
-                default=[],help='starting time of the day', action='append')
+                '-se', '--start-evening',metavar='START_EVENING' ,dest='start_evening',
+                default=[],help='starting time of the evening')
         parser.add_argument(
-                '-se', '--start-evening',metavar='START_EVENING',nargs='+' ,dest='start_evening',
-                default=[],help='starting time of the evening', action='append')
+                '-sn', '--start-night',metavar='START_NIGHT',dest='start_night',
+                default=[],help='starting time of the night')
         parser.add_argument(
-                '-sn', '--start-night',metavar='START_NIGHT',nargs='+' ,dest='start_night',
-                default=[],help='starting time of the night', action='append')
+                '-l', '--level',metavar='LEVEL',dest='level',type=int,
+                default=[],help='Percentage level to observe the evolution')     
         parser.add_argument(
-                '-r', '--reference',metavar='REFERENCE',nargs='+' ,dest='reference',type=int,required=True,
-                default=[],help='Reference value for comparison in desired stat unit', action='append')
+                '-p', '--path_to_file',metavar='PATH_TO_FILE',dest='path_to_file',
+                default=[],help='Path to xlsx file for evolution calculation')
         parser.add_argument(
-                '-l', '--level',metavar='LEVEL',nargs='+' ,dest='level',type=int,
-                default=[],help='Percentage level to observe the evolution', action='append')
-         
-        parser.add_argument(
-                '-p', '--path_to_file',metavar='PATH_TO_FILE',nargs='+' ,dest='path_to_file',
-                default=[],help='Path to xlsx file', action='append')
-        parser.add_argument(
-                '-ub', '--stat-unit', dest='stat_units', nargs='+',choices=UNIT_OPTION,
-                metavar='STAT_UNIT', action='append', default=[],
+                '-ub', '--stat-unit', dest='stat_units',choices=UNIT_OPTION,
+                metavar='STAT_UNIT',  default=[],
                 help='Unit of the statistic')
         parser.add_argument(
-                '-u', '--table-unit', dest='table_units', nargs='+',choices=UNIT_OPTION,
-                metavar='TALE_UNIT', action='append', default=[],
+                '-u', '--table-unit', dest='table_units',choices=UNIT_OPTION,
+                metavar='TALE_UNIT', default=[],
                 help='Unit to show on the table')
         parser.add_argument(
                 '-t', '--stat-title', '--stat-title', dest='stat_title',
-                metavar='STAT-TITLE', nargs='+', action='append', default=[],
+                metavar='STAT-TITLE', default=[],
                 help='statistics names to display on the table')
         parser.add_argument(
                 '-w', '--no-suffix', action='store_true',
@@ -373,7 +337,6 @@ if __name__ == '__main__':
         compute_mean = not args.no_mean
         stats_with_suffixes = not args.no_suffix
         
-
         main(
-            args.agents,args.jobs, args.statistics,args.begin_date,args.end_date,args.start_journey,args.start_evening,
-            args.start_night,args.reference,args.level,args.path_to_file,args.stat_units,args.table_units,args.stat_title ,compute_median,compute_mean,stats_with_suffixes)
+            args.agents,args.jobs, args.statistics,args.begin_date,args.end_date,args.start_journey,args.start_evening,args.start_night,args.reference,
+            args.level,args.path_to_file,args.stat_units,args.table_units,args.stat_title ,compute_median,compute_mean,stats_with_suffixes)
