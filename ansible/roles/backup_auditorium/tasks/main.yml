@@ -29,35 +29,34 @@
   tempfile:
     prefix: openbach_auditorium_backup_
     suffix: "{{ item.suffix }}"
-    state: "{{ item.state }}"
+    state: "{{ item.type }}"
   with_items:
     - suffix: .tar.gz
-      state: file
-    - suffix: _grafana
-      state: directory
+      type: file
+    - suffix: _chronograf
+      type: directory
   register: openbach_backup_archive_name
 
 - name: List the Available Dashboards
   uri:
-    url: http://localhost:{{ grafana_port }}/api/search?limit=100000
+    url: http://localhost:{{ chronograf_port }}/chronograf/v1/dashboards
     method: GET
-    headers:
-      Cookie: "{{ openbach_grafana_backup_cookies | default(omit) }}"
-  register: response
+    body_format: json
+  register: openbach_backup_chronograf_dashboards
 
-- name: Export Dashboards as JSON
+- name: Export the Available Dashboards
   uri:
-    url: http://localhost:{{ grafana_port }}/api/dashboards/uid/{{ item }}
+    url: http://localhost:{{ chronograf_port }}/chronograf/v1/dashboards/{{ item }}
     method: GET
-    dest: "{{ openbach_backup_archive_name.results[1].path }}/{{ item }}.json"
-    headers:
-      Cookie: "{{ openbach_grafana_backup_cookies | default(omit) }}"
-  with_items: "{{ response.json | map(attribute='uid') | list }}"
+    dest: "{{ openbach_backup_archive_name.results[1].path }}"
+    body_format: json
+  with_items: "{{ openbach_backup_chronograf_dashboards.json.dashboards | map(attribute='id') | list }}"
 
 - name: Archive the Exported Dashboards
   archive:
     path: "{{ openbach_backup_archive_name.results[1].path }}"
     dest: "{{ openbach_backup_archive_name.results[0].path }}"
+    # force_archive: yes
 
 - name: Gather the Archive File in the Temporary Directory
   fetch:

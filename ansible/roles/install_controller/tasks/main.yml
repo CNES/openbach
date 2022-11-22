@@ -238,9 +238,10 @@
     - fail:
         msg: >
           It appears that a previous OpenBACH database is still present in
-          the Controller. To avoid loss of data we won't overwrite it. Please
-          remove this database manually before retrying; or run the playbook
-          with the '--skip-tags restore_backend_database' option.
+          the Controller. To avoid loss of data we won't overwrite it. If
+          you know what you’re doing, remove this database manually before
+          retrying; or run the playbook with the
+          '--skip-tags restore_backend_database' option.
       when: not openbach_backend_database.changed
       tags:
         - restore_backend_database

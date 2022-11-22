@@ -151,37 +151,32 @@
   wait_for: port={{ chronograf_port }} timeout=60
 
 - block:
-    - name: Authenticate into Grafana (TODO replace with backup restore on Chronograf)
-      uri:
-        url: http://localhost:{{ grafana_port }}/login
-        method: POST
-        body_format: json
-        body:
-          user: "admin"
-          password: "admin"
-          email: ""
-      register: openbach_grafana_restore_login
-
     - name: Extract Backup Files
       unarchive:
         src: "{{ openbach_archive_root }}/{{ openbach_restore_host }}/openbach_auditorium.tar.gz"
         dest: "/tmp/"
 
-    - name: Lookup for Grafana Dump Filename
-      shell: ls -d /tmp/openbach_auditorium_backup_*_grafana
-      register: openbach_grafana_dump
+    - name: Lookup for Chronograf Dump Folder
+      shell: ls -d /tmp/openbach_auditorium_backup_*_chronograf
+      register: openbach_chronograf_dump_folder
 
-    - name: Restore Grafana Dashboards
-      include_tasks: restore_grafana_dashboard.yml
-      vars:
-        openbach_grafana_dashboard_filename: "{{ openbach_grafana_dump.stdout }}/{{ item.path }}"
-        openbach_grafana_url: http://localhost:{{ grafana_port }}/api/dashboards/db
-        openbach_grafana_cookies: "grafana_remember={{ openbach_grafana_login.cookies.grafana_remember }}; grafana_sess={{ openbach_grafana_login.cookies.grafana_sess }}; grafana_user={{ openbach_grafana_login.cookies.grafana_user }}"
-      with_filetree: "{{ openbach_grafana_dump.stdout }}"
+    - name: Lookup for Chronograf Dump Filename
+      shell: ls -1 {{ openbach_chronograf_dump_folder.stdout }}
+      register: openbach_chronograf_dump
+
+    - name: Restore Chronograf Dashboards
+      uri:
+        url: http://localhost:{{ chronograf_port }}/chronograf/v1/dashboards
+        method: POST
+        src: "{{ openbach_chronograf_dump_folder.stdout }}/{{ item }}"
+        remote_src: yes
+        status_code: 201
+        body_format: json
+      with_items: "{{ openbach_chronograf_dump.stdout_lines }}"
 
     - name: Remove Extracted Files
       file:
-        path: "{{ openbach_grafana_dump.stdout }}"
+        path: "{{ openbach_chronograf_dump_folder.stdout }}"
         state: absent
   remote_user: openbach
   when: openbach_restore_host is defined
