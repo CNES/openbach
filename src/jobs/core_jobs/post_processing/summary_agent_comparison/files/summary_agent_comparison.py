@@ -49,10 +49,11 @@ import matplotlib.pyplot as plt
 import collect_agent
 from data_access.post_processing import Statistics, save, _Plot
 
-UNIT_OPTION={'s', 'ms' ,'bits/s', 'Kbits/s', 'Mbits/s','Gbits/s','Bytes' ,'KBytes', 'MBytes', 'GBytes'}
-FUNCTION_OPTION={'moyenne','mediane','min','max'}
+
 COLUMN_NUMBER=4
-FUNCTION_DIC={'moyenne':'Moyenne','mediane':'Médiane','min':'Minimum','max':'Maximum'}
+FUNCTION_DIC={'mean':'Moyenne','median':'Médiane','min':'Minimum','max':'Maximum'}
+UNIT_OPTION={'s', 'ms' ,'bits/s', 'Kbits/s', 'Mbits/s','Gbits/s','Bytes' ,'KBytes', 'MBytes', 'GBytes'}
+
 
 def multiplier(base, unit):
         if unit == base:
@@ -73,8 +74,9 @@ def multiplier(base, unit):
                 return 1000 * 1000
         if unit.startswith('Kbits'):
                 return 1000
-
         return 1
+
+
 def plot_summary_agent_comparison(
                                 axis,function_result,reference,agent,
                                 num_bar,filled_box):
@@ -196,9 +198,8 @@ def main(
                         fields=[statistic_name],timestamps=timestamp)
                 
 
-                df=data_collection.dataframe    
-                function_result,_=data_collection.compute_function(
-                                                df,function,facteur,
+                function_result=data_collection.compute_function(
+                                                function,facteur,
                                                 start_journey,start_evening,start_night)
 
                 axis=plot_summary_agent_comparison(_axis_list[index+1],function_result,reference,
@@ -232,7 +233,7 @@ if __name__ == '__main__':
                 '-e', '--end-date',metavar='END_DATE',dest='end_date',
                 default=[],help='End date in format YYYY:MM:DD hh:mm:ss')
         parser.add_argument(
-                '-f', '--function', dest='function',choices=FUNCTION_OPTION,
+                '-f', '--function', dest='function',choices=list(FUNCTION_DIC),
                 metavar='FUNCTION',default=[],help='Mathematical function to compute')
         parser.add_argument(
                 '-r', '--reference',metavar='REFERENCE',dest='reference',type=int,
@@ -278,4 +279,3 @@ if __name__ == '__main__':
         main(
             args.agents,args.jobs, args.statistics,args.begin_date,args.end_date,args.function,args.reference,args.num_bars,args.start_journey,args.start_evening,
             args.start_night,args.stat_units,args.table_units,args.agents_title,args.stat_title,args.figure_title ,stats_with_suffixes,args.filled_box)
-

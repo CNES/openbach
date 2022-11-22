@@ -29,7 +29,7 @@ general:
   name: summary_agent_comparison
   description: >
       This job post-process data of other jobs. It generates period-aggregated table of jobs metrics to perform statistics analysis.
-  job_version: '1.1'
+  job_version: '1.2'
   keywords:
     - post-processing
     - agent-comparison
@@ -85,8 +85,8 @@ arguments:
       flag: '-f'
       description: Mathematical function to compute
       choices:
-       - moyenne
-       - mediane
+       - mean
+       - median
        - min
        - max
     - name: reference

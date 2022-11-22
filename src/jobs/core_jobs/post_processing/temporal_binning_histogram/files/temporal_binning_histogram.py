@@ -40,6 +40,7 @@ import os.path
 import argparse
 import tempfile
 import itertools
+from distutils.version import LooseVersion
 
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -51,6 +52,7 @@ from data_access.post_processing import Statistics, save, _Plot
 AGGREGATION_OPTIONS = {'year', 'month', 'day', 'hour', 'minute', 'second'}
 COLORMAP_OPTION ={'jet':'jet', 'dark':'Dark2','seismic':'seismic','copper':'copper','red2green':'RdYlGn','blue2red':'bwr','blue2green':'brg','paired':'Paired'}
 UNIT_OPTION={'s', 'ms' ,'bits/s', 'Kbits/s', 'Mbits/s','Gbits/s','Bytes' ,'KBytes', 'MBytes', 'GBytes'}
+SET_AXIS_PARAMETERS = {'inplace': False} if LooseVersion(pd.__version__) < LooseVersion('1.5.0') else {'copy': True}
 
 
 def multiplier(base, unit):
@@ -101,7 +103,7 @@ def main(
             
             # Drop multi-index columns to easily concatenate dataframes from their statistic names
             df = pd.concat([
-                plot.dataframe.set_axis(plot.dataframe.columns.get_level_values('statistic'), axis=1, inplace=False)
+                plot.dataframe.set_axis(plot.dataframe.columns.get_level_values('statistic'), axis=1, **SET_AXIS_PARAMETERS)
                 for plot in data_collection])
 
             

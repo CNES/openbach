@@ -35,21 +35,24 @@ __credits__ = '''Contributors:
 '''
 
 import os
-import itertools
-import tempfile
-import argparse
 import syslog
-
-from dateutil.parser import parse
+import argparse
+import tempfile
+import itertools
 from datetime import datetime,timedelta
+from distutils.version import LooseVersion
+
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from dateutil.parser import parse
 
 import collect_agent
 from data_access.post_processing import Statistics, save, _Plot
 
 UNIT_OPTION={'s', 'ms' ,'bits/s', 'Kbits/s', 'Mbits/s','Gbits/s','Bytes' ,'KBytes', 'MBytes', 'GBytes'}
+SET_AXIS_PARAMETERS = {'inplace': False} if LooseVersion(pd.__version__) < LooseVersion('1.5.0') else {'copy': True}
+
 
 def multiplier(base, unit):
         if unit == base:
@@ -126,8 +129,8 @@ def main(
                         fields=[statistic_name],timestamps=timestamp) 
 
                 df = pd.concat([
-                plot.dataframe.set_axis(plot.dataframe.columns.get_level_values('statistic'), axis=1, inplace=False)
-                for plot in data_collection])
+                    plot.dataframe.set_axis(plot.dataframe.columns.get_level_values('statistic'), axis=1, **SET_AXIS_PARAMETERS)
+                    for plot in data_collection])
 
                 df=df.dropna()
                 df=df/facteur

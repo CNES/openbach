@@ -164,8 +164,6 @@ def main(
                 suffix = None if stats_with_suffixes else '',
                 fields=[statistic_name],timestamps=timestamp)
         
-        df=data_collection.dataframe
-
         workbook=Workbook() 
         worksheet=workbook.active 
         
@@ -178,14 +176,12 @@ def main(
         if not start_night :
                 start_night=0 
 
-        df.index=pd.to_datetime(df.index,unit='ms')
-
         if not table_unit:
                 table_unit=''
         facteur=multiplier(stat_unit,table_unit)
 
-        means,_=data_collection.compute_function(df,'moyenne',facteur,start_journey,start_evening,start_night)
-        medians,_=data_collection.compute_function(df,'mediane',facteur,start_journey,start_evening,start_night)
+        means=data_collection.compute_function('mean',facteur,start_journey,start_evening,start_night)
+        medians=data_collection.compute_function('median',facteur,start_journey,start_evening,start_night)
         moments=list(means.index)
         means=means.round(2)
         medians=medians.round(2)
