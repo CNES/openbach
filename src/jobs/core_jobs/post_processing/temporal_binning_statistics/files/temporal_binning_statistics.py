@@ -34,6 +34,7 @@ __credits__ = '''Contributors:
  * David FERNANDES <david.fernandes@viveris.fr>
 '''
 
+from copy import copy
 import sys
 import syslog
 import os.path
@@ -53,8 +54,9 @@ TIME_OPTIONS = {'year', 'month', 'day', 'hour', 'minute', 'second'}
 
 def main(
         job_instance_ids, statistics_names, aggregations_periods, percentiles,
-        stats_with_suffixes, axis_labels, figures_titles, use_legend, median,
+        stats_with_suffixes, axis_labels, figures_titles, use_legend,use_grid, median,
         average, deviation, boundaries, min_max, pickle):
+
     file_ext = 'pickle' if pickle else 'png'
     statistics = Statistics.from_default_collector()
     statistics.origin = 0
@@ -66,15 +68,17 @@ def main(
                     job_instances=job,
                     suffix = None if stats_with_suffixes else '',
                     fields=fields)
-
+            
             # Drop multi-index columns to easily concatenate dataframes from their statistic names
             df = pd.concat([
                 plot.dataframe.set_axis(plot.dataframe.columns.get_level_values('statistic'), axis=1, inplace=False)
                 for plot in data_collection])
+            
             # Recreate a multi-indexed columns so the plot can function properly
             df.columns = pd.MultiIndex.from_tuples(
                     [('', '', '', '', stat) for stat in df.columns],
-                    names=['job', 'scenario', 'agent', 'suffix', 'statistic'])
+                    names=['job', 'scenario', 'agent', 'suffix', 'statistic'])  
+            
             plot = _Plot(df)
 
             if not fields:
@@ -103,11 +107,12 @@ def main(
                     aggregation = 'hour'
 
                 figure, axis = plt.subplots()
+                
                 axis = plot.plot_temporal_binning_statistics(
                         axis, label, field, None,
                         percentiles, aggregation,
                         median, average, deviation, boundaries,
-                        min_max, use_legend)
+                        min_max, use_legend,use_grid)
                 if title is not None:
                     axis.set_title(title)
                 filepath = os.path.join(root, 'temporal_binning_statistics_{}.{}'.format(field, file_ext))
@@ -154,6 +159,9 @@ if __name__ == '__main__':
                 '-n', '--hide-legend', '--no-legend', action='store_true',
                 help='do not draw any legend on the graph')
         parser.add_argument(
+                '-d', '--hide-grid', '--no-grid', action='store_true',
+                help='do not show grid on the graph')
+        parser.add_argument(
                 '--hide-median', '--no-median', action='store_true',
                 help='do not draw median on the graph')
         parser.add_argument(
@@ -181,6 +189,7 @@ if __name__ == '__main__':
         draw_deviation = not args.hide_deviation
         draw_boundaries = not args.hide_boundaries
         draw_min_max = not args.hide_min_max
+        use_grid = not args.hide_grid
 
         if not draw_percentiles :
             args.percentiles = None
@@ -188,9 +197,9 @@ if __name__ == '__main__':
             args.percentiles = [[5, 95], [25, 75]]
         elif len(args.percentiles) > 2 :
             message = 'Too many percentile pairs. Maximum allowed is 2 pairs.'
-            collect_agent.send_log(syslog.LOG_ERR, message)
+            #collect_agent.send_log(syslog.LOG_ERR, message)
             sys.exit(message)
 
         main(args.jobs, args.statistics, args.aggregations, args.percentiles, stats_with_suffixes,
-                args.ylabel, args.title, use_legend, draw_median, draw_average,
+                args.ylabel, args.title, use_legend,use_grid, draw_median, draw_average,
                 draw_deviation, draw_boundaries, draw_min_max, args.pickle)

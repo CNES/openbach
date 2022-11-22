@@ -40,6 +40,8 @@ __credits__ = '''Contributors:
 '''
 
 
+from lib2to3.pgen2 import token
+from os import stat_result
 import re
 import sys
 import syslog
@@ -128,6 +130,7 @@ def sender(cmd):
     for flow_number in repeat(None):
         line = p.stdout.readline().decode()
         tokens = BRACKETS.sub('', line).split()
+       
         if not tokens:
             if p.poll() is not None:
                 break
@@ -139,20 +142,56 @@ def sender(cmd):
                 # check if it is a line with total download time
                 if len(tokens) < 2:
                     continue
+
                 flow = tokens[0]
+
                 interval_begin, interval_end = map(float, tokens[1].split("-"))
                 try:
+                    
                     flow_number = flow_map[int(flow)]
+         
                 except ValueError:
                     if flow.upper() != "SUM":
                         continue
-                if interval_begin == 0 and flow in first_line:
-                    statistics = {'download_time': interval_end}
-                    collect_agent.send_stat(
-                        timestamp, suffix=flow_number, **statistics)
-                    del first_line[flow]
-                    continue
 
+                if interval_begin == 0 and flow in first_line:
+        
+                    statistics = {'download_time': interval_end}
+
+                    try:
+                        #if UDP
+                        flow, duration, _, t_transfer, t_transfer_units, a_bandwidth, a_bandwidth_units,l_jitter,l_jitter_unit,t_pkts_stat, total_datagrams,entity = tokens 
+                        t_lost, total = map(int, t_pkts_stat.split('/'))
+                        l_jitter=float(l_jitter)
+                        t_plr=float(total_datagrams[1:-2])
+
+                        statistics['total_sent_pkts']=total
+                        statistics['total_lost_pkts']=t_lost
+                        statistics['total_plr']=t_plr
+
+                    except ValueError:
+
+                        #if TCP
+                        flow, duration, _, t_transfer, t_transfer_units, a_bandwidth, a_bandwidth_units, t_retries,entity = tokens
+                        statistics['total_retransmission']=int(t_retries)
+
+                    t_transfer=float(t_transfer)
+                    a_bandwidth=float(a_bandwidth)
+                    statistics['total_transfer']=t_transfer* multiplier(t_transfer_units, 'Bytes')
+                    statistics['average_throughput']=a_bandwidth* multiplier(a_bandwidth_units, 'bits/sec')
+
+ 
+                    if entity=="sender":
+                        if flow.upper()=="SUM":
+                            suffix=flow
+                        else:
+                            suffix=flow_number
+                        collect_agent.send_stat(
+                            timestamp, suffix, **statistics)
+                
+                    continue
+                
+                
                 # otherwise test if TCP or UDP traffic
                 flow, duration, _, transfer, transfer_units, bandwidth, bandwidth_units, total_datagrams = tokens
                 total_datagrams = int(total_datagrams)
@@ -161,8 +200,10 @@ def sender(cmd):
                 flow, duration, _, transfer, transfer_units, bandwidth, bandwidth_units, retries, cwnd, cwnd_units = tokens
                 retries = int(retries)
                 cwnd = float(cwnd)
+
             else:
                 udp = True
+         
             transfer = float(transfer)
             bandwidth = float(bandwidth)
             interval_begin, interval_end = map(float, duration.split('-'))
@@ -177,8 +218,11 @@ def sender(cmd):
                 continue
 
         first_line[flow] = True
+        
         if flow not in total_sent_data:
+
             total_sent_data[flow] = 0
+
         total_sent_data[flow] += transfer * multiplier(transfer_units, 'Bytes')
 
         statistics = {
@@ -191,6 +235,8 @@ def sender(cmd):
         else:
             statistics['cwnd'] = cwnd * multiplier(cwnd_units, 'Bytes')
             statistics['retransmissions'] = retries
+
+        
         collect_agent.send_stat(timestamp, suffix=flow_number, **statistics)
 
     error_log = p.stderr.readline()
@@ -211,6 +257,7 @@ def receiver(cmd):
     for flow_number in repeat(None):
         line = p.stdout.readline().decode()
         tokens = BRACKETS.sub('', line).split()
+      
         if not tokens:
             if p.poll() is not None:
                 break
@@ -222,18 +269,54 @@ def receiver(cmd):
                 # check if it is a line with total download time
                 if len(tokens) < 2:
                     continue
+
                 flow = tokens[0]
                 interval_begin, interval_end = map(float, tokens[1].split("-"))
                 try:
                     flow_number = flow_map[int(flow)]
+
                 except ValueError:
                     if flow.upper() != "SUM":
                         continue
+                
+
                 if interval_begin == 0 and flow in first_line:
+                    
                     statistics = {'download_time': interval_end}
+
+
+                    try:
+                        #if UDP
+                        flow, duration, _, t_transfer, t_transfer_units, a_bandwidth, a_bandwidth_units,l_jitter,l_jitter_unit,t_pkts_stat, total_datagrams,_ = tokens
+                        l_jitter=float(l_jitter)
+                        t_lost, total = map(int, t_pkts_stat.split('/'))
+                        t_plr=float(total_datagrams[1:-2])
+
+                        statistics['total_lost_pkts']=t_lost
+                        statistics['last_jitter']=l_jitter* multiplier(l_jitter_unit, 's')
+                        statistics['total_sent_pkts']=total
+                        statistics['total_plr']=t_plr
+
+                    except ValueError:
+
+                        #if TCP
+                        flow, duration, _, t_transfer, t_transfer_units, a_bandwidth, a_bandwidth_units,_ = tokens
+
+                    t_transfer=float(t_transfer)                   
+                    a_bandwidth=float(a_bandwidth)
+                    statistics['total_transfer']=t_transfer* multiplier(t_transfer_units, 'Bytes')
+                    statistics['average_throughput']=a_bandwidth* multiplier(a_bandwidth_units, 'bits/sec')
+
+
+                    if flow.upper()=="SUM":
+                        suffix=flow
+                    else:
+                        suffix=flow_number
                     collect_agent.send_stat(
-                        timestamp, suffix=flow_number, **statistics)
+                        timestamp, suffix, **statistics)
+
                     del first_line[flow]
+
                     continue
 
                 # otherwise test if TCP or UDP traffic
@@ -255,6 +338,7 @@ def receiver(cmd):
 
         try:
             flow_number = flow_map[int(flow)]
+
         except ValueError:
             if flow.upper() != "SUM":
                 continue
@@ -273,6 +357,8 @@ def receiver(cmd):
             statistics['lost_pkts'] = lost
             statistics['sent_pkts'] = total
             statistics['plr'] = datagrams
+
+        
         collect_agent.send_stat(timestamp, suffix=flow_number, **statistics)
 
     error_log = p.stderr.readline()

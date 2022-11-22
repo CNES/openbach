@@ -83,6 +83,7 @@ def main(destination_ip, count, interval, interface, packetsize, ttl, n_mean):
             continue
 
         match = re.match(pattern, output)
+        
         if match is None:
             message = 'Unrecognised fping output: {}'.format(output)
             collect_agent.send_log(syslog.LOG_WARNING, message)
