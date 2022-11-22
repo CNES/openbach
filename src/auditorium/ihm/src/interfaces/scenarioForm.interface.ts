@@ -1,4 +1,4 @@
-import {IOpenbachFunction, IOpenbachFunctionWait, TOpenbachFunctions, TOpenbachFunctionCondition, IStartJobParameters} from "./project.interface";
+import {IOpenbachFunction, IOpenbachFunctionWait, IOpenbachFunctionFailPolicy, TOpenbachFunctions, TOpenbachFunctionCondition, IStartJobParameters} from "./project.interface";
 
 
 export interface IScenarioForm {
@@ -15,6 +15,7 @@ export interface IOpenbachFunctionForm {
     label: string;
     kind: TOpenbachFunctions;
     wait: IOpenbachFunctionWait;
+    on_fail: IOpenbachFunctionFailPolicy;
     entity?: string;
     offset?: number;
     interval?: number;

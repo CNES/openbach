@@ -26,6 +26,7 @@ export class TextFormField extends React.Component<IProps, {}> {
                 multiLine={this.props.multiLine}
                 style={this.props.style}
                 floatingLabelStyle={this.props.customStyle}
+                // inputProps={this.props.inputProps}
                 {...this.props.input}
             />
         );
@@ -163,4 +164,5 @@ export interface IProps {
     text?: string;
     type?: string;
     value?: string;
+    inputProps?: Object;
 };

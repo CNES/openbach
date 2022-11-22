@@ -99,6 +99,11 @@ class UnprocessableError(ConductorError):
     ERROR_CODE = 422
 
 
+class UnreachableError(UnprocessableError):
+    """Error dedicated to requests that fail because an other component (mostly the agent) could not be reached"""
+    pass
+
+
 class ConductorWarning(ConductorError):
     """Exception dedicated to control flow allowing to
     set custom message in commands results.

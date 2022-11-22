@@ -33,7 +33,11 @@ const openbachFunctionIcons = [{
 }];
 
 
-const openbachFunctionStatus = [{
+interface IOpenbachFunctionHelp {
+    description: string;
+    name: TOpenbachFunctionInstanceStatus | "Unknown";
+}
+const openbachFunctionStatus: IOpenbachFunctionHelp[] = [{
     description: "Scheduled",
     name: "Scheduled",
 }, {
@@ -49,11 +53,19 @@ const openbachFunctionStatus = [{
     description: "Error",
     name: "Error",
 }, {
+    description: "Function experienced error but has been retried",
+    name: "Retried",
+}, {
     description: "Unknown",
     name: "Unknown",
 }];
 
-const jobInstanceStatus = [{
+
+interface IJobInstanceHelp {
+    description: string;
+    name: TJobInstanceStatus | "Unknown";
+}
+const jobInstanceStatus: IJobInstanceHelp[] = [{
     description: "Not Scheduled",
     name: "Not Scheduled",
 }, {
@@ -73,13 +85,17 @@ const jobInstanceStatus = [{
     name: "Stopped",
 }, {
     description: "Agent Unreachable",
-    name: "Agents Unreachable",
+    name: "Agent Unreachable",
 }, {
     description: "Unknown",
     name: "Unknown",
 }];
 
 
+interface IScenarioInstanceHelp {
+    description: string;
+    name: TScenarioInstanceStatus | "Unknown";
+}
 const scenarioInstanceStatus = [{
     description: "Running",
     name: "Running",
@@ -88,16 +104,13 @@ const scenarioInstanceStatus = [{
     name: "Scheduling",
 }, {
     description: "Finished OK",
-    name: "Finished OK",
+    name: "Finished Ok",
 }, {
     description: "Finished KO",
-    name: "Finished KO",
+    name: "Finished Ko",
 }, {
     description: "Stopped",
     name: "Stopped",
-}, {
-    description: "Stopped, out of controll",
-    name: "Stopped, out of controll",
 }, {
     description: "An Agent became Unreachable",
     name: "Agents Unreachable",
@@ -122,28 +135,28 @@ class ScenarioIcons extends React.Component<IDispatchProps, {}> {
             );
         });
 
-        const openbachFunctionStatusRows = openbachFunctionStatus.map((entry, index) => {
+        const openbachFunctionStatusRows = openbachFunctionStatus.map((entry: IOpenbachFunctionHelp, index) => {
             return (
                 <TableRow key={index}>
-                    <TableRowColumn>{getIconForFunctionStatus(entry.name as TOpenbachFunctionInstanceStatus)}</TableRowColumn>
+                    <TableRowColumn>{getIconForFunctionStatus(entry.name)}</TableRowColumn>
                     <TableRowColumn style={{whiteSpace: "pre"}}>{entry.description}</TableRowColumn>
                 </TableRow>
             );
         });
 
-        const jobInstanceStatusRows = jobInstanceStatus.map((entry, index) => {
+        const jobInstanceStatusRows = jobInstanceStatus.map((entry: IJobInstanceHelp, index) => {
             return (
                 <TableRow key={index}>
-                    <TableRowColumn>{getIconForJobStatus(entry.name as TJobInstanceStatus)}</TableRowColumn>
+                    <TableRowColumn>{getIconForJobStatus(entry.name)}</TableRowColumn>
                     <TableRowColumn style={{whiteSpace: "pre"}}>{entry.description}</TableRowColumn>
                 </TableRow>
             );
         });
 
-        const scenarioInstanceStatusRows = scenarioInstanceStatus.map((entry, index) => {
+        const scenarioInstanceStatusRows = scenarioInstanceStatus.map((entry: IScenarioInstanceHelp, index) => {
             return (
                 <TableRow key={index}>
-                    <TableRowColumn>{getIconForScenarioStatus(entry.name as TScenarioInstanceStatus)}</TableRowColumn>
+                    <TableRowColumn>{getIconForScenarioStatus(entry.name)}</TableRowColumn>
                     <TableRowColumn style={{whiteSpace: "pre"}}>{entry.description}</TableRowColumn>
                 </TableRow>
             );

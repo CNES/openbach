@@ -53,8 +53,9 @@ from . import openbach_function_models  # So we can getattr from this module
 from .openbach_function_models import (  # Shortcuts
         OpenbachFunction, OpenbachFunctionInstance,
         StartJobInstance, StartJobInstanceArgument,
-        StartScenarioInstance,
-        WaitForLaunched, WaitForFinished
+        StartScenarioInstance, FailurePolicy,
+        WaitForRunning, WaitForEnded,
+        WaitForLaunched, WaitForFinished,
 )
 
 
@@ -267,7 +268,10 @@ class Scenario(models.Model):
             id_ = extract_value('openbach_functions', index, 'id', expected_type=int)
             label = extract_value('openbach_functions', index, 'label', expected_type=str, mandatory=False)
             label = json_data['openbach_functions'][index].get('label')  # Type checking is done, extract the real value
-            possible_function_name = [key for key in function if key not in {'wait', 'id', 'label'}]
+            policy = extract_value('openbach_functions', index, 'on_fail', expected_type=dict, mandatory=False)
+            json_data['openbach_functions'][index]['on_fail'] = policy
+            failure_policy = extract_value('openbach_functions', index, 'on_fail', 'policy', expected_type=str, mandatory=False)
+            possible_function_name = [key for key in function if key not in {'wait', 'id', 'label', 'on_fail'}]
             if len(possible_function_name) < 1:
                 raise Scenario.MalformedError(
                         'openbach_functions.{}'.format(index), value=function,
@@ -308,6 +312,32 @@ class Scenario(models.Model):
                     raise Scenario.MalformedError(
                             'openbach_functions.{}.{}.{}'.format(index, function_name, name),
                             value=value, expected_type=expected_type)
+
+            if failure_policy:
+                try:
+                    actual_policy = FailurePolicy.Policies[failure_policy.upper()]
+                except KeyError:
+                    raise Scenario.MalformedError(
+                            'openbach_functions.{}.on_fail'.format(index),
+                            override_error='Unknown failure policy \'{}\''.format(failure_policy))
+
+                if actual_policy is FailurePolicy.Policies.RETRY:
+                    failure_retry = extract_value('openbach_functions', index, 'on_fail', 'retry', expected_type=int)
+                    failure_delay = extract_value(
+                            'openbach_functions', index, 'on_fail', 'delay',
+                            expected_type=(int, float, str), mandatory=False, default=5.0)
+                    try:
+                        FailurePolicy.objects.create(
+                                openbach_function=openbach_function,
+                                policy=actual_policy,
+                                retry_limit=failure_retry,
+                                wait_time=failure_delay)
+                    except ValidationError as e:
+                        raise Scenario.MalformedError(
+                                'openbach_functions.{}.on_fail'.format(index),
+                                override_error=str(e))
+                else:
+                    FailurePolicy.objects.create(openbach_function=openbach_function, policy=actual_policy)
 
             # Register required and optional arguments for a start_job_instance
             if function_name == 'start_job_instance':
@@ -354,61 +384,35 @@ class Scenario(models.Model):
         # Start again the looping to be sure all referenced
         # indexes have been created
         for index, function in enumerate(openbach_functions):
-            wait_launched = extract_value(
-                    'openbach_functions', index, 'wait',
-                    'launched_ids', expected_type=list, mandatory=False)
-            for idx, launched_id in enumerate(wait_launched):
-                if not isinstance(launched_id, int):
-                    raise Scenario.MalformedError(
-                            'openbach_functions.{}.wait.'
-                            'launched_ids.{}'.format(index, idx),
-                            value=launched_id, expected_type=int)
-                try:
-                    waited_function = scenario.openbach_functions.get(function_id=launched_id)
-                except OpenbachFunction.DoesNotExist:
-                    raise Scenario.MalformedError(
-                            'openbach_functions.{}.wait.'
-                            'launched_ids.{}'.format(index, idx),
-                            value=launched_id, override_error='The '
-                            'referenced openbach function does not exist')
-                else:
-                    waited_function = waited_function.get_content_model()
-                openbach_function_instance = scenario.openbach_functions.get(
-                        function_id=function['id']).get_content_model()
-                WaitForLaunched.objects.create(
-                        openbach_function_waited=waited_function,
-                        openbach_function_instance=openbach_function_instance)
-            wait_finished = extract_value(
-                    'openbach_functions', index, 'wait',
-                    'finished_ids', expected_type=list, mandatory=False)
-            for idx, launched_id in enumerate(wait_finished):
-                if not isinstance(launched_id, int):
-                    raise Scenario.MalformedError(
-                            'openbach_functions.{}.wait.'
-                            'finished_ids.{}'.format(index, idx),
-                            value=launched_id, expected_type=int)
-                try:
-                    waited_function = scenario.openbach_functions.get(function_id=launched_id)
-                except OpenbachFunction.DoesNotExist:
-                    raise Scenario.MalformedError(
-                            'openbach_functions.{}.wait.'
-                            'finished_ids.{}'.format(index, idx),
-                            value=launched_id, override_error='The '
-                            'referenced openbach function does not exits')
-                else:
-                    waited_function = waited_function.get_content_model()
-                if not isinstance(waited_function, (StartJobInstance, StartScenarioInstance)):
-                    raise Scenario.MalformedError(
-                            'openbach_functions.{}.wait.'
-                            'finished_ids.{}'.format(index, idx),
-                            value=launched_id, override_error='The referenced '
-                            'openbach function is neither a start_job_instance '
-                            'nor a start_scenario_instance.')
-                openbach_function_instance = scenario.openbach_functions.get(
-                        function_id=function['id']).get_content_model()
-                WaitForFinished.objects.create(
-                        openbach_function_waited=waited_function,
-                        openbach_function_instance=openbach_function_instance)
+            def waiter_factory(ids_key, Factory):
+                waited = extract_value(
+                        'openbach_functions', index, 'wait', ids_key,
+                        expected_type=list, mandatory=False)
+                for idx, launched_id in enumerate(waited):
+                    if not isinstance(launched_id, int):
+                        raise Scenario.MalformedError(
+                                'openbach_functions.{}.wait.'
+                                '{}.{}'.format(index, ids_key, idx),
+                                value=launched_id, expected_type=int)
+                    try:
+                        waited_function = scenario.openbach_functions.get(function_id=launched_id)
+                    except OpenbachFunction.DoesNotExist:
+                        raise Scenario.MalformedError(
+                                'openbach_functions.{}.wait.'
+                                'launched_ids.{}'.format(index, idx),
+                                value=launched_id, override_error='The '
+                                'referenced openbach function does not exist')
+                    else:
+                        waited_function = waited_function.get_content_model()
+                    openbach_function_instance = scenario.openbach_functions.get(
+                            function_id=function['id']).get_content_model()
+                    Factory.objects.create(
+                            openbach_function_waited=waited_function,
+                            openbach_function_instance=openbach_function_instance)
+            waiter_factory('running_ids', WaitForRunning)
+            waiter_factory('ended_ids', WaitForEnded)
+            waiter_factory('launched_ids', WaitForLaunched)
+            waiter_factory('finished_ids', WaitForFinished)
 
         # Check that all arguments are used
         scenario_arguments = {
@@ -461,22 +465,38 @@ class ScenarioVersion(models.Model):
 class ScenarioInstance(models.Model):
     """Data associated to a Scenario instance"""
 
+    class Status(models.TextChoices):
+        SCHEDULING = 'P'
+        RUNNING = 'R'
+        AGENTS_UNREACHABLE = 'AU'
+        FINISHED_KO = 'KO'
+        FINISHED_OK = 'OK'
+        STOPPED = 'S'
+
     scenario_version = models.ForeignKey(
             ScenarioVersion, models.CASCADE,
             related_name='instances')
-    status = models.CharField(max_length=500, null=True, blank=True)
+    status = models.CharField(
+            max_length=max(map(len, Status.values)),
+            choices=Status.choices)
     start_date = models.DateTimeField(null=True, blank=True)
     started_by = models.ForeignKey(
             User, models.CASCADE,
             null=True, blank=True,
             related_name='private_scenario_instances')
     stop_date = models.DateTimeField(null=True, blank=True)
-    is_stopped = models.BooleanField(default=False)
     openbach_function_instance = models.OneToOneField(
             OpenbachFunctionInstance,
             models.CASCADE,
             null=True, blank=True,
             related_name='started_scenario')
+
+    def get_status(self):
+        return self.Status(self.status)
+
+    @property
+    def is_stopped(self):
+        return self.stop_date is not None
 
     @property
     def scenario(self):
@@ -486,10 +506,9 @@ class ScenarioInstance(models.Model):
         return 'Scenario Instance {}'.format(self.id)
 
     def stop(self, *, stop_status=None):
-        if not self.is_stopped or stop_status is not None:
-            self.status = 'Stopped' if stop_status is None else stop_status
+        if self.stop_date is None or stop_status is not None:
+            self.status = self.Status.STOPPED if stop_status is None else stop_status
             self.stop_date = timezone.now()
-            self.is_stopped = True
             self.save()
 
     @cached_property
@@ -537,7 +556,7 @@ class ScenarioInstance(models.Model):
                 'scenario_instance_id': self.id,
                 'owner_scenario_instance_id': owner_id,
                 'sub_scenario_instance_ids': sorted(self.sub_scenario_ids),
-                'status': self.status,
+                'status': self.get_status().label,
                 'start_date': self.start_date,
                 'stop_date': self.stop_date,
                 'arguments': parameters,
@@ -549,7 +568,7 @@ class ScenarioInstance(models.Model):
         return {
                 'scenario_name': self.scenario.name,
                 'scenario_instance_id': self.id,
-                'status': self.status,
+                'status': self.get_status().label,
                 'start_date': self.start_date,
                 'sub_scenario_instance_ids': sorted(self.sub_scenario_ids),
         }

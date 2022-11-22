@@ -96,6 +96,7 @@ export default class OpenbachFunctions extends React.Component<IProps & IFieldAr
             id: newGuid,
             kind: undefined,
             label: undefined,
+            on_fail: undefined,
             parameters: {},
             wait: undefined,
         });
@@ -109,7 +110,13 @@ export default class OpenbachFunctions extends React.Component<IProps & IFieldAr
                 const openbachFunction = fields.get(i);
                 const {wait, jobs, conditionTrue, conditionFalse} = openbachFunction;
                 if (wait) {
-                    const {launched_ids, finished_ids} = wait;
+                    const {running_ids, ended_ids, launched_ids, finished_ids} = wait;
+                    if (running_ids) {
+                        openbachFunction.wait.running_ids = running_ids.filter(excludeRemoved);
+                    }
+                    if (ended_ids) {
+                        openbachFunction.wait.ended_ids = ended_ids.filter(excludeRemoved);
+                    }
                     if (launched_ids) {
                         openbachFunction.wait.launched_ids = launched_ids.filter(excludeRemoved);
                     }

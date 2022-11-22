@@ -222,6 +222,16 @@ class StatisticInstance(models.Model):
 class JobInstance(models.Model):
     """Data associated to a Job instance"""
 
+    class Status(models.TextChoices):
+        SCHEDULED = 'P'
+        RUNNING = 'R'
+        ERROR = 'E'
+        STOPPED = 'S'
+        AGENT_UNREACHABLE = 'U'
+        NOT_RUNNING = 'NR'
+        NOT_SCHEDULED = 'NS'
+        UNKNOWN = '?'
+
     job_name = models.CharField(max_length=500)
     agent_name = models.CharField(max_length=500)
     entity_name = models.CharField(max_length=500)
@@ -232,7 +242,10 @@ class JobInstance(models.Model):
     collector = models.ForeignKey(
             'Collector', models.CASCADE,
             related_name='+')
-    status = models.CharField(max_length=500)
+    status = models.CharField(
+            max_length=max(map(len, Status.values)),
+            choices=Status.choices,
+            default=Status.UNKNOWN)
     update_status = models.DateTimeField()
     start_date = models.DateTimeField()
     started_by = models.ForeignKey(
@@ -241,24 +254,41 @@ class JobInstance(models.Model):
             related_name='private_job_instances')
     stop_date = models.DateTimeField(null=True, blank=True)
     periodic = models.BooleanField()
-    is_stopped = models.BooleanField(default=False)
     openbach_function_instance = models.OneToOneField(
             'OpenbachFunctionInstance',
             models.SET_NULL,
             null=True, blank=True,
             related_name='started_job')
 
+    @property
+    def is_stopped(self):
+        return self.stop_date is not None
+
+    def get_status(self, override_status=None):
+        if override_status is None:
+            return self.Status(self.status)
+
+        for status in self.Status:
+            if status.label == override_status:
+                return status
+        return self.Status.UNKNOWN
+
     def set_status(self, status):
         now = timezone.now()
-        self.status = status
-        self.update_status = now
-        if status == 'Running':
-            self.is_stopped = False
-        elif status != 'Scheduled':
-            self.is_stopped = True
+        if status is not self.get_status():
+            self.status = status
+            self.update_status = now
+        if status in {self.Status.SCHEDULED, self.Status.RUNNING}:
+            self.stop_date = None
+        elif status not in {self.Status.UNKNOWN, self.Status.AGENT_UNREACHABLE}:
             if self.stop_date is None:
                 self.stop_date = now
         self.save()
+
+    @property
+    def last_status(self):
+        now = timezone.now()
+        return (now - self.update_status).total_seconds()
 
     @property
     def scenario_id(self):
@@ -434,7 +464,7 @@ class JobInstance(models.Model):
                 'id': self.id,
                 'arguments': arguments,
                 'update_status': self.update_status.astimezone(tz),
-                'status': self.status,
+                'status': self.get_status().label,
                 'start_date': self.start_date.astimezone(tz),
                 'stop_date': stop_date,
         }

@@ -4,6 +4,8 @@ import MenuItem from "material-ui/MenuItem";
 
 import {OpenbachFunctionsList, TOpenbachFunctions} from "../../../interfaces/project.interface";
 import {FormField, HiddenFormField, SelectFormField, TextFormField} from "../../common/Form";
+
+import FailPolicy from "./FailPolicy";
 import WaitFor from "./WaitFor";
 
 
@@ -21,7 +23,7 @@ const styles: IStyles = {
         display: "inline-block",
         margin: "0px 2%",
         verticalAlign: "top",
-        width: "46%",
+        width: "29.333333333333%",
     },
     hidden: {
         display: "none",
@@ -42,10 +44,6 @@ const styles: IStyles = {
 
 
 export default class OpenbachFunctionHeader extends React.Component<IProps, {}> {
-    constructor(props) {
-        super(props);
-    }
-
     public render() {
         const openbachFunctions = OpenbachFunctionsList.map((openbachFunction) => (
             <MenuItem key={openbachFunction} value={openbachFunction} primaryText={openbachFunction} />
@@ -60,6 +58,12 @@ export default class OpenbachFunctionHeader extends React.Component<IProps, {}> 
                         type="string"
                         text="label"
                         fullWidth={true}
+                    />
+                </div>
+                <div style={styles.container}>
+                    <FailPolicy
+                        parameterName={`functions[${this.props.index}].on_fail`}
+                        currentPolicy={this.props.failPolicy}
                     />
                 </div>
                 <div style={styles.container}>
@@ -78,18 +82,30 @@ export default class OpenbachFunctionHeader extends React.Component<IProps, {}> 
                         component={TextFormField}
                         fullWidth={false}
                         text="Waiting time"
+                        type="number"
+                        inputProps={{step: 0.1}}
                     />
                     <p style={styles.text}>seconds after</p>
                 </div>
                 <div style={styles.wait}>
                     <WaitFor
-                        text="are started and"
-                        formName={`functions[${this.props.index}].wait.launched_ids`}
+                        text="openbach functions are first running and"
+                        parameterName={`functions[${this.props.index}].wait.running_ids`}
                         ids={this.props.ids}
                     />
                     <WaitFor
-                        text="are finished."
-                        formName={`functions[${this.props.index}].wait.finished_ids`}
+                        text="openbach functions are ended and"
+                        parameterName={`functions[${this.props.index}].wait.ended_ids`}
+                        ids={this.props.ids}
+                    />
+                    <WaitFor
+                        text="jobs/scenarios are started and"
+                        parameterName={`functions[${this.props.index}].wait.launched_ids`}
+                        ids={this.props.ids}
+                    />
+                    <WaitFor
+                        text="jobs/scenarios are finished."
+                        parameterName={`functions[${this.props.index}].wait.finished_ids`}
                         ids={this.props.ids}
                     />
                 </div>
@@ -102,4 +118,5 @@ export default class OpenbachFunctionHeader extends React.Component<IProps, {}> 
 interface IProps {
     index: number;
     ids: Array<{value: number, label: string}>;
+    failPolicy?: string;
 };
