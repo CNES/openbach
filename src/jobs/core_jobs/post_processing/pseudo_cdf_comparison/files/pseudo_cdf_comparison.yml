@@ -29,7 +29,7 @@ general:
   name: pseudo_cdf_comparison
   description: >
       This job post-process data of other jobs. It allows to performs statistics analysis of jobs metrics.
-  job_version: '1.1'
+  job_version: '1.2'
   keywords:
     - post-processing
     - pseudo_cdf
@@ -54,30 +54,24 @@ arguments:
       type: str
       count: '+'
       description: Agent name to fetch data from
-    - name: jobs
+    - name: job
       type: str
       count: 1
       description: The job name to plot data from
-    - name: statistics
+    - name: statistic
       type: str
       count: 1
       description: statistics names to be analysed
-  optional: 
-    - name: begin-date
-      type: str
-      count: 1
-      flag: '-b'
-      description: Start date in format YYYY:MM:DD hh:mm:ss
-    - name: end-date
-      type: str
-      count: 1
-      flag: '-e'
-      description: End date in format YYYY:MM:DD hh:mm:ss     
     - name: reference
       type: int
       count: 1
-      flag: '-r'
       description: Reference value for comparison  
+  optional:
+    - name: timestamp_boundaries
+      type: str
+      count: 2
+      flag: '-d'
+      description: Start and End date in format YYYY:MM:DD hh:mm:ss
     - name: step
       type: int
       count: 1
@@ -86,13 +80,14 @@ arguments:
     - name: stat_unit
       type: str
       count: 1
-      flag: '-ub'
+      flag: '-u'
       description: The unit of the statistic
       choices:
        - s
        - ms
        - bits/s
        - Kbits/s
+       - Mbits/s
        - Gbits/s
        - Bytes
        - KBytes
@@ -101,7 +96,7 @@ arguments:
     - name: table_unit
       type: str
       count: 1
-      flag: '-u'
+      flag: '-U'
       description: Desired unit to show on the figure
       choices:
        - s
@@ -129,7 +124,7 @@ arguments:
       count: 1
       flag: '-x'
       description: the label of x-axis
-    - name: agents-legend
+    - name: agents_legend
       type: str
       count: '+'
       flag: '-a'
@@ -142,7 +137,7 @@ arguments:
     - name: hide_grid
       type: None
       count: 0
-      flag: '-d'
+      flag: '--hide-grid'
       description: Do not show grid on the graph
     - name: hide_legend
       type: None

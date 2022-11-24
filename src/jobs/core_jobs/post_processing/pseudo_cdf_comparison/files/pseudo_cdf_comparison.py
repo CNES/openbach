@@ -34,6 +34,7 @@ __credits__ = '''Contributors:
  * Aichatou Garba Abdou <aichatou.garba-abdou@viveris.fr>
 '''
 
+
 import os
 import syslog
 import argparse
@@ -42,16 +43,21 @@ import itertools
 from datetime import datetime,timedelta
 from distutils.version import LooseVersion
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 from dateutil.parser import parse
 
 import collect_agent
 from data_access.post_processing import Statistics, save, _Plot
 
+
 UNIT_OPTION={'s', 'ms' ,'bits/s', 'Kbits/s', 'Mbits/s','Gbits/s','Bytes' ,'KBytes', 'MBytes', 'GBytes'}
-SET_AXIS_PARAMETERS = {'inplace': False} if LooseVersion(pd.__version__) < LooseVersion('1.5.0') else {'copy': True}
+SET_AXIS_PARAMETERS = {'axis': 1}
+if LooseVersion(pd.__version__) < LooseVersion('1.5.0'):
+    SET_AXIS_PARAMETERS['inplace'] = False
+else:
+    SET_AXIS_PARAMETERS['copy'] = True
 
 
 def multiplier(base, unit):
@@ -76,164 +82,135 @@ def multiplier(base, unit):
 
         return 1
 
+
 def format_label(labels):
-   axis_label=[]
-   for item in labels:
-        axis_label.append(f'{item}%')
-   return axis_label
+    return [f'{item}%' for item in labels]
+
 
 def main(
-        agents_name,job_name, statistic_name,begin_date,end_date,reference,step,stat_unit,
-        table_unit,figure_title,y_label,x_label,agents_legend ,stats_with_suffixes,use_grid,use_legend):
-
-    file_ext = 'png'
+        agents_name, job_name, statistic_name, timestamp_boundaries,
+        reference, step, stat_unit, table_unit,
+        figure_title, y_label, x_label, agents_legend,
+        stats_with_suffixes, use_grid, use_legend):
     statistics = Statistics.from_default_collector()
     statistics.origin = 0
-    with tempfile.TemporaryDirectory(prefix='openbach-pseudo_cdf_comparison-') as root:
-        
 
-        if not begin_date and not end_date:
-           timestamp=None
+    with tempfile.TemporaryDirectory(prefix='openbach-pseudo_cdf_comparison-') as root_folder:
+        if not timestamp_boundaries:
+            timestamp = None
         else:
-           begin_date=parse(begin_date)
-           end_date=parse(end_date)
-           timestamp=[int(datetime.timestamp(begin_date)*1000),int(datetime.timestamp(end_date)*1000)]
+            begin_date, end_date = map(parse, timestamp_boundaries)
+            timestamp = [int(begin_date.timestamp() * 1000), int(end_date.timestamp() * 1000)]
 
-        if not step :
-           step=1
+        scale_factor = 1 if stat_unit is None else multiplier(stat_unit, table_unit or stat_unit)
+        figure, axis = plt.subplots()
 
-        if not table_unit:
-           table_unit=''
-        
-        facteur=multiplier(stat_unit,table_unit)
+        for agent, agent_legend in zip(agents_name, itertools.chain(agents_title, itertools.repeat(None))):
+            data_collection = statistics.fetch_all(
+                    job=job_name, agent=agent,
+                    suffix=None if stats_with_suffixes else '',
+                    fields=[statistic_name], timestamps=timestamps)
 
-        if not agents_legend:
-           agents_legend=agents_name
+            df = pd.concat([
+                    plot.dataframe.set_axis(
+                        plot.dataframe.columns.get_level_values('statistic'),
+                        **SET_AXIS_PARAMETERS)
+                    for plot in data_collection
+            ])
 
+            df = (df.dropna() / scale_factor / reference) * 100
+            df.sort_values(by=statistic_name, inplace=True)
+            df.reset_index(drop=True, inplace=True)
+            values_amount = 100 // step + 1
+            cdf = df.loc[np.linspace(df.index.min(), df.index.max(), values_amount, dtype=int)]
+            cdf.index = np.linspace(0, 100, values_amount, dtype=int)
+            cdf.columns = [agent_legend or agent]
+            cdf.plot(ax=axis)
 
-        figure,axis=plt.subplots()
-
-        for (index, agent),agent_legend in itertools.zip_longest(enumerate(agents_name),agents_legend,fillvalue=None):
-                
-                if agent_legend is None:
-                        agent_legend=agent
-                stat=statistics.fetch_all(
-                        job=job_name,agent=agent,
-                        suffix = None if stats_with_suffixes else '',
-                        fields=[statistic_name],timestamps=timestamp) 
-
-
-                data_collection = statistics.fetch(
-                        job=job_name,agent=agent,
-                        suffix = None if stats_with_suffixes else '',
-                        fields=[statistic_name],timestamps=timestamp) 
-
-                df = pd.concat([
-                    plot.dataframe.set_axis(plot.dataframe.columns.get_level_values('statistic'), axis=1, **SET_AXIS_PARAMETERS)
-                    for plot in data_collection])
-
-                df=df.dropna()
-                df=df/facteur
-                df=(df/reference)*100
-                
-                df.sort_values(by=statistic_name,inplace=True)
-                percentage_number=len(df.index)
-                percentage_range=range(0,100,step)
-                df.index=np.arange(0, percentage_number)
-                percentage_value=[]
-
-                for index in percentage_range:
-                        position=round((index*percentage_number)/100)
-                        value=list(df.loc[position])
-                        percentage_value.append(round(value[0],2))
-                axis.plot(percentage_range,percentage_value,label=agent_legend,linewidth=2, markersize=4)
-
-        if not y_label :
-                collect_agent.send_log(
-                        syslog.LOG_WARNING,
-                        'no y-axis label provided for the {} statistic of job '
-                        'instances {}: using the empty string instead'.format(statistic_name, job_name))
-                y_label = ''
+        if not y_label:
+            collect_agent.send_log(
+                    syslog.LOG_WARNING,
+                    'no y-axis label provided for the {} statistic of job '
+                    'instances {}: using the empty string instead'.format(statistic_name, job_name))
+            y_label = ''
         axis.set_ylabel(y_label)
-        if not x_label :
-                collect_agent.send_log(
-                        syslog.LOG_WARNING,
-                        'no x-axis label provided for the {} statistic of job '
-                        'instances {}: using the empty string instead'.format(statistic_name, job_name))
-                x_label = ''
+        if not x_label:
+            collect_agent.send_log(
+                    syslog.LOG_WARNING,
+                    'no x-axis label provided for the {} statistic of job '
+                    'instances {}: using the empty string instead'.format(statistic_name, job_name))
+            x_label = ''
         axis.set_xlabel(x_label)
-        
-        x_axis=range(0,105,5)
+
+        x_axis = np.linspace(0, 100, 21, dtype=int)
         axis.set_xticks(x_axis) 
-        x_label=format_label(x_axis)
-        axis.set_xticklabels(x_label, rotation=60, fontsize=9, weight=5)
-        y_axis=range(0,121,15)
-        y_label=format_label(y_axis)
-        axis.set_yticks(y_axis)      
-        axis.set_yticklabels(y_label,  fontsize=10, weight=5)
+        axis.set_xticklabels(format_label(x_axis), rotation=60, fontsize=9, weight=5)
+
+        y_axis = np.linspace(0, 120, 9, dtype=int)
+        axis.set_yticks(y_axis)
+        axis.set_yticklabels(format_label(y_axis),  fontsize=10, weight=5)
 
         if use_legend:
-                axis.legend()
+            axis.legend()
         if use_grid:
-                axis.grid(axis='y')
-        if figure_title :
-                axis.set_title(figure_title)
-        
-        filepath = os.path.join(root, 'pseudo_cdf_comparison_{}.{}'.format(statistic_name, file_ext))      
+            axis.grid(axis='y')
+        if figure_title:
+            axis.set_title(figure_title)
+
+        filepath = os.path.join(root_folder, 'pseudo_cdf_comparison_{}.png'.format(statistic_name))
         save(figure,filepath,set_legend=True)
         collect_agent.store_files(collect_agent.now(), figure=filepath)
-                
+
+
 if __name__ == '__main__':
     with collect_agent.use_configuration('/opt/openbach/agent/jobs/pseudo_cdf_comparison/pseudo_cdf_comparison_rstats_filter.conf'):
         parser = argparse.ArgumentParser(description=__doc__)
         parser.add_argument(
-                metavar='AGENT_NAME',dest='agents',nargs='+',
-                type=str, default=[],help='Agent name to fetch data from')
+                'agents', metavar='AGENT_NAME', nargs='+',
+                help='Agent name to fetch data from')
         parser.add_argument(
-                metavar='JOB_NAME',type=str, default=[],dest='jobs',
-                help='job name to fetch data from')
+                'job', metavar='JOB_NAME',
+                help='Job name to fetch data from')
         parser.add_argument(
-                dest='statistics',metavar='STATISTIC',default=[],
-                help='statistics names to be analysed')
+                'statistic', metavar='STATISTIC',
+                help='Statistic name to be analysed')
         parser.add_argument(
-                '-b', '--begin-date',metavar='BIGIN_DATE',dest='begin_date',
-                default=[],help='Start date in format YYYY:MM:DD hh:mm:ss')
+                'reference', type=int,
+                help='Reference value for comparison')
         parser.add_argument(
-                '-e', '--end-date',metavar='END_DATE',dest='end_date',
-                default=[],help='End date in format YYYY:MM:DD hh:mm:ss')
+                '-d', '--timestamp-boundaries',
+                metavar=('BEGIN_DATE', 'END_DATE'), nargs=2,
+                help='Start and End date in format YYYY:MM:DD hh:mm:ss')
         parser.add_argument(
-                '-r', '--reference',metavar='REFERENCE',dest='reference',type=int,required=True,
-                default=[],help='Reference value for comparison')
+                '-p', '--step', type=int, default=1,
+                help='Percentage step')
         parser.add_argument(
-                '-p', '--step',metavar='STEP',dest='step',type=int,
-                default=[],help='Percentage step')
+                '-u', '--stat-unit', choices = UNIT_OPTION,
+                help='Unit of the statistic')
         parser.add_argument(
-                '-ub', '--stat-unit', dest='stat_units',choices=UNIT_OPTION,
-                metavar='STAT_UNIT', default=[],help='Unit of the statistic')
+                '-U', '--table-unit', choices = UNIT_OPTION,
+                help='Desired unit to show on the figure')
         parser.add_argument(
-                '-u', '--table-unit', dest='table_units',choices=UNIT_OPTION,
-                metavar='TALE_UNIT', default=[],help='Desired unit to show on the figure')
+                '-t', '--title',
+                help='The title of figure')
         parser.add_argument(
-                '-t', '--title', dest='title',
-                metavar='TITLE', default=[],help='the title of figure')
+                '-y', '--ylabel',
+                help='The label of y-axis')
         parser.add_argument(
-                '-y', '--ylabel', dest='ylabel',metavar='YLABEL',
-                 default=[],help='the label of y-axis')
+                '-x', '--xlabel',
+                help='The label of x-axis')
         parser.add_argument(
-                '-x', '--xlabel', dest='xlabel',
-                metavar='XLABEL', default=[],help='the label of x-axis')
-        parser.add_argument(
-                '-a', '--agent-legend', metavar='AGENT_LEGEND ', nargs='+',dest='agents_legend',
-                type=str, default=[],help='Agent name to display on the legend')
+                '-a', '--agents-legend', nargs='+', default=[],
+                help='Agent name to display on the legend')
         parser.add_argument(
                 '-w', '--no-suffix', action='store_true',
                 help='Do not plot statistics with suffixes')
         parser.add_argument(
                 '--hide-legend', '--no-legend', action='store_true',
-                help='do not draw any legend on the graph')
+                help='Do not draw any legend on the graph')
         parser.add_argument(
-                '-d', '--hide-grid', '--no-grid', action='store_true',
-                help='do not show grid on the graph')
+                '--hide-grid', '--no-grid', action='store_true',
+                help='Do not show grid on the graph')
 
         args = parser.parse_args()
         stats_with_suffixes = not args.no_suffix
@@ -241,6 +218,8 @@ if __name__ == '__main__':
         use_legend = not args.hide_legend
 
         main(
-            args.agents,args.jobs, args.statistics,args.begin_date,args.end_date,args.reference,args.step,args.stat_units,
-            args.table_units,args.title,args.ylabel,args.xlabel ,args.agents_legend,stats_with_suffixes,use_grid,use_legend)
-
+            args.agents, args.job, args.statistic,
+            args.timestamp_boundaries, args.reference, args.step,
+            args.stat_unit, args.table_unit,
+            args.title, args.ylabel, args.xlabel,
+            args.agents_legend, stats_with_suffixes, use_grid, use_legend)

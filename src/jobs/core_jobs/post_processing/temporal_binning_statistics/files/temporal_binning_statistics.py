@@ -34,7 +34,7 @@ __credits__ = '''Contributors:
  * David FERNANDES <david.fernandes@viveris.fr>
 '''
 
-from copy import copy
+
 import sys
 import syslog
 import os.path
@@ -51,13 +51,17 @@ from data_access.post_processing import Statistics, save, _Plot
 
 
 TIME_OPTIONS = {'year', 'month', 'day', 'hour', 'minute', 'second'}
-SET_AXIS_PARAMETERS = {'inplace': False} if LooseVersion(pd.__version__) < LooseVersion('1.5.0') else {'copy': True}
+SET_AXIS_PARAMETERS = {'axis': 1}
+if LooseVersion(pd.__version__) < LooseVersion('1.5.0'):
+    SET_AXIS_PARAMETERS['inplace'] = False
+else:
+    SET_AXIS_PARAMETERS['copy'] = True
 
 
 def main(
         job_instance_ids, statistics_names, aggregations_periods, percentiles,
-        stats_with_suffixes, axis_labels, figures_titles, use_legend,use_grid, median,
-        average, deviation, boundaries, min_max, pickle):
+        stats_with_suffixes, axis_labels, figures_titles, use_legend, use_grid,
+        median, average, deviation, boundaries, min_max, pickle):
 
     file_ext = 'pickle' if pickle else 'png'
     statistics = Statistics.from_default_collector()
@@ -70,17 +74,20 @@ def main(
                     job_instances=job,
                     suffix = None if stats_with_suffixes else '',
                     fields=fields)
-            
+
             # Drop multi-index columns to easily concatenate dataframes from their statistic names
             df = pd.concat([
-                plot.dataframe.set_axis(plot.dataframe.columns.get_level_values('statistic'), axis=1, **SET_AXIS_PARAMETERS)
-                for plot in data_collection])
-            
+                    plot.dataframe.set_axis(
+                        plot.dataframe.columns.get_level_values('statistic'),
+                        **SET_AXIS_PARAMETERS)
+                    for plot in data_collection
+            ])
+
             # Recreate a multi-indexed columns so the plot can function properly
             df.columns = pd.MultiIndex.from_tuples(
                     [('', '', '', '', stat) for stat in df.columns],
                     names=['job', 'scenario', 'agent', 'suffix', 'statistic'])  
-            
+
             plot = _Plot(df)
 
             if not fields:
@@ -88,9 +95,9 @@ def main(
 
             for field, label, aggregation, title in itertools.zip_longest(fields, labels, aggregations, titles):
                 if field not in df.columns.get_level_values('statistic'):
-                    message = 'job instances {} did not produce the statistic {}'.format(job, field)
-                    collect_agent.send_log(syslog.LOG_WARNING, message)
-                    print(message)
+                    collect_agent.send_log(
+                            syslog.LOG_WARNING,
+                            'job instances {} did not produce the statistic {}'.format(job, field))
                     continue
 
                 if label is None:
@@ -109,14 +116,15 @@ def main(
                     aggregation = 'hour'
 
                 figure, axis = plt.subplots()
-                
+
                 axis = plot.plot_temporal_binning_statistics(
                         axis, label, field, None,
                         percentiles, aggregation,
                         median, average, deviation, boundaries,
-                        min_max, use_legend,use_grid)
+                        min_max, use_legend, use_grid)
                 if title is not None:
                     axis.set_title(title)
+
                 filepath = os.path.join(root, 'temporal_binning_statistics_{}.{}'.format(field, file_ext))
                 save(figure, filepath, pickle)
                 collect_agent.store_files(collect_agent.now(), figure=filepath)
@@ -199,9 +207,9 @@ if __name__ == '__main__':
             args.percentiles = [[5, 95], [25, 75]]
         elif len(args.percentiles) > 2 :
             message = 'Too many percentile pairs. Maximum allowed is 2 pairs.'
-            #collect_agent.send_log(syslog.LOG_ERR, message)
-            sys.exit(message)
+            collect_agent.send_log(syslog.LOG_ERR, message)
+            parser.error(message)
 
         main(args.jobs, args.statistics, args.aggregations, args.percentiles, stats_with_suffixes,
-                args.ylabel, args.title, use_legend,use_grid, draw_median, draw_average,
+                args.ylabel, args.title, use_legend, use_grid, draw_median, draw_average,
                 draw_deviation, draw_boundaries, draw_min_max, args.pickle)

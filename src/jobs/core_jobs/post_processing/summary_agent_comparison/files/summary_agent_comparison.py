@@ -34,25 +34,31 @@ __credits__ = '''Contributors:
  * Aichatou Garba Abdou <aichatou.garba-abdou@viveris.fr>
 '''
 
-import os
-import itertools
-import tempfile
-import argparse
-import syslog
 
-from dateutil.parser import parse
+import os
+import syslog
+import argparse
+import tempfile
+import itertools
 from datetime import datetime,timedelta
-import pandas as pd
+
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
+from dateutil.parser import parse
 
 import collect_agent
 from data_access.post_processing import Statistics, save, _Plot
 
 
-COLUMN_NUMBER=4
-FUNCTION_DIC={'mean':'Moyenne','median':'Médiane','min':'Minimum','max':'Maximum'}
-UNIT_OPTION={'s', 'ms' ,'bits/s', 'Kbits/s', 'Mbits/s','Gbits/s','Bytes' ,'KBytes', 'MBytes', 'GBytes'}
+COLUMN_NUMBER = 4
+FUNCTIONS = {
+        'mean': 'Moyenne',
+        'median': 'Médiane',
+        'min': 'Minimum',
+        'max': 'Maximum',
+}
+UNIT_OPTION = {'s', 'ms' ,'bits/s', 'Kbits/s', 'Mbits/s','Gbits/s','Bytes' ,'KBytes', 'MBytes', 'GBytes'}
 
 
 def multiplier(base, unit):
@@ -77,205 +83,162 @@ def multiplier(base, unit):
         return 1
 
 
-def plot_summary_agent_comparison(
-                                axis,function_result,reference,agent,
-                                num_bar,filled_box):
-                                  
-        if axis is None:
-            _,axis=plt.subplot()
+def plot_summary_agent_comparison(axis, function_result, reference, agent, num_bars, filled_box):
+    axs = iter(axes)
+    header = next(axs)
+    header.axis([0, 10, 0, 10])
+    header.text(.1, .5, agent, fontsize=10, transform=header.transAxes)
 
-        axis[0].axis([0, 10, 0, 10])  
-        axis[0].text(.1,.5,agent,fontsize=10,transform=axis[0].transAxes)
-        axis=axis[1:]
-        step=int(100/num_bar)
-        for (axe,value) in zip(axis,function_result):
+    step = 100 // num_bars
+    for ax, value in zip(axs, function_result):
+        if reference is None:
+            ax.axis([0, 10, 0, 10])
+            ax.text(3, 5, f'{value:.02f}', fontsize=10)
+            continue
 
-            if reference is not None:
-                
-                if value >=0 and value <= (reference*1/num_bar):
-                    height=[step]                   
-                if value >(reference*1/num_bar) and value <= (reference*2/num_bar):
-                    height=range(step,3*step,step)
-                if value >(reference*2/num_bar) and value <= (reference*3/num_bar):
-                    height=range(step,4*step,step)
-                if value >(reference*3/num_bar) and value <= (reference*4/num_bar):
-                    height=range(step,5*step,step)
-                if value >(reference*4/num_bar) :
-                    height=range(step,6*step,step)
+        if filled_box:
+            percentage = value * 100 / reference
+            ax.set(ylim=(0, 10))
+            ax.barh([3], [100], height=3, align='center', color=(.1, .1, .1, .2))
+            ax.barh([3], [percentage], height=3, align='center', color='black')
+            ax.text(1, 8, f'{value:.02f} ({percentage:.02f}%)', fontsize=8)
+        else:
+            background = [step * (i+1) for i in range(num_bars)]
+            foreground = [height for i, height in enumerate(background) if value > reference * i / num_bars]
+            ax.bar(np.arange(num_bars), background, width=0.7, color=(.1, .1, .1, .2))
+            ax.bar(np.arange(len(foreground)), foreground, width=0.7, color='black')
+            ax.text(-.3, 80, f'{value:.02f}', fontsize=7)
 
-                if not filled_box:
-                    bars_template=range(step,(num_bar+1)*step,step)
-                    nb_bars_template=np.arange(len(bars_template))
-                    axe.bar(nb_bars_template,bars_template,width=0.7,color=(0.1, 0.1, 0.1, 0.2)) 
-                    
-                    nb_bars=np.arange(len(height))
-                    axe.bar(nb_bars,height,width=0.7,color='black')
-                    axe.text(-0.3,80,str(round(value,2)),fontsize=7)
-                else:
-                    axe.set(ylim=(0,10))
-                    bar_position=[3]
-                    axe.barh(bar_position,[100],height=3,align='center',color=(0.1, 0.1, 0.1, 0.2))
-                    percent=round((value*100)/reference,1)
-                    axe.barh(bar_position,[percent],height=3,align='center',color='black')
-                    axe.text(1,8,f'{str(round(value,2))} ({str(percent)}%)',fontsize=8)
-            else:
 
-               axe.axis([0, 10, 0, 10])   
-               axe.text(3,5,str(round(value,2)),fontsize=10)
-
-        return axis  
 def main(
-        agents_name,job_name,statistic_name,begin_date,end_date,function,reference,num_bars,start_journey,start_evening,start_night,
-        stat_unit,table_unit,agents_title,stat_title,figure_title,stats_with_suffixes,filled_box):
-     
-    file_ext = 'png'
+        agents_name, job_name, statistic_name, timestamp_boundaries,
+        function, reference, num_bars, start_day, start_evening, start_night,
+        stat_unit, table_unit, agents_title, stat_title,
+        figure_title, stats_with_suffixes, filled_box):
     statistics = Statistics.from_default_collector()
     statistics.origin = 0
-    with tempfile.TemporaryDirectory(prefix='openbach-summary_agent_comparison-') as root:
-        if not begin_date and not end_date:
-                timestamp=None
+    with tempfile.TemporaryDirectory(prefix='openbach-summary_agent_comparison-') as root_folder:
+        if not timestamp_boundaries:
+            timestamp = None
         else:
-                begin_date=parse(begin_date)
-                end_date=parse(end_date)
-                timestamp=[int(datetime.timestamp(begin_date)*1000),int(datetime.timestamp(end_date)*1000)]
+            begin_date, end_date = map(parse, timestamp_boundaries)
+            timestamp = [int(begin_date.timestamp() * 1000), int(end_date.timestamp() * 1000)]
 
-        if not function :
-                function='moyenne' 
+        if function not in FUNCTIONS:
+            function = 'mean'
 
-        if not start_journey :
-                start_journey=7
-        if not start_evening :
-                start_evening=18
-        if not start_night :
-                start_night=0 
-        if not num_bars:
-                num_bar=5
+        if start_day is None:
+            start_day = 7
+        if start_evening is None:
+            start_evening = 18
+        if start_night is None:
+            start_night = 0 
 
-        if not stat_title :
-                stat_title=statistic_name
+        scale_factor = 1 if stat_unit is None else multiplier(stat_unit, table_unit or stat_unit)
 
-        if not table_unit:
-                table_unit=''
-        
-        facteur=multiplier(stat_unit,table_unit)
-        
-        
-
-        rows_number=len(agents_name)
-        
-        figure, axis = plt.subplots(rows_number+1,COLUMN_NUMBER)
+        figure, axis = plt.subplots(
+                len(agents_name) + 1,  # Account for header + 1 line per agent
+                4)  # [Agent name, day, evening, night]
         plt.subplots_adjust(hspace=0,wspace=0)
-        _axis_list=list(axis)
+        for ax in axis.flat:
+            ax.tick_params(which='both', bottom=False, left=False, top=False, labelleft=False, labelbottom=False)
 
-        moments=[f' {FUNCTION_DIC[function]} \n {stat_title} \n {table_unit}',f'Journée ({start_journey}h-{start_evening}h)',
-                        f'Soirée ({start_evening}h-{start_night}h)',f'Nuit ({start_night}h-{start_journey}h)']
-        
-        for moment,axe in zip(moments,_axis_list[0]): 
-                axe.axis([0, 10, 0, 10])   
-                axe.text(.5,3,moment,fontsize=10)
+        headers = [
+                f' {FUNCTIONS[function]} \n {stat_title or statistic_name} \n {table_unit or ""}',
+                f'Journée ({start_day}h − {start_evening}h)',
+                f'Soirée ({start_evening}h − {start_night}h)',
+                f'Nuit ({start_night}h − {start_day}h)',
+        ]
 
-        for axe in axis.flat:
-                axe.tick_params(
-                                which='both',      
-                                bottom=False,
-                                left=False,      
-                                top=False,  
-                                labelleft = False,       
-                                labelbottom=False)
+        axs = iter(axis)
+        for header, ax in zip(headers, next(axs)):
+            ax.axis([0, 10, 0, 10])
+            ax.text(.5, 3, header, fontsize=10)
 
-        if not agents_title:
-                agents_title=agents_name
+        names = itertools.chain(agents_title, itertools.repeat(None))
+        for agent, name, axes in zip(agents_name, names, axs):
+            data_collection = statistics.fetch_all(
+                    job=job_name, agent=agent,
+                    suffix=None if stats_with_suffixes else '',
+                    fields=[statistic_name], timestamp=timestamp)
 
-        for (index, agent),agent_title in itertools.zip_longest(enumerate(agents_name),agents_title,fillvalue=None):
-                
-                if agent_title is None:
-                        agent_title=agent
+            result = data_collection.compute_function(
+                    function, scale_factor,
+                    start_day, start_evening, start_night)
 
+            plot_summary_agent_comparison(axes, result, reference, name or agent, num_bars, filled_box)
 
-                data_collection = statistics.fetch_all(
-                        job=job_name,agent=agent,
-                        suffix = None if stats_with_suffixes else '',
-                        fields=[statistic_name],timestamps=timestamp)
-                
-
-                function_result=data_collection.compute_function(
-                                                function,facteur,
-                                                start_journey,start_evening,start_night)
-
-                axis=plot_summary_agent_comparison(_axis_list[index+1],function_result,reference,
-                                                        agent_title,num_bar,filled_box,)
-
-        if figure_title :
-                axis.set_title(figure_title)       
-        filepath = os.path.join(root, 'summary_agent_comparison_{}.{}'.format(statistic_name, file_ext))     
-        save(figure,filepath,set_legend=False)
+        if figure_title:
+            figure.suptitle(figure_title)
+        filepath = os.path.join(root_folder, 'summary_agent_comparison_{}.png'.format(statistic_name, file_ext))
+        save(figure, filepath, set_legend=False)
         collect_agent.store_files(collect_agent.now(), figure=filepath)
-                
-
 
 
 if __name__ == '__main__':
    with collect_agent.use_configuration('/opt/openbach/agent/jobs/summary_agent_comparison/summary_agent_comparison_rstats_filter.conf'):
         parser = argparse.ArgumentParser(description=__doc__)
         parser.add_argument(
-                metavar='AGENT_NAME',dest='agents',nargs='+',
-                type=str, default=[],help='Agent name to fetch data from')
+                'agents', metavar='AGENT_NAME', nargs='+',
+                help='Agent names to fetch data from')
         parser.add_argument(
-                metavar='JOB_NAME',type=str, default=[],dest='jobs',
-                help='job name to fetch data from')
+                'job', metavar='JOB_NAME',
+                help='Job name to fetch data from')
         parser.add_argument(
-                metavar='STATISTIC',dest='statistics',default=[],
-                help='statistics names to be analysed')
+                'statistic', metavar='STAT_NAME',
+                help='Statistic name to be analysed')
         parser.add_argument(
-                '-b', '--begin-date',metavar='BIGIN_DATE',dest='begin_date',
-                default=[],help='Start date in format YYYY:MM:DD hh:mm:ss')
+                '-d', '--timestamp-boundaries',
+                metavar=('BEGIN_DATE', 'END_DATE'), nargs=2,
+                help='Start and End date in format YYYY:MM:DD hh:mm:ss')
         parser.add_argument(
-                '-e', '--end-date',metavar='END_DATE',dest='end_date',
-                default=[],help='End date in format YYYY:MM:DD hh:mm:ss')
+                '-f', '--function', choices=list(FUNCTIONS),
+                help='Mathematical function to compute')
         parser.add_argument(
-                '-f', '--function', dest='function',choices=list(FUNCTION_DIC),
-                metavar='FUNCTION',default=[],help='Mathematical function to compute')
+                '-r', '--reference', type=int,
+                help='Reference value for comparison')
         parser.add_argument(
-                '-r', '--reference',metavar='REFERENCE',dest='reference',type=int,
-                default=[],help='Reference value for comparison')
-        parser.add_argument(
-                '-nb', '--num-bars',metavar='NUM_BARS',dest='num_bars',type=int,default=[],
+                '-n', '--num-bars',
+                type=int, default=5,
                 help='Number of reception bars')
         parser.add_argument(
-                '-sj', '--start-journey',metavar='START_JOURNEY',dest='start_journey',type=int,
-                default=[],help='starting time of the day')
+                '-D', '--start-day', metavar='START_DAY',
+                help='Starting time of the day')
         parser.add_argument(
-                '-se', '--start-evening',metavar='START_EVENING',dest='start_evening',type=int,
-                default=[],help='starting time of the evening')
+                '-E', '--start-evening', metavar='START_EVENING',
+                help='Starting time of the evening')
         parser.add_argument(
-                '-sn', '--start-night',metavar='START_NIGHT',dest='start_night',type=int,
-                default=[],help='starting time of the night')
+                '-N', '--start-night', metavar='START_NIGHT',
+                help='starting time of the night')
         parser.add_argument(
-                '-ub', '--stat-unit', dest='stat_units', choices=UNIT_OPTION,
-                metavar='STAT_UNIT', default=[],help='Unit of the statistic')
+                '-u', '--stat-unit', metavar='UNIT', choices=UNIT_OPTION,
+                help='Unit of the statistic')
         parser.add_argument(
-                '-u', '--table-unit', dest='table_units', choices=UNIT_OPTION,
-                metavar='TALE_UNIT', default=[],help='Desired unit to show on the figure')
+                '-U', '--table-unit', metavar='UNIT', choices=UNIT_OPTION,
+                help='Desired unit to show on the figure')
         parser.add_argument(
-                '-a', '--agent-title', metavar='AGENT_TITLE ', nargs='+',dest='agents_title',
-                type=str, default=[],help='Agent name to display on the table')
+                '-a', '--agent-title', default=[],
+                metavar='AGENT_TITLE ', nargs='+', dest='agents_title',
+                help='Agent name to display on the table')
         parser.add_argument(
-                '-s', '--stat-title', dest='stat_title',metavar='STAT-TITLE',default=[],
-                help='statistics names to display on the figure')
+                '-s', '--stat-title',
+                help='Statistic name to display on the figure')
         parser.add_argument(
-                '-t','--title', dest='figure_title',metavar='FIGURE_TITLE',default=[],
-                help=' The title of the generated figure')
+                '-t', '--figure-title', '--title',
+                help='The title of the generated figure')
         parser.add_argument(
                 '-w', '--no-suffix', action='store_true',
                 help='Do not plot statistics with suffixes')
         parser.add_argument(
                 '-g', '--filled-box', action='store_true',
-                help='Display stats value in a filled box')
+                help='Display stats value in a filled box instead of "network bars"')
 
         args = parser.parse_args()
         stats_with_suffixes = not args.no_suffix
-        
 
         main(
-            args.agents,args.jobs, args.statistics,args.begin_date,args.end_date,args.function,args.reference,args.num_bars,args.start_journey,args.start_evening,
-            args.start_night,args.stat_units,args.table_units,args.agents_title,args.stat_title,args.figure_title ,stats_with_suffixes,args.filled_box)
+            args.agents, args.job, args.statistic, args.timestamp_boundaries,
+            args.function, args.reference, args.num_bars,
+            args.start_day, args.start_evening, args.start_night,
+            args.stat_unit, args.table_unit, args.agents_title,
+            args.stat_title, args.figure_title, stats_with_suffixes, args.filled_box)

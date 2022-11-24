@@ -29,7 +29,7 @@ general:
   name: summary_time_period
   description: >
       This job post-process data of other jobs. It generates period-aggregated table of jobs metrics mean and median to perform statistics analysis.
-  job_version: '1.1'
+  job_version: '1.2'
   keywords:
     - post-processing
     - summary-period
@@ -73,36 +73,31 @@ arguments:
       description: Reference value for comparison
 
   optional:
-    - name: begin-date
+    - name: timestamp_boundaries
+      type: str
+      count: 2
+      flag: '-d'
+      description: Start and End date in format YYYY:MM:DD hh:mm:ss
+    - name: start_day
       type: str
       count: 1
-      flag: '-b'
-      description: Start date in format YYYY:MM:DD hh:mm:ss
-    - name: end-date
-      type: str
-      count: 1
-      flag: '-e'
-      description: End date in format YYYY:MM:DD hh:mm:ss
-    - name: start-journey
-      type: str
-      count: 1
-      flag: '-sj'
+      flag: '-D'
       description: Starting time of the day
-    - name: start-evening
+    - name: start_evening
       type: str
       count: 1
-      flag: '-se'
+      flag: '-E'
       description: Starting time of the evening
-    - name: start-night
+    - name: start_night
       type: str
       count: 1
-      flag: '-sn'
+      flag: '-N'
       description: Starting time of the night
     - name: level
       type: int
       count: 1
       flag: '-l'
-      description: Percentage level to observe the evolution
+      description: Percentage level under which the evolution is considered stable
     - name: path_to_file
       type: str
       count: 1
@@ -111,7 +106,7 @@ arguments:
     - name: stat_unit
       type: str
       count: 1
-      flag: '-ub'
+      flag: '-u'
       description: The unit of the statistic
       choices:
        - s
@@ -126,7 +121,7 @@ arguments:
     - name: table_unit
       type: str
       count: 1
-      flag: '-u'
+      flag: '-U'
       description: Unit to show on the table
       choices:
        - s
