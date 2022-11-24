@@ -86,14 +86,21 @@ def _get_column_letter(worksheet, value):
 
 
 def get_evol_value(filepath, field, stats):
-    workbook = load_workbook(filepath)
-    worksheet = workbook[field]
-    column = _get_column_letter(worksheet, stats)
-    if column is not None:
-        it = iter(worksheet[column])
-        next(it)  # Skip header
-        return [cell.value for cell in it]
-    return []
+    if filepath:
+        workbook = load_workbook(filepath)
+        worksheet = workbook[field]
+        def extract_values(column):
+            it = iter(worksheet[column])
+            next(it)  # Skip header
+            return [cell.value for cell in it]
+
+        column = _get_column_letter(worksheet, stats)
+        if column is not None:
+            values = extract_values(column)
+            index = extract_values(get_column_letter(1))
+            return pd.Series(values, index=index, name=stats)
+
+    return pd.Series([], name=stats, dtype=float)
 
 
 def reference_style(worksheet, percentage, column_title):
@@ -115,6 +122,8 @@ def reference_style(worksheet, percentage, column_title):
 def get_trend(stability_threshold, value, reference):
     threshold = reference * stability_threshold / 100
     difference = value - reference
+    if np.isnan(difference):
+        return 'NaN'
 
     if difference < -threshold:
         state = '\u2198'  # Down arrow
@@ -123,7 +132,7 @@ def get_trend(stability_threshold, value, reference):
     else:
         state = '\u2197'  # Up arrow
 
-    return difference * 100 / reference, state
+    return f'{state} {difference * 100 / reference}%'
 
 
 def multiplier(base, unit):
@@ -185,9 +194,9 @@ def main(
 
         means = data_collection.compute_function('mean', scale_factor, start_day, start_evening, start_night).round(2)
         medians = data_collection.compute_function('median', scale_factor, start_day, start_evening, start_night).round(2)
-
-        means_ref = get_evol_value(path_to_file, statistic_name, 'Moyenne') if path_to_file else []
-        medians_ref = get_evol_value(path_to_file, statistic_name, 'Médiane') if path_to_file else []
+        means_ref = get_evol_value(path_to_file, statistic_name, 'Moyenne')
+        medians_ref = get_evol_value(path_to_file, statistic_name, 'Médiane')
+        df = pd.concat([means, means_ref, medians, medians_ref], axis=1)
 
         header = [f'{statistic_name} ({table_unit})' if table_unit else statistic_name]
         if compute_mean:
@@ -201,28 +210,24 @@ def main(
 
         worksheet.append(header)
 
-        for moment, mean, mean_ref, median, median_ref in itertools.zip_longest(means.index, means, means_ref, medians, medians_ref):
+        moments = pd.Series([
+            idx
+            for moment in ('Jour', 'Soir', 'Nuit')
+            for idx in df.index
+            if isinstance(idx, str) and idx.startswith(moment)
+        ])
+        for moment, (mean, mean_ref, median, median_ref) in df.loc[moments].iterrows():
             row = [moment]
             if compute_mean:
                 mean_percent = mean * 100 / reference
                 row.extend((mean, mean_percent))
                 if path_to_file:
-                    if mean_ref:
-                        trend, state = get_trend(stability_threshold, mean, mean_ref)
-                        mean_trend = f'{state} {evol}%'
-                    else:
-                        mean_trend = 'NaN'
-                    row.append(mean_trend)
+                    row.append(get_trend(stability_threshold, mean, mean_ref))
             if compute_median:
                 median_percent = median * 100 / reference
                 row.extend((median, median_percent))
                 if path_to_file:
-                    if median_ref:
-                        trend, state = get_trend(stability_threshold, median, median_ref)
-                        median_trend = f'{state} {evol}%'
-                    else:
-                        median_trend = 'NaN'
-                    row.append(median_trend)
+                    row.append(get_trend(stability_threshold, median, median_ref))
 
             worksheet.append(row)
 

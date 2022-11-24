@@ -121,10 +121,10 @@ def main(
             df = (df.dropna() / scale_factor / reference) * 100
             df.sort_values(by=statistic_name, inplace=True)
             df.reset_index(drop=True, inplace=True)
-            values_amount = 100 // step + 1
-            cdf = df.loc[np.linspace(df.index.min(), df.index.max(), values_amount, dtype=int)]
-            cdf.index = np.linspace(0, 100, values_amount, dtype=int)
-            cdf.columns = [agent_legend or agent]
+            values_amount = 100 // step
+            cdf = df.loc[np.linspace(df.index.max(), df.index.min(), values_amount, dtype=int, endpoint=False)[::-1]][statistic_name]
+            cdf.index = np.linspace(100, 0, values_amount, dtype=int, endpoint=False)[::-1]
+            cdf.name = agent_legend or agent
             cdf.plot(ax=axis)
 
         if not y_label:
@@ -134,6 +134,7 @@ def main(
                     'instances {}: using the empty string instead'.format(statistic_name, job_name))
             y_label = ''
         axis.set_ylabel(y_label)
+
         if not x_label:
             collect_agent.send_log(
                     syslog.LOG_WARNING,
