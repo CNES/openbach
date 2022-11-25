@@ -247,12 +247,20 @@
         - restore_backend_database
 
     - name: Lookup for Database Dump Filename
-      shell: ls -d /tmp/openbach_controller_backup_*.sql
+      find:
+        paths: /tmp
+        recurse: no
+        patterns: openbach_controller_backup_*.sql
       register: openbach_sql_dump
+      failed_when: (openbach_sql_dupm.files | count) != 1
+
+    - name: Store Database Dump Filename
+      set_fact:
+        openbach_sql_dump_file: "{{ openbach_sql_dump.files | map(attribute='path') | first }}"
 
     - name: Fix Permissions of Database Dump File so Postgres Can Read It
       file:
-        path: "{{ openbach_sql_dump.stdout }}"
+        path: "{{ openbach_sql_dump_file }}"
         owner: postgres
         group: postgres
       become: yes
@@ -262,7 +270,7 @@
         name: openbach_db
         owner: openbach
         state: restore
-        target: "{{ openbach_sql_dump.stdout }}"
+        target: "{{ openbach_sql_dump_file }}"
       become: yes
       become_user: postgres
       tags:
@@ -270,7 +278,7 @@
 
     - name: Remove Extracted Files
       file:
-        path: "{{ openbach_sql_dump.stdout }}"
+        path: "{{ openbach_sql_dump_file }}"
         state: absent
       become: yes
 

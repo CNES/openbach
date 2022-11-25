@@ -215,13 +215,18 @@
     remote_user: openbach
 
   - name: Lookup for InfluxDB Dump Filename
-    shell: ls -d /tmp/openbach_collector_backup_*_influxdb
+    find:
+      paths: /tmp
+      recurse: no
+      patterns: openbach_collector_backup_*_influxdb
+      file_type: directory
     register: openbach_influxdb_dump
+    failed_when: (openbach_influxdb_dump.files | count) != 1
     remote_user: openbach
 
   - block:
       - name: Restore InfluxDB Content
-        command: influxd restore -portable {{ openbach_influxdb_dump.stdout }}
+        command: influxd restore -portable {{ openbach_influxdb_dump.files | map(attribute='path') | first }}
         remote_user: openbach
     rescue:
       - fail:
@@ -235,14 +240,23 @@
       - restore_influxdb_database
 
   - name: Lookup for ElasticSearch Dump Filename
-    shell: ls -d /tmp/openbach_collector_backup_*_elasticsearch
+    find:
+      paths: /tmp
+      recurse: no
+      patterns: openbach_collector_backup_*_elasticsearch
+      file_type: directory
     register: openbach_elasticsearch_dump
+    failed_when: (openbach_elasticsearch_dump.files | count) != 1
     remote_user: openbach
+
+  - name: Store ElasticSearch Dump Filename
+    set_fact:
+      openbach_elasticsearch_dump_file: "{{ openbach_elasticsearch_dump.files | map(attribute='path') | first}}"
 
   - block:
       - name: Fix Permissions for ElasticSearch Dump Filename
         file:
-          path: "{{ openbach_elasticsearch_dump.stdout }}"
+          path: "{{ openbach_elasticsearch_dump_file }}"
           owner: elasticsearch
           group: elasticsearch
           recurse: yes
@@ -255,7 +269,7 @@
           body:
             type: fs
             settings:
-              location: "{{ openbach_elasticsearch_dump.stdout }}"
+              location: "{{ openbach_elasticsearch_dump_file }}"
               compress: true
           body_format: json
           user: "elastic"
@@ -312,8 +326,8 @@
       path: "{{ item }}"
       state: absent
     with_items:
-      - "{{ openbach_elasticsearch_dump.stdout }}"
-      - "{{ openbach_influxdb_dump.stdout }}"
+      - "{{ openbach_elasticsearch_dump_file }}"
+      - "{{ openbach_influxdb_dump.files | map(attribute='path') | first }}"
     become: yes
 
   when: openbach_restore_host is defined

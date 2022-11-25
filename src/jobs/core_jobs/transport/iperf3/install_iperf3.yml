@@ -61,14 +61,30 @@
       chdir: /tmp/iperf3/
 
   - name: Gather Version and Architecture of Compiled Package
-    shell: ls -1 /tmp/iperf3-openbach_*.deb
+    find:
+      paths: /tmp
+      recurse: no
+      patterns: iperf3-openbach_*.deb
     register: openbach_iperf3_built_package
 
   - name: Install Iperf3
     apt:
-      deb: "{{ openbach_iperf3_built_package.stdout }}"
+      deb: "{{ openbach_iperf3_built_package.files | map(attribute='path') | sort | last }}"
     become: yes
 
+  - name: Gather Leftover Files
+    find:
+      paths: /tmp
+      recurse: no
+      patterns: iperf3*
+      file_type: any
+    register: openbach_collect_agent_leftovers
+
+  - name: Remove Leftover Files
+    file:
+      path: "{{ item.path }}"
+      state: absent
+    loop: "{{ openbach_collect_agent_leftovers.files }}"
   when: ansible_architecture != 'x86_64'
 
 - name: Install iperf3 requirements

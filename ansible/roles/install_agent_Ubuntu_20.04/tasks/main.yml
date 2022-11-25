@@ -68,13 +68,30 @@
       chdir: /tmp/collect-agent/
 
   - name: Gather Version and Architecture of Compiled Package
-    shell: ls -1 /tmp/collect-agent_*.deb
+    find:
+      paths: /tmp
+      recurse: no
+      patterns: collect-agent_*.deb
     register: openbach_collect_agent_built_package
 
   - name: Install the Collect-Agent Library
     apt:
-      deb: "{{ openbach_collect_agent_built_package.stdout }}"
+      deb: "{{ openbach_collect_agent_built_package.files | map(attribute='path') | sort | last }}"
     become: yes
+
+  - name: Gather Leftover Files
+    find:
+      paths: /tmp
+      recurse: no
+      patterns: collect-agent*
+      file_type: any
+    register: openbach_collect_agent_leftovers
+
+  - name: Remove Leftover Files
+    file:
+      path: "{{ item.path }}"
+      state: absent
+    loop: "{{ openbach_collect_agent_leftovers.files }}"
   when: ansible_architecture != 'x86_64'
 
 - name: Install apt dependencies

@@ -50,7 +50,9 @@
     set_fact:
       openbach_keep_ntp_server_configuration: "{{ item is not skipped and (not item.user_input or item.user_input in ['k', 'keep']) }}"
       openbach_ntp_server_address: "{{ omit if item is skipped else item.user_input | lower }}"
-    with_items: "{{ hostvars[play_hosts.0].openbach_ntp_prompt.results }}"
+    loop: "{{ hostvars[play_hosts.0].openbach_ntp_prompt.results }}"
+    loop_control:
+      label: "{{ item.item }}"
     when: item.item == inventory_hostname
   tags:
     - configure_ntp_server

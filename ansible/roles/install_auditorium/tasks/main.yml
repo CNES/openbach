@@ -157,26 +157,40 @@
         dest: "/tmp/"
 
     - name: Lookup for Chronograf Dump Folder
-      shell: ls -d /tmp/openbach_auditorium_backup_*_chronograf
+      find:
+        paths: /tmp
+        recurse: no
+        patterns: openbach_auditorium_backup_*_chronograf
+        file_type: directory
       register: openbach_chronograf_dump_folder
+      failed_when: (openbach_chronograf_dump_folder.files | count) != 1
+
+    - name: Store Chronograf Dump Folder Name
+      set_fact:
+        openbach_chronograf_dump_folder_name: "{{ openbach_chronograf_dump_folder.files | map(attribute='path') | first }}"
 
     - name: Lookup for Chronograf Dump Filename
-      shell: ls -1 {{ openbach_chronograf_dump_folder.stdout }}
+      find:
+        paths: "{{ openbach_chronograf_dump_folder_name }}"
+        recurse: no
+        patterns: '*'
       register: openbach_chronograf_dump
 
     - name: Restore Chronograf Dashboards
       uri:
         url: http://localhost:{{ chronograf_port }}/chronograf/v1/dashboards
         method: POST
-        src: "{{ openbach_chronograf_dump_folder.stdout }}/{{ item }}"
+        src: "{{ item.path }}"
         remote_src: yes
         status_code: 201
         body_format: json
-      with_items: "{{ openbach_chronograf_dump.stdout_lines }}"
+      loop: "{{ openbach_chronograf_dump.files }}"
+      loop_control:
+        label: "{{ item.path }}"
 
     - name: Remove Extracted Files
       file:
-        path: "{{ openbach_chronograf_dump_folder.stdout }}"
+        path: "{{ openbach_chronograf_dump_folder_name }}"
         state: absent
   remote_user: openbach
   when: openbach_restore_host is defined

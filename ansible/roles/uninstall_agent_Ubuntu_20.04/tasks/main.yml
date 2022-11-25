@@ -49,10 +49,26 @@
   file: path=/opt/openbach/pip_mirror state=absent
   become: yes
 
+- name: List ntp Backup Files
+  find:
+    paths: /etc
+    recurse: no
+    patterns: ntp.conf.*
+  register: openbach_ntp_backup
+
 - name: Restore ntp Backup
-  shell: ls -t1 ntp.conf.* | tail -1 | xargs -I XXX mv XXX ntp.conf chdir=/etc/
-  ignore_errors: yes
+  shell: mv "{{ openbach_ntp_backup.files | sort(attribute='ctime') | map(attribute='path') | first }}" /etc/ntp.conf
   become: yes
+  when: (openbach_ntp_backup.files | count) > 0
+
+- name: Remove ntp Backup Files
+  file:
+    path: "{{ item.path }}"
+    state: absent
+  become: yes
+  loop: "{{ openbach_ntp_backup.files }}"
+  loop_control:
+    label: "{{ item.path }}"
 
 - name: Remove Log Folder
   file: path=/var/log/openbach state=absent
