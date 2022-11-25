@@ -24,10 +24,11 @@
 # this program. If not, see http://www.gnu.org/licenses/.
 
 
-from distutils.version import LooseVersion
 from ansible import __version__ as ansible_version
+from pkg_resources import parse_version as version
 
-if LooseVersion(ansible_version) < LooseVersion('2.9'):
+
+if version(ansible_version) < version('2.9'):
     from ansible.plugins.action.synchronize import ActionModule as SynchronizeModule
 else:
     from ansible_collections.ansible.posix.plugins.action.synchronize import ActionModule as SynchronizeModule

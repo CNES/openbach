@@ -64,11 +64,11 @@ from datetime import datetime
 from contextlib import suppress
 from ipaddress import IPv4Network
 from collections import defaultdict, Counter
-from distutils.version import StrictVersion
 
 import yaml
 import numpy
 from fuzzywuzzy import fuzz
+from pkg_resources import parse_version as version
 from django import db
 from django.utils import timezone
 from django.core.exceptions import ValidationError
@@ -1135,11 +1135,10 @@ class AddJob(JobAction):
 
         # If the job existed already, uninstall on agents if necessary
         for installed_job in InstalledJob.objects.filter(job=job):
-            installed_version = StrictVersion(installed_job.job_version)
-            current_version = StrictVersion(job.job_version)
+            installed_version = version(installed_job.job_version)
+            current_version = version(job.job_version)
             # In case of rollback or major update, uninstall the Job
-            if (installed_version > current_version or
-                    installed_version.version[0] != current_version.version[0]):
+            if (installed_version > current_version or installed_version.major != current_version.major):
                 uninstaller = UninstallJob(installed_job.agent.address, self.name)
                 self.share_user(uninstaller)
                 uninstaller.action()
@@ -1440,10 +1439,9 @@ class InstallJob(ThreadedAction, InstalledJobAction):
             # If the job's major version is newer than installed, or older, reinstall
             with suppress(InstalledJob.DoesNotExist):
                 installed_job = InstalledJob.objects.get(job=job, agent=agent)
-                installed_version = StrictVersion(installed_job.job_version)
-                current_version = StrictVersion(job.job_version)
-                if ((installed_version > current_version) or
-                        (installed_version.version[0] != current_version.version[0])):
+                installed_version = version(installed_job.job_version)
+                current_version = version(job.job_version)
+                if (installed_version > current_version or installed_version.major != current_version.major):
                     start_playbook(
                             'uninstall_job',
                             agent.address,

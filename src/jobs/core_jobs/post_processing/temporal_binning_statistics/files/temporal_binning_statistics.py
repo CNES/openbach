@@ -41,10 +41,10 @@ import os.path
 import argparse
 import tempfile
 import itertools
-from distutils.version import LooseVersion
 
 import pandas as pd
 import matplotlib.pyplot as plt
+from pkg_resources import parse_version as version
 
 import collect_agent
 from data_access.post_processing import Statistics, save, _Plot
@@ -52,7 +52,7 @@ from data_access.post_processing import Statistics, save, _Plot
 
 TIME_OPTIONS = {'year', 'month', 'day', 'hour', 'minute', 'second'}
 SET_AXIS_PARAMETERS = {'axis': 1}
-if LooseVersion(pd.__version__) < LooseVersion('1.5.0'):
+if version(pd.__version__) < version('1.5.0'):
     SET_AXIS_PARAMETERS['inplace'] = False
 else:
     SET_AXIS_PARAMETERS['copy'] = True

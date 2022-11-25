@@ -52,10 +52,10 @@ from pathlib import Path
 from datetime import datetime
 from subprocess import DEVNULL
 from contextlib import suppress, contextmanager
-from distutils.version import StrictVersion
 
 import yaml
 import psutil
+from pkg_resources import parse_version as version
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.jobstores.base import JobLookupError, ConflictingIdError
 from apscheduler.triggers.interval import IntervalTrigger
@@ -139,13 +139,13 @@ class JobManager:
                 conf.update(new_configuration)
                 self.jobs[name] = conf
             else:
-                installed_version = StrictVersion(installed_job['job_version'])
-                new_version = StrictVersion(new_configuration['job_version'])
+                installed_version = version(installed_job['job_version'])
+                new_version = version(new_configuration['job_version'])
                 self.jobs[name].update(new_configuration)
                 if installed_version >= new_version:
                     raise RequestWarning(
                             'Job {} is already installed with a newer '
-                            'version (installed:\'{}\', current:{}). '
+                            'version (installed: {}, current: {}). '
                             'Configuration updated.'.format(
                                 name, installed_version, new_version))
 
