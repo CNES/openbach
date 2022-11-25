@@ -181,17 +181,7 @@ def main(
         workbook = Workbook()
         worksheet = workbook.active
 
-        if stability_threshold is None:
-            stability_threshold = 10
-        if start_day is None:
-            start_day = 7
-        if start_evening is None:
-            start_evening = 18
-        if start_night is None:
-            start_night = 0
-
         scale_factor = 1 if stat_unit is None else multiplier(stat_unit, table_unit or stat_unit)
-
         means = data_collection.compute_function('mean', scale_factor, start_day, start_evening, start_night).round(2)
         medians = data_collection.compute_function('median', scale_factor, start_day, start_evening, start_night).round(2)
         means_ref = get_evol_value(path_to_file, statistic_name, 'Moyenne')
@@ -262,20 +252,23 @@ if __name__ == '__main__':
                 metavar=('BEGIN_DATE', 'END_DATE'), nargs=2,
                 help='Start and End date in format YYYY:MM:DD hh:mm:ss')
         parser.add_argument(
-                '-D', '--start-day', metavar='START_DAY',
+                '-D', '--start-day',
+                metavar='START_DAY', type=int, default=7,
                 help='Starting time of the day')
         parser.add_argument(
-                '-E', '--start-evening', metavar='START_EVENING',
+                '-E', '--start-evening',
+                metavar='START_EVENING', type=int, default=18,
                 help='Starting time of the evening')
         parser.add_argument(
-                '-N', '--start-night', metavar='START_NIGHT',
+                '-N', '--start-night',
+                metavar='START_NIGHT', type=int, default=0,
                 help='starting time of the night')
         parser.add_argument(
                 '-l', '--stability-threshold', '--threshold',
-                metavar='THRESHOLD', type=int,
+                metavar='THRESHOLD', type=int, default=10,
                 help='Percentage level under which the evolution is considered stable')
         parser.add_argument(
-                '-p', '--path-to-file', metavar='PATH_TO_FILE',
+                '-p', '--path-to-file', metavar='PATH',
                 help='Path to XLSX file for evolution calculation')
         parser.add_argument(
                 '-u', '--stat-unit',
@@ -287,7 +280,7 @@ if __name__ == '__main__':
                 help='Unit to show on the table')
         parser.add_argument(
                 '-t', '--stat-title',
-                help='Statistic names to display on the table')
+                help='Statistic name to display on the table')
         parser.add_argument(
                 '-w', '--no-suffix', action='store_true',
                 help='Do not show statistics with suffixes')

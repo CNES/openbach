@@ -125,14 +125,10 @@ def main(
             timestamp = [int(begin_date.timestamp() * 1000), int(end_date.timestamp() * 1000)]
 
         if function not in FUNCTIONS:
+            collect_agent.send_log(
+                    syslog.LOG_WARNING,
+                    '\'{}\' is not available as function of statistics: using mean instead'.format(function))
             function = 'mean'
-
-        if start_day is None:
-            start_day = 7
-        if start_evening is None:
-            start_evening = 18
-        if start_night is None:
-            start_night = 0 
 
         scale_factor = 1 if stat_unit is None else multiplier(stat_unit, table_unit or stat_unit)
 
@@ -144,7 +140,7 @@ def main(
             ax.tick_params(which='both', bottom=False, left=False, top=False, labelleft=False, labelbottom=False)
 
         headers = [
-                f' {FUNCTIONS[function]} \n {stat_title or statistic_name} \n {table_unit or ""}',
+                f'{FUNCTIONS[function]}\n{stat_title or statistic_name}\n{table_unit or ""}',
                 f'Journée ({start_day}h − {start_evening}h)',
                 f'Soirée ({start_evening}h − {start_night}h)',
                 f'Nuit ({start_night}h − {start_day}h)',
@@ -202,13 +198,16 @@ if __name__ == '__main__':
                 type=int, default=5,
                 help='Number of reception bars')
         parser.add_argument(
-                '-D', '--start-day', metavar='START_DAY',
+                '-D', '--start-day',
+                metavar='START_DAY', type=int, default=7,
                 help='Starting time of the day')
         parser.add_argument(
-                '-E', '--start-evening', metavar='START_EVENING',
+                '-E', '--start-evening',
+                metavar='START_EVENING', type=int, default=18,
                 help='Starting time of the evening')
         parser.add_argument(
-                '-N', '--start-night', metavar='START_NIGHT',
+                '-N', '--start-night',
+                metavar='START_NIGHT', type=int, default=0,
                 help='starting time of the night')
         parser.add_argument(
                 '-u', '--stat-unit', metavar='UNIT', choices=UNIT_OPTION,
@@ -217,8 +216,8 @@ if __name__ == '__main__':
                 '-U', '--table-unit', metavar='UNIT', choices=UNIT_OPTION,
                 help='Desired unit to show on the figure')
         parser.add_argument(
-                '-a', '--agent-title', default=[],
-                metavar='AGENT_TITLE ', nargs='+', dest='agents_title',
+                '-a', '--agents-title',
+                metavar='AGENT_TITLE ', nargs='+', default=[],
                 help='Agent name to display on the table')
         parser.add_argument(
                 '-s', '--stat-title',

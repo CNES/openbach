@@ -184,7 +184,7 @@ if __name__ == '__main__':
                 help='Start and End date in format YYYY:MM:DD hh:mm:ss')
         parser.add_argument(
                 '-p', '--step', type=int, default=1,
-                help='Percentage step')
+                help='Percentage step on the Y-axis')
         parser.add_argument(
                 '-u', '--stat-unit', choices = UNIT_OPTION,
                 help='Unit of the statistic')

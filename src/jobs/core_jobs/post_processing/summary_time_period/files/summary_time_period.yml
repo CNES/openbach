@@ -55,18 +55,18 @@ platform_configuration:
 
 arguments:
   required:
-    - name: agents
+    - name: agent
       type: str
       count: 1
       description: Agent name to fetch data from
-    - name: jobs
+    - name: job
       type: str
       count: 1
       description: The job name to plot data from
-    - name: statistics
+    - name: statistic
       type: str
       count: 1
-      description: statistics names to be analysed
+      description: Statistic name to be analysed
     - name: reference
       type: int
       count: 1
@@ -102,7 +102,7 @@ arguments:
       type: str
       count: 1
       flag: '-p'
-      description: Path to xlsx file for evolution calculation
+      description: Path to previous XLSX file for evolution calculation
     - name: stat_unit
       type: str
       count: 1
@@ -134,11 +134,11 @@ arguments:
        - KBytes
        - MBytes
        - GBytes
-    - name: stat-title
+    - name: stat_title
       type: str
       count: 1
       flag: '-t'
-      description: Statistics names to display on the table
+      description: Statistics names to display on the table, instead of the name used to fetch data
     - name: no_suffix
       type: None
       count: 0

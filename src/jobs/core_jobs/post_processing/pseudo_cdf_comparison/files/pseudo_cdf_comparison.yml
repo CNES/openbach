@@ -76,7 +76,7 @@ arguments:
       type: int
       count: 1
       flag: '-p'
-      description: Percentage step
+      description: Percentage step on the Y-axis
     - name: stat_unit
       type: str
       count: 1
@@ -128,7 +128,7 @@ arguments:
       type: str
       count: '+'
       flag: '-a'
-      description: Agent name to display on the legend  
+      description: Agent name to display on the legend
     - name: no_suffix
       type: None
       count: 0

@@ -60,11 +60,11 @@ arguments:
       type: str
       count: '+'
       description: Agent name to fetch data from
-    - name: jobs
+    - name: job
       type: str
       count: 1
       description: The job name to plot data from
-    - name: statistics
+    - name: statistic
       type: str
       count: 1
       description: statistics names to be analysed
@@ -165,5 +165,5 @@ arguments:
       type: None
       count: 0
       flag: '-g'
-      description: Display stats value in a filled box
+      description: Display stats value in a filled box instead of "network bars"
 statistics:
