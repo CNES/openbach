@@ -97,16 +97,16 @@ def main(
 
     with tempfile.TemporaryDirectory(prefix='openbach-pseudo_cdf_comparison-') as root_folder:
         if not timestamp_boundaries:
-            timestamp = None
+            timestamps = None
         else:
             begin_date, end_date = map(parse, timestamp_boundaries)
-            timestamp = [int(begin_date.timestamp() * 1000), int(end_date.timestamp() * 1000)]
+            timestamps = [int(begin_date.timestamp() * 1000), int(end_date.timestamp() * 1000)]
 
         scale_factor = 1 if stat_unit is None else multiplier(stat_unit, table_unit or stat_unit)
         figure, axis = plt.subplots()
 
-        for agent, agent_legend in zip(agents_name, itertools.chain(agents_title, itertools.repeat(None))):
-            data_collection = statistics.fetch_all(
+        for agent, agent_legend in zip(agents_name, itertools.chain(agents_legend, itertools.repeat(None))):
+            data_collection = statistics.fetch(
                     job=job_name, agent=agent,
                     suffix=None if stats_with_suffixes else '',
                     fields=[statistic_name], timestamps=timestamps)

@@ -84,30 +84,34 @@ def multiplier(base, unit):
 
 
 def plot_summary_agent_comparison(axis, function_result, reference, agent, num_bars, filled_box):
-    axs = iter(axes)
+    axs = iter(axis)
     header = next(axs)
     header.axis([0, 10, 0, 10])
     header.text(.1, .5, agent, fontsize=10, transform=header.transAxes)
 
     step = 100 // num_bars
-    for ax, value in zip(axs, function_result):
-        if reference is None:
-            ax.axis([0, 10, 0, 10])
-            ax.text(3, 5, f'{value:.02f}', fontsize=10)
-            continue
+    for ax, moment in zip(axs, ('Jour', 'Soirée', 'Nuit')):
+        for index, value in function_result.items():
+            if isinstance(index, str) and index.startswith(moment):
+                if reference is None:
+                    ax.axis([0, 10, 0, 10])
+                    ax.text(3, 5, f'{value:.02f}', fontsize=10)
+                    continue
 
-        if filled_box:
-            percentage = value * 100 / reference
-            ax.set(ylim=(0, 10))
-            ax.barh([3], [100], height=3, align='center', color=(.1, .1, .1, .2))
-            ax.barh([3], [percentage], height=3, align='center', color='black')
-            ax.text(1, 8, f'{value:.02f} ({percentage:.02f}%)', fontsize=8)
-        else:
-            background = [step * (i+1) for i in range(num_bars)]
-            foreground = [height for i, height in enumerate(background) if value > reference * i / num_bars]
-            ax.bar(np.arange(num_bars), background, width=0.7, color=(.1, .1, .1, .2))
-            ax.bar(np.arange(len(foreground)), foreground, width=0.7, color='black')
-            ax.text(-.3, 80, f'{value:.02f}', fontsize=7)
+                if filled_box:
+                    percentage = value * 100 / reference
+                    ax.set(ylim=(0, 10))
+                    ax.barh([3], [100], height=3, align='center', color=(.1, .1, .1, .2))
+                    ax.barh([3], [percentage], height=3, align='center', color='black')
+                    ax.text(1, 8, f'{value:.02f} ({percentage:.02f}%)', fontsize=8)
+                else:
+                    background = [step * (i+1) for i in range(num_bars)]
+                    foreground = [height for i, height in enumerate(background) if value > reference * i / num_bars]
+                    ax.bar(np.arange(num_bars), background, width=0.7, color=(.1, .1, .1, .2))
+                    ax.bar(np.arange(len(foreground)), foreground, width=0.7, color='black')
+                    ax.text(-.3, 80, f'{value:.02f}', fontsize=7)
+
+                break
 
 
 def main(
@@ -119,10 +123,10 @@ def main(
     statistics.origin = 0
     with tempfile.TemporaryDirectory(prefix='openbach-summary_agent_comparison-') as root_folder:
         if not timestamp_boundaries:
-            timestamp = None
+            timestamps = None
         else:
             begin_date, end_date = map(parse, timestamp_boundaries)
-            timestamp = [int(begin_date.timestamp() * 1000), int(end_date.timestamp() * 1000)]
+            timestamps = [int(begin_date.timestamp() * 1000), int(end_date.timestamp() * 1000)]
 
         if function not in FUNCTIONS:
             collect_agent.send_log(
@@ -156,7 +160,7 @@ def main(
             data_collection = statistics.fetch_all(
                     job=job_name, agent=agent,
                     suffix=None if stats_with_suffixes else '',
-                    fields=[statistic_name], timestamp=timestamp)
+                    fields=[statistic_name], timestamps=timestamps)
 
             result = data_collection.compute_function(
                     function, scale_factor,
@@ -166,7 +170,7 @@ def main(
 
         if figure_title:
             figure.suptitle(figure_title)
-        filepath = os.path.join(root_folder, 'summary_agent_comparison_{}.png'.format(statistic_name, file_ext))
+        filepath = os.path.join(root_folder, 'summary_agent_comparison_{}.png'.format(statistic_name))
         save(figure, filepath, set_legend=False)
         collect_agent.store_files(collect_agent.now(), figure=filepath)
 
