@@ -116,6 +116,14 @@ UNFINISHED_FUNCTIONS = Q(status__in=(
     OpenbachFunctionInstance.Status.RUNNING,
 ))
 
+FAILED_JOBS = Q(stop_date__isnull=False, status__in=(
+    JobInstance.Status.ERROR,
+    JobInstance.Status.AGENT_UNREACHABLE,
+    JobInstance.Status.NOT_SCHEDULED,
+    JobInstance.Status.UNKNOWN,
+))
+IGNORABLE_JOBS = Q(openbach_function_instance__openbach_function__on_failure__policy=FailurePolicy.Policies.IGNORE)
+
 SCENARIOS_STOPPED = Q(status__in=(ScenarioInstance.Status.STOPPED, ScenarioInstance.Status.FINISHED_OK))
 SCENARIOS_ERRORED = Q(status=ScenarioInstance.Status.FINISHED_KO)
 SCENARIOS_UNREACHABLE = Q(status=ScenarioInstance.Status.AGENTS_UNREACHABLE)
@@ -537,6 +545,11 @@ class ScenarioInstanceStatus(threading.Thread):
         while True:
             if self._is_stopped.is_set():
                 self._stop_instance()
+                self._join_openbach_functions()
+                return
+
+            if JobInstance.objects.filter(FAILED_JOBS, id__in=spawned_jobs).exclude(IGNORABLE_JOBS).exists():
+                self._terminate_instance()
                 self._join_openbach_functions()
                 return
 
