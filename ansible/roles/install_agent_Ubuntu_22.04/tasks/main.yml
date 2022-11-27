@@ -92,6 +92,8 @@
       path: "{{ item.path }}"
       state: absent
     loop: "{{ openbach_collect_agent_leftovers.files }}"
+    loop_control:
+      label: "{{ item.path }}"
   when: ansible_architecture != 'x86_64'
 
 - name: Install apt dependencies

@@ -97,9 +97,13 @@
   become: yes
 
 - name: Remove Leftovers of Logstash Plugins
-  file: path=/usr/share/logstash state=absent
+  file:
+    path: /usr/share/logstash
+    state: absent
   become: yes
 
 - name: Remove Collector Repository
-  file: path=/opt/openbach/collector state=absent
+  file:
+    path: /opt/openbach/collector
+    state: absent
   become: yes
