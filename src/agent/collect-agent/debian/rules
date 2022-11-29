@@ -7,7 +7,10 @@
 override_dh_install:
 	dh_install
 
-	(cd bindings; python3 setup.py install --install-lib ${CURDIR}/debian/collect-agent/usr/lib/python3/dist-packages/)
+	(cd bindings; LDFLAGS="-L${CURDIR}/build/" CPPFLAGS="-I${CURDIR}/src/" pip3 install --root ${CURDIR}/debian/collect-agent/ .)
+	# TODO: Get pip to install directly into /usr instead of /usr/local
+	(cd ${CURDIR}/debian/collect-agent/usr/; mv local/lib/* lib/; rmdir -p local/lib/)
+
 
 %:
 	dh $@ 

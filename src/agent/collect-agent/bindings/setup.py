@@ -48,8 +48,6 @@ collect_agent = Extension(
             ('MAJOR_VERSION', MAJOR_VERSION),
             ('MINOR_VERSION', MINOR_VERSION),
             ('DEBUG_VERSION', DEBUG_VERSION)],
-        include_dirs=['../src/'],
-        library_dirs=['../build/'],
         libraries=['collectagent'],
         sources=['collectagentmodule.cpp'],
         extra_compile_args=['-std=c++11'])
