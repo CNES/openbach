@@ -200,6 +200,10 @@ def status_manager(job_instance_id, scenario_instance_id, username):
         StatusManager().remove_job(scenario_instance_id, job_instance_id)
         return
 
+    if job_instance.get_status() is JobInstance.Status.SCHEDULED:
+        # Openbach Function did not finish properly yet
+        return
+
     try:
         job_status_manager.action()
     except errors.ConductorWarning:
@@ -611,14 +615,14 @@ class ScenarioInstanceStatus(threading.Thread):
         return jobs_not_finished.exists() or scenarios_not_finished.exists()
 
     def _has_waited_instances_finished(self, function):
+        waited_instances = function.finished_waiters.values('openbach_function_waited')
         wait_for_finished = OpenbachFunctionInstance.objects.filter(
-                openbach_function__id__in=function.finished_waiters.values('openbach_function_waited'),
+                openbach_function__id__in=waited_instances,
                 scenario_instance=self.scenario_instance)
 
         instances_keywords = ('started_job', 'started_scenario')
-        waited_instances = wait_for_finished.values(*instances_keywords)
-        started_instances = waited_instances.exclude(**{'{}__isnull'.format(k): True
-                                                        for k in instances_keywords})
+        started_instances = wait_for_finished.values(*instances_keywords).exclude(
+                **{'{}__isnull'.format(k): True for k in instances_keywords})
         if waited_instances.count() != started_instances.count():
             return False
 

@@ -818,7 +818,7 @@ class StartJobInstanceArgument(models.Model):
 
             if self.type == ValuesType.JOB_INSTANCE_ID.value:
                 queryset = OpenbachFunctionInstance.objects.select_related('started_job')
-                openbach_function_instance = queryset.get(
+                openbach_function_instance = queryset.last(
                         openbach_function__function_id=value[-1],
                         openbach_function__startjobinstance__isnull=False,
                         scenario_instance=scenario_instance)

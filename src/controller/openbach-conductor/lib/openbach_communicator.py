@@ -71,7 +71,11 @@ class _BaseSocketCommunicator:
             self.socket = socket.socket(self._family, self._kind)
             self.socket.settimeout(2)
             self.socket.connect(self._address)
-        except (OSError, socket.timeout) as e:
+        except socket.timeout as e:
+            raise errors.UnreachableError(
+                    'Cannot connect socket to its destination {}: {}'
+                    .format(self._address, e))
+        except OSError as e:
             raise errors.UnprocessableError(
                     'Cannot connect socket to its destination {}: {}'
                     .format(self._address, e))

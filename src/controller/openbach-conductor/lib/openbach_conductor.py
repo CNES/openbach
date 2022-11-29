@@ -1827,16 +1827,20 @@ class JobInstanceAction(ConductorAction):
                     'The Agent associated to this JobInstance was uninstalled',
                     job_name=self.name, job_instance_id=job_instance.id)
 
-        baton = OpenBachBaton(agent.address, agent.port)
-        getattr(baton, method)(
-                job_instance.job_name,
-                job_instance.id,
-                scenario_id, owner_id,
-                job_instance.arguments,
-                job_instance.start_timestamp,
-                self.interval)
-
-        job_instance.set_status(JobInstance.Status.RUNNING)
+        try:
+            baton = OpenBachBaton(agent.address, agent.port)
+            getattr(baton, method)(
+                    job_instance.job_name,
+                    job_instance.id,
+                    scenario_id, owner_id,
+                    job_instance.arguments,
+                    job_instance.start_timestamp,
+                    self.interval)
+        except errors.UnreachableError:
+            job_instance.delete()
+            raise
+        else:
+            job_instance.set_status(JobInstance.Status.RUNNING)
 
 
 class StartJobInstance(ThreadedAction, JobInstanceAction):
