@@ -42,6 +42,7 @@ import tempfile
 import itertools
 from datetime import datetime
 
+import numpy as np
 import pandas as pd
 from dateutil.parser import parse
 from openpyxl import Workbook, load_workbook
@@ -194,7 +195,7 @@ def main(
             if path_to_file:
                 header.append('Évolution de la Moyenne')
         if compute_median:
-            header.extend(('Mediane', '% Médiane Cible'))
+            header.extend(('Médiane', '% Médiane Cible'))
             if path_to_file:
                 header.append('Évolution de la Médiane')
 
@@ -210,12 +211,12 @@ def main(
             row = [moment]
             if compute_mean:
                 mean_percent = mean * 100 / reference
-                row.extend((mean, mean_percent))
+                row.extend((mean, f'{mean_percent}%'))
                 if path_to_file:
                     row.append(get_trend(stability_threshold, mean, mean_ref))
             if compute_median:
                 median_percent = median * 100 / reference
-                row.extend((median, median_percent))
+                row.extend((median, f'{median_percent}%'))
                 if path_to_file:
                     row.append(get_trend(stability_threshold, median, median_ref))
 
