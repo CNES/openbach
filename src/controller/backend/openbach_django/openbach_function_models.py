@@ -818,18 +818,18 @@ class StartJobInstanceArgument(models.Model):
 
             if self.type == ValuesType.JOB_INSTANCE_ID.value:
                 queryset = OpenbachFunctionInstance.objects.select_related('started_job')
-                openbach_function_instance = queryset.last(
+                openbach_function_instance = queryset.filter(
                         openbach_function__function_id=value[-1],
                         openbach_function__startjobinstance__isnull=False,
-                        scenario_instance=scenario_instance)
+                        scenario_instance=scenario_instance).last()
                 return openbach_function_instance.started_job.id
 
             if self.type == ValuesType.SCENARIO_INSTANCE_ID.value:
                 queryset = OpenbachFunctionInstance.objects.select_related('started_scenario')
-                openbach_function_instance = queryset.get(
+                openbach_function_instance = queryset.filter(
                         openbach_function__function_id=value[-1],
                         openbach_function__startscenarioinstance__isnull=False,
-                        scenario_instance=scenario_instance)
+                        scenario_instance=scenario_instance).last()
                 return openbach_function_instance.started_scenario.id
 
         return value
