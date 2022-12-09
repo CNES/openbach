@@ -25,5 +25,5 @@
 
 ---
 
-- include_role:
-    name: "backup_agent_{{ ansible_distribution }}_{{ ansible_distribution_version }}"
+- name: Remove the Summary Agent Comparison Job Repository
+  file: path=/opt/openbach/agent/jobs/{{ job_name }} state=absent

@@ -1,3 +1,10 @@
+collect-agent (1.4.2) focal; urgency=low
+
+  * Use pip instead of distutils to get a proper module when installing
+    bindings
+
+ -- OpenBACH maintainers <admin@openbach.org>  Tue, 29 nov 2022 11:09:32 +0100
+
 collect-agent (1.4.1) focal; urgency=low
 
   * Wrap the collect_agent Python extension module into a package to provide

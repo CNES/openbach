@@ -2,8 +2,8 @@ import {IAgent} from "./agent.interface";
 import {IOpenbachFunctionWait, IStartJobInstance, IStartScenarioInstance, IStopJobInstance, IStopScenarioInstance} from "./project.interface";
 
 
-export type TScenarioInstanceStatus = "Scheduling" | "Running" | "Finished OK" | "Finished KO" | "Stopped" | "Stopped, out of controll" | "Agents Unreachable";
-export type TOpenbachFunctionInstanceStatus = "Scheduled" | "Running" | "Finished" | "Stopped" | "Error";
+export type TScenarioInstanceStatus = "Scheduling" | "Running" | "Finished Ok" | "Finished Ko" | "Stopped" | "Agents Unreachable";
+export type TOpenbachFunctionInstanceStatus = "Scheduled" | "Running" | "Finished" | "Stopped" | "Error" | "Retried";
 export type TJobInstanceStatus = "Not Scheduled" | "Scheduled" | "Running" | "Not Running" | "Error" | "Stopped" | "Agent Unreachable";
 
 

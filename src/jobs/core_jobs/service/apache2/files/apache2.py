@@ -65,7 +65,7 @@ def stop(signalNumber, frame):
     cmd = ["systemctl", "stop", "apache2"]
     try:
         p = subprocess.Popen(cmd, stderr=subprocess.PIPE)
-        STOP_JOP.set()
+        STOP_JOB.set()
     except Exception as ex:
         message = "Error when stopping apache2: {}".format(ex)
         collect_agent.send_log(syslog.LOG_ERR, message)
@@ -81,9 +81,8 @@ def start():
     """
 
     try:
-        p = subprocess.run(["systemctl", "is-active", "apache2"], stdout=subprocess.PIPE)
-        line = p.stdout.readline().decode()
-        if "inactive" in line:
+        p = subprocess.run(["systemctl", "is-active", "apache2"], stdout=subprocess.PIPE, encoding='utf-8')
+        if "inactive" == p.stdout.strip():
             subprocess.run(["systemctl", "start", "apache2"], stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
         else:
             message = "An Apache instance is already running, stopping this instance"

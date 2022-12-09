@@ -6,6 +6,7 @@ import {cyan500, green500, grey500, indigo500, lightBlue500, lightGreen500, oran
 import getMuiTheme from "material-ui/styles/getMuiTheme";
 
 import RunningIcon from "material-ui/svg-icons/action/autorenew";
+import RetriedIcon from "material-ui/svg-icons/action/autorenew";
 import CheckCircleIcon from "material-ui/svg-icons/action/check-circle";
 import DeleteIcon from "material-ui/svg-icons/action/delete";
 import UnknownIcon from "material-ui/svg-icons/action/help-outline";
@@ -83,20 +84,18 @@ export function getIconForJobState(status: any) {
 };
 
 
-export function getIconForScenarioStatus(status: TScenarioInstanceStatus) {
+export function getIconForScenarioStatus(status: TScenarioInstanceStatus | "Unknown") {
     switch (status) {
         case "Running":
             return <CircularProgress color={green500} size={24}/>;
         case "Scheduling":
             return <ScheduleIcon color={grey500} />;
-        case "Finished OK":
+        case "Finished Ok":
             return <CheckCircleIcon color={cyan500} />;
-        case "Finished KO":
+        case "Finished Ko":
             return <ErrorIcon color={red500} />;
         case "Stopped":
             return <StopIcon color={indigo500} />;
-        case "Stopped, out of controll":
-            return <StopIcon color={red500} />;
         case "Agents Unreachable":
             return <Unreachable color={orange500} />;
         default:
@@ -105,7 +104,7 @@ export function getIconForScenarioStatus(status: TScenarioInstanceStatus) {
 };
 
 
-export function getIconForFunctionStatus(status: TOpenbachFunctionInstanceStatus) {
+export function getIconForFunctionStatus(status: TOpenbachFunctionInstanceStatus | "Unknown") {
     switch (status) {
         case "Scheduled":
             return <ScheduleIcon color={grey500} />;
@@ -117,13 +116,15 @@ export function getIconForFunctionStatus(status: TOpenbachFunctionInstanceStatus
             return <ErrorIcon color={indigo500} />;
         case "Error":
             return <ErrorIcon color={red500} />;
+        case "Retried":
+            return <RetriedIcon color={orange500} />;
         default:
             return <UnknownIcon color={grey500} />;
     }
 };
 
 
-export function getIconForJobStatus(status: TJobInstanceStatus) {
+export function getIconForJobStatus(status: TJobInstanceStatus | "Unknown") {
     switch (status) {
         case "Not Scheduled":
             return <CheckCircleIcon color={grey500}/>;

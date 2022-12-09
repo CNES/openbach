@@ -107,6 +107,13 @@ class OpenbachFunction(ContentTyped):
         json_data['id'] = self.function_id
         json_data['label'] = self.label
 
+        try:
+            on_failure = self.on_failure
+        except FailurePolicy.DoesNotExist:
+            pass
+        else:
+            json_data['on_fail'] = on_failure.json
+
         wait = {}
         if self.wait_time != 0:
             wait['time'] = self.wait_time
@@ -149,6 +156,14 @@ class OpenbachFunction(ContentTyped):
 class OpenbachFunctionInstance(models.Model):
     """Data associated to an Openbach Function instance"""
 
+    class Status(models.TextChoices):
+        SCHEDULED = 'P'
+        RUNNING = 'R'
+        STOPPED = 'S'
+        FINISHED = 'F'
+        ERROR = 'E'
+        RETRIED = '*'
+
     openbach_function = models.ForeignKey(
             OpenbachFunction,
             models.CASCADE,
@@ -156,8 +171,14 @@ class OpenbachFunctionInstance(models.Model):
     scenario_instance = models.ForeignKey(
             'ScenarioInstance', models.CASCADE,
             related_name='openbach_functions_instances')
-    status = models.CharField(max_length=500, null=True, blank=True)
+    status = models.CharField(
+            max_length=max(map(len, Status.values)),
+            choices=Status.choices)
     launch_date = models.DateTimeField(null=True, blank=True)
+
+    # Secondary attributes, computed from openbach_function
+    retries_left = models.IntegerField(null=True, blank=True)
+    wait_time = models.FloatField(default=0.0)
 
     def __str__(self):
         return (
@@ -168,9 +189,12 @@ class OpenbachFunctionInstance(models.Model):
                 self.id, self.scenario_instance.id))
 
     def start(self):
-        self.status = 'Running'
+        self.status = self.Status.RUNNING
         self.launch_date = timezone.now()
         self.save()
+
+    def get_status(self):
+        return self.Status(self.status)
 
     def set_status(self, status):
         self.status = status
@@ -191,7 +215,7 @@ class OpenbachFunctionInstance(models.Model):
         from .job_models import JobInstance
 
         json_data = self.openbach_function.json
-        json_data['status'] = self.status
+        json_data['status'] = self.get_status().label
         json_data['launch_date'] = self.launch_date
 
         with suppress(ScenarioInstance.DoesNotExist):
@@ -213,70 +237,188 @@ class OpenbachFunctionInstance(models.Model):
         parameters = self.scenario_instance.parameters
         self.openbach_function.get_arguments(parameters, None)
 
-    @property
-    def wait_time(self):
+        try:
+            on_failure = self.openbach_function.on_failure
+        except FailurePolicy.DoesNotExist:
+            policy = FailurePolicy.Policies.FAIL
+        else:
+            policy = on_failure.fail_policy
+
+        if policy is FailurePolicy.Policies.FAIL:
+            self.retries_left = 0
+        elif policy is FailurePolicy.Policies.IGNORE:
+            self.retries_left = None
+        elif policy is FailurePolicy.Policies.RETRY:
+            # Validate on_failure.wait_time here so we don't need to do it in validate_restart later
+            OpenbachFunction.instance_value(on_failure, 'wait_time', parameters)
+            self.retries_left = OpenbachFunction.instance_value(on_failure, 'retry_limit', parameters)
+
+        self.wait_time = self.openbach_function.instance_value('wait_time', parameters)
+        self.save()
+
+    def validate_restart(self, retries_left):
         parameters = self.scenario_instance.parameters
-        return self.openbach_function.instance_value('wait_time', parameters)
+        on_failure = self.openbach_function.on_failure
+
+        retry_limit = OpenbachFunction.instance_value(on_failure, 'retry_limit', parameters)
+        wait_time = OpenbachFunction.instance_value(on_failure, 'wait_time', parameters)
+        if retries_left >= max(retry_limit, 0):
+            # Acceptable approximation over more generic ValueError
+            raise FailurePolicy.DoesNotExist
+
+        self.retries_left = retries_left
+        self.wait_time = wait_time
+        self.save()
+
+    @property
+    def status_retry_delay(self):
+        try:
+            on_failure = self.openbach_function.on_failure
+        except FailurePolicy.DoesNotExist:
+            pass
+        else:
+            if on_failure.fail_policy is FailurePolicy.Policies.RETRY:
+                parameters = self.scenario_instance.parameters
+                retries = OpenbachFunction.instance_value(on_failure, 'retry_limit', parameters)
+                delay = OpenbachFunction.instance_value(on_failure, 'wait_time', parameters)
+                return retries * delay
+
+        return 0.0
 
 
-class WaitForLaunched(models.Model):
-    """Waiting condition that will prevent an OpenBACH Function
-    to start before an other one is already started.
+class WaitingCondition(models.Model):
+    """Abstract base class containing scheduling informations
+    for an OpenBACH function waiting on an other one. Each
+    awaitable lifecycle event of an OpenBACH function have an
+    associated concrete subclass.
+
+    Subclasses must implement an `openbach_function_instance`
+    ForeignKey with the appropriate `related_name` so the
+    director can easily get back to there for its scheduling
+    decision making.
     """
+
+    class Meta:
+        abstract = True
 
     openbach_function_waited = models.ForeignKey(
             OpenbachFunction,
             on_delete=models.CASCADE,
             related_name='+')
+
+    def __str__(self):
+        action = self.__class__.__name__.split('WaitFor')[-1].lower()
+        return ('{0.openbach_function_instance} waits for '
+                '{0.openbach_function_waited} to be {1}'.format(self, action))
+
+    def save(self, *args, **kwargs):
+        own_scenario = self.openbach_function_instance.scenario
+        waited_scenario = self.openbach_function_waited.scenario
+        if waited_scenario != own_scenario:
+            name = self.__class__.__name__
+            raise IntegrityError(
+                    f'Trying to save a {name} instance '
+                    'with the associated OpenbachFunction and '
+                    'the waited OpenbachFunction not '
+                    'referencing the same Scenario')
+        super().save(*args, **kwargs)
+
+
+class WaitForRunning(WaitingCondition):
+    """Waiting condition that will prevent an OpenBACH Function
+    to start before an other one is already running.
+    """
+
+    openbach_function_instance = models.ForeignKey(
+            OpenbachFunction,
+            on_delete=models.CASCADE,
+            related_name='running_waiters')
+
+
+class WaitForEnded(WaitingCondition):
+    """Waiting condition that will prevent an OpenBACH Function
+    to start before an other one is done executing.
+    """
+
+    openbach_function_instance = models.ForeignKey(
+            OpenbachFunction,
+            on_delete=models.CASCADE,
+            related_name='ended_waiters')
+
+
+class WaitForLaunched(WaitingCondition):
+    """Waiting condition that will prevent an OpenBACH Function to
+    start before an other one has already started their job/scenario.
+    """
+
     openbach_function_instance = models.ForeignKey(
             OpenbachFunction,
             on_delete=models.CASCADE,
             related_name='launched_waiters')
 
-    def __str__(self):
-        return ('{0.openbach_function_instance} waits for '
-                '{0.openbach_function_waited} to be launched'.format(self))
 
-    def save(self, *args, **kwargs):
-        own_scenario = self.openbach_function_instance.scenario
-        waited_scenario = self.openbach_function_waited.scenario
-        if waited_scenario != own_scenario:
-            raise IntegrityError(
-                    'Trying to save a WaitForLaunched instance '
-                    'with the associated OpenbachFunction and '
-                    'the waited OpenbachFunction not '
-                    'referencing the same Scenario')
-        super().save(*args, **kwargs)
-
-
-class WaitForFinished(models.Model):
-    """Waiting condition that will prevent an OpenBACH Function
-    to start before an other one is completely finished.
+class WaitForFinished(WaitingCondition):
+    """Waiting condition that will prevent an OpenBACH Function to
+    start before an other one have their job/scenario completely finished.
     """
 
-    openbach_function_waited = models.ForeignKey(
-            OpenbachFunction,
-            models.CASCADE,
-            related_name='+')
     openbach_function_instance = models.ForeignKey(
             OpenbachFunction,
             on_delete=models.CASCADE,
             related_name='finished_waiters')
 
-    def __str__(self):
-        return ('{0.openbach_function_instance} waits for '
-                '{0.openbach_function_waited} to finish'.format(self))
 
-    def save(self, *args, **kwargs):
-        own_scenario = self.openbach_function_instance.scenario
-        waited_scenario = self.openbach_function_waited.scenario
-        if waited_scenario != own_scenario:
-            raise IntegrityError(
-                    'Trying to save a WaitForFinished instance '
-                    'with the associated OpenbachFunction and '
-                    'the waited OpenbachFunction not '
-                    'referencing the same Scenario')
-        super().save(*args, **kwargs)
+class FailurePolicy(models.Model):
+    """Policy indicating how a given OpenBACH Function
+    should behave upon failure. Absence of such policy is
+    equivalent to the FAIL policy.
+    """
+
+    class Policies(models.TextChoices):
+        IGNORE = 'I'
+        FAIL = 'F'
+        RETRY = 'R'
+
+    openbach_function = models.OneToOneField(
+            OpenbachFunction,
+            models.CASCADE,
+            related_name='on_failure')
+
+    policy = models.CharField(
+            max_length=max(map(len, Policies.values)),
+            choices=Policies.choices,
+            default=Policies.IGNORE)
+    wait_time = OpenbachFunctionParameter(type=float, blank=True, null=True)
+    retry_limit = OpenbachFunctionParameter(type=int, blank=True, null=True)
+
+    def requires_restart(self, attempts):
+        return self.fail_policy is self.Policies.RETRY and (self.retry_limit is None or self.retry_limit > attemps)
+
+    @property
+    def fail_policy(self):
+        return self.Policies(self.policy)
+
+    @property
+    def json(self):
+        policy = self.fail_policy
+        json_data = {'policy': policy.label}
+
+        if policy is self.Policies.RETRY:
+            if self.wait_time is not None:
+                json_data['delay'] = self.wait_time
+            if self.retry_limit is not None:
+                json_data['retry'] = self.retry_limit
+
+        return json_data
+
+    def __str__(self):
+        policy = self.fail_policy
+        if policy is self.Policies.RETRY:
+            delay = 5. if self.delay is None else self.delay
+            retries = 'undefinitely' if self.retry_limit is None else 'at most {} times'.format(self.retry_limit)
+            return 'Failure Policy: Retry every {} seconds {}'.format(delay, retries)
+        else:
+            return 'Failure Policy: {}'.format(policy.label)
 
 
 # From here on, definition of supported OpenBACH functions
@@ -676,18 +818,18 @@ class StartJobInstanceArgument(models.Model):
 
             if self.type == ValuesType.JOB_INSTANCE_ID.value:
                 queryset = OpenbachFunctionInstance.objects.select_related('started_job')
-                openbach_function_instance = queryset.get(
+                openbach_function_instance = queryset.filter(
                         openbach_function__function_id=value[-1],
                         openbach_function__startjobinstance__isnull=False,
-                        scenario_instance=scenario_instance)
+                        scenario_instance=scenario_instance).last()
                 return openbach_function_instance.started_job.id
 
             if self.type == ValuesType.SCENARIO_INSTANCE_ID.value:
                 queryset = OpenbachFunctionInstance.objects.select_related('started_scenario')
-                openbach_function_instance = queryset.get(
+                openbach_function_instance = queryset.filter(
                         openbach_function__function_id=value[-1],
                         openbach_function__startscenarioinstance__isnull=False,
-                        scenario_instance=scenario_instance)
+                        scenario_instance=scenario_instance).last()
                 return openbach_function_instance.started_scenario.id
 
         return value

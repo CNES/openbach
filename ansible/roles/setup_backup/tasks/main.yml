@@ -26,8 +26,12 @@
 ---
 
 - name: Create the Temporary Directory to Gather all Backups
-  tempfile: prefix=openbach_backup_ state=directory
+  tempfile:
+    prefix: openbach_backup_
+    state: directory
   register: openbach_backup_tempdir
 
 - name: Save the Current Inventory
-  template: src=inventory.j2 dest={{ openbach_backup_tempdir.path }}/inventory
+  template:
+    src: inventory.j2
+    dest: "{{ openbach_backup_tempdir.path }}/inventory"

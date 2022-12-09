@@ -4,7 +4,7 @@ general:
   name: apache2
   description: >
       Start the web server apache2 (start job) or stop the server (stop job) 
-  job_version: '1.4'
+  job_version: '1.5'
   keywords: [web, server, http2, apache]
   persistent: True
 

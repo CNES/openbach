@@ -64,11 +64,11 @@ from datetime import datetime
 from contextlib import suppress
 from ipaddress import IPv4Network
 from collections import defaultdict, Counter
-from distutils.version import StrictVersion
 
 import yaml
 import numpy
 from fuzzywuzzy import fuzz
+from pkg_resources import parse_version as version
 from django import db
 from django.utils import timezone
 from django.core.exceptions import ValidationError
@@ -555,7 +555,7 @@ class AgentAction(ConductorAction):
         except errors.ConductorError:
             agent.set_reachable(False)
             agent.set_available(False)
-            agent.set_status('Agent unreachable')
+            agent.set_status(Agent.Status.AGENT_UNREACHABLE)
             agent.save()
             return
 
@@ -564,10 +564,10 @@ class AgentAction(ConductorAction):
             OpenBachBaton(agent.address, agent.port).check_connection()
         except errors.UnprocessableError:
             agent.set_available(False)
-            agent.set_status('Agent reachable but daemon not available')
+            agent.set_status(Agent.Status.AGENT_REACHABLE_BUT_DAEMON_UNAVAILABLE)
         else:
             agent.set_available(True)
-            agent.set_status('Available')
+            agent.set_status(Agent.Status.AVAILABLE)
         agent.save()
 
     def _check_user_can_use_agent(self):
@@ -617,7 +617,7 @@ class InstallAgent(ThreadedAction, AgentAction):
                 agent.delete()
                 raise
         agent.set_available(True)
-        agent.set_status('Available')
+        agent.set_status(Agent.Status.AVAILABLE)
         agent.save()
 
         if not created:
@@ -638,7 +638,7 @@ class InstallAgent(ThreadedAction, AgentAction):
         agent.rstats_port = self.rstats_port
         agent.set_reachable(True)
         agent.set_available(False)
-        agent.set_status('Installing...')
+        agent.set_status(Agent.Status.INSTALLING)
         agent.collector = collector
         agent.save()
 
@@ -677,7 +677,7 @@ class UninstallAgent(ThreadedAction, AgentAction):
                     agent.collector.json,
                     jobs=installed_jobs)
         except errors.ConductorError:
-            agent.set_status('Uninstall failed')
+            agent.set_status(Agent.Status.UNINSTALL_FAILED)
             agent.save()
             raise
         finally:
@@ -710,10 +710,10 @@ class AttachAgent(InstallAgent):
             jobs.update(OpenBachBaton(agent.address, agent.port).list_jobs())
         except errors.UnprocessableError:
             agent.set_available(False)
-            agent.set_status('Agent reachable but daemon not available')
+            agent.set_status(Agent.Status.AGENT_REACHABLE_BUT_DAEMON_UNAVAILABLE)
         else:
             agent.set_available(True)
-            agent.set_status('Available')
+            agent.set_status(Agent.Status.AVAILABLE)
         agent.save()
 
         self._populate_jobs(jobs)
@@ -746,7 +746,7 @@ class DetachAgent(UninstallAgent):
             start_playbook('assign_collector', agent.address, agent.port, collector.json)
             start_playbook('disable_controller_access', self.address)
         except errors.ConductorError:
-            agent.set_status('Detach failed')
+            agent.set_status(Agent.Status.DETACH_FAILED)
             agent.save()
             raise
         finally:
@@ -822,17 +822,17 @@ class ListAgents(AgentAction):
         if address in agents_in_error:
             agent.set_reachable(False)
             agent.set_available(False)
-            agent.set_status('Agent unreachable')
+            agent.set_status(Agent.Status.AGENT_UNREACHABLE)
         else:
             agent.set_reachable(True)
             try:
                 OpenBachBaton(address, agent.port).check_connection()
             except errors.UnprocessableError:
                 agent.set_available(False)
-                agent.set_status('Agent reachable but daemon not available')
+                agent.set_status(Agent.Status.AGENT_REACHABLE_BUT_DAEMON_UNAVAILABLE)
             else:
                 agent.set_available(True)
-                agent.set_status('Available')
+                agent.set_status(Agent.Status.AVAILABLE)
         agent.save()
         return agent.json
 
@@ -852,14 +852,14 @@ class ListAgents(AgentAction):
             agent.set_reachable(True)
             if statuses['openbach_agent.service'] == 'running':
                 agent.set_available(True)
-                agent.set_status('Available')
+                agent.set_status(Agent.Status.AVAILABLE)
             else:
                 agent.set_available(False)
-                agent.set_status('Agent reachable but daemon not available')
+                agent.set_status(Agent.Status.AGENT_REACHABLE_BUT_DAEMON_UNAVAILABLE)
         else:
             agent.set_reachable(False)
             agent.set_available(False)
-            agent.set_status('Agent unreachable')
+            agent.set_status(Agent.Status.AGENT_UNREACHABLE)
         agent.save()
 
         if statuses['ntp.service'] == 'running':
@@ -1135,11 +1135,10 @@ class AddJob(JobAction):
 
         # If the job existed already, uninstall on agents if necessary
         for installed_job in InstalledJob.objects.filter(job=job):
-            installed_version = StrictVersion(installed_job.job_version)
-            current_version = StrictVersion(job.job_version)
+            installed_version = version(installed_job.job_version)
+            current_version = version(job.job_version)
             # In case of rollback or major update, uninstall the Job
-            if (installed_version > current_version or
-                    installed_version.version[0] != current_version.version[0]):
+            if (installed_version > current_version or installed_version.major != current_version.major):
                 uninstaller = UninstallJob(installed_job.agent.address, self.name)
                 self.share_user(uninstaller)
                 uninstaller.action()
@@ -1440,10 +1439,9 @@ class InstallJob(ThreadedAction, InstalledJobAction):
             # If the job's major version is newer than installed, or older, reinstall
             with suppress(InstalledJob.DoesNotExist):
                 installed_job = InstalledJob.objects.get(job=job, agent=agent)
-                installed_version = StrictVersion(installed_job.job_version)
-                current_version = StrictVersion(job.job_version)
-                if ((installed_version > current_version) or
-                        (installed_version.version[0] != current_version.version[0])):
+                installed_version = version(installed_job.job_version)
+                current_version = version(job.job_version)
+                if (installed_version > current_version or installed_version.major != current_version.major):
                     start_playbook(
                             'uninstall_job',
                             agent.address,
@@ -1838,11 +1836,11 @@ class JobInstanceAction(ConductorAction):
                     job_instance.arguments,
                     job_instance.start_timestamp,
                     self.interval)
-        except (AttributeError, errors.ConductorError):
+        except errors.UnreachableError:
             job_instance.delete()
             raise
-
-        job_instance.set_status('Running')
+        else:
+            job_instance.set_status(JobInstance.Status.RUNNING)
 
 
 class StartJobInstance(ThreadedAction, JobInstanceAction):
@@ -1885,7 +1883,7 @@ class StartJobInstance(ThreadedAction, JobInstanceAction):
                 agent=agent, agent_name=agent.name,
                 entity_name=entity.name if entity else '',
                 collector=agent.collector,
-                status='Scheduled',
+                status=JobInstance.Status.SCHEDULED,
                 update_status=now,
                 start_date=now,
                 periodic=False)
@@ -2035,9 +2033,12 @@ class StatusJobInstance(JobInstanceAction):
             try:
                 job_status = OpenBachBaton(agent.address, agent.port).status_job_instance(
                         job_instance.job_name, self.instance_id)
-            except errors.UnprocessableError:
+            except errors.UnreachableError:
                 job_status = 'Agent Unreachable'
+            except errors.UnprocessableError:
+                job_status = 'Error'
             finally:
+                job_status = job_instance.get_status(job_status.title())
                 job_instance.set_status(job_status)
 
         status = job_instance.json
@@ -2084,7 +2085,7 @@ class ListJobInstance(JobInstanceAction):
         for job_instance in JobInstance.objects.filter(
                 job_name=installed_job.job.name,
                 agent_name=installed_job.agent.name,
-                is_stopped=False):
+                stop_date__isnull=True):
             with suppress(errors.ConductorError):
                 status = StatusJobInstance(job_instance.id, self.update)
                 self.share_user(status)
@@ -2259,7 +2260,7 @@ class ScenarioInstanceAction(ConductorAction):
                     scenario_name=self.name, project_name=self.project)
 
         if quiet:
-            queryset = ScenarioInstance.objects.select_related('scenario_version__scenario').only('scenario_version__scenario__name', 'id', 'status', 'start_date', 'is_stopped')
+            queryset = ScenarioInstance.objects.select_related('scenario_version__scenario').only('scenario_version__scenario__name', 'id', 'status', 'start_date', 'stop_date')
         else:
             queryset = ScenarioInstance.objects.select_related('scenario_version__scenario__project')
 
@@ -2340,7 +2341,7 @@ class StartScenarioInstance(ScenarioInstanceAction):
 
         scenario_instance = ScenarioInstance.objects.create(
                 scenario_version=scenario,
-                status='Scheduling',
+                status=ScenarioInstance.Status.SCHEDULING,
                 start_date=timezone.now(),
                 started_by=starting_user,
                 openbach_function_instance=self.openbach_function_instance)
@@ -2369,7 +2370,7 @@ class StartScenarioInstance(ScenarioInstanceAction):
             openbach_function_instance = OpenbachFunctionInstance.objects.create(
                     openbach_function=openbach_function,
                     scenario_instance=scenario_instance,
-                    status='Scheduled')
+                    status=OpenbachFunctionInstance.Status.SCHEDULED)
             try:
                 openbach_function_instance.validate_arguments()
             except ValidationError as e:
@@ -3618,12 +3619,12 @@ class KillAll(ConductorAction):
 
     @require_connected_user(admin=True)
     def _action(self):
-        for scenario in ScenarioInstance.objects.filter(is_stopped=False):
+        for scenario in ScenarioInstance.objects.filter(stop_date__isnull=True):
             stop_scenario = StopScenarioInstance(scenario.id)
             self.share_user(stop_scenario)
             stop_scenario.action()
 
-        for job in JobInstance.objects.filter(is_stopped=False):
+        for job in JobInstance.objects.filter(stop_date__isnull=True):
             stop_job = StopJobInstance(job.id)
             self.share_user(stop_job)
             stop_job.action()

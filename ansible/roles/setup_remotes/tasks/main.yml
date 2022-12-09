@@ -25,20 +25,13 @@
 
 ---
 
-- name: Configure Controller Machine
-  set_fact: openbach_controller={{ openbach_controller | default(('controller' in group_names and inventory_hostname) or ('controller' in groups and groups.controller and groups.controller[0]) or omit) }}
-
-- name: Configure Collector Machine
-  set_fact: openbach_collector={{ openbach_collector | default(('collector' in group_names and inventory_hostname) or ('collector' in groups and groups.collector and groups.collector[0]) or omit) }}
-
-- name: Configure Http Proxy
-  set_fact: openbach_http_proxy={{ openbach_http_proxy is defined and (openbach_http_proxy | encode_url) or (lookup('env', 'HTTP_PROXY') | encode_url) }}
-
-- name: Configure Https Proxy
-  set_fact: openbach_https_proxy={{ openbach_https_proxy is defined and (openbach_https_proxy | encode_url) or (lookup('env', 'HTTPS_PROXY') | encode_url) or openbach_http_proxy }}
-
-- name: Configure Proxy Environment
-  set_fact: openbach_proxy_env={{ openbach_proxy_env | default({}) }}
+- name: Configure Various Internal Variables
+  set_fact:
+    openbach_controller: "{{ openbach_controller | default(('controller' in group_names and inventory_hostname) or ('controller' in groups and groups.controller and groups.controller[0]) or omit) }}"
+    openbach_collector: "{{ openbach_collector | default(('collector' in group_names and inventory_hostname) or ('collector' in groups and groups.collector and groups.collector[0]) or omit) }}"
+    openbach_http_proxy: "{{ openbach_http_proxy is defined and (openbach_http_proxy | encode_url) or (lookup('env', 'HTTP_PROXY') | encode_url) }}"
+    openbach_https_proxy: "{{ openbach_https_proxy is defined and (openbach_https_proxy | encode_url) or (lookup('env', 'HTTPS_PROXY') | encode_url) }}"
+    openbach_proxy_env: "{{ openbach_proxy_env | default({}) }}"
 
 - name: Configure Http Proxy in Environment
   set_fact:
@@ -47,7 +40,7 @@
 
 - name: Configure Https Proxy in Environment
   set_fact:
-    openbach_proxy_env: "{{ openbach_proxy_env | combine({'https_proxy': openbach_https_proxy, 'HTTPS_PROXY': openbach_https_proxy}) }}"
+    openbach_proxy_env: "{{ openbach_proxy_env | combine({'https_proxy': openbach_https_proxy or openbach_http_proxy, 'HTTPS_PROXY': openbach_https_proxy or openbach_http_proxy}) }}"
   when: openbach_https_proxy != ''
 
 - name: Install python3-minimal
@@ -62,5 +55,6 @@
     openbach_archive_root: "{{ hostvars.localhost.openbach_archive_root | default('/tmp') }}"
 
 - name: Use the temporary SSH key as the Default for this Installation
-  set_fact: ansible_ssh_private_key_file={{ openbach_installer_folder }}/openbach_install_rsa
+  set_fact:
+    ansible_ssh_private_key_file: "{{ openbach_installer_folder }}/openbach_install_rsa"
   when: ansible_ssh_private_key_file is not defined

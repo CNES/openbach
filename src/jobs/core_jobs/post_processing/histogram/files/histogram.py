@@ -34,6 +34,7 @@ __credits__ = '''Contributors:
  * Francklin SIMO <francklin.simo@toulouse.viveris.com>
 '''
 
+import statistics
 import syslog
 import os.path
 import argparse
@@ -49,7 +50,9 @@ from data_access.post_processing import Statistics, _Plot, save
 def main(
         job_instance_ids, bins, statistics_names, stats_with_suffixes, labels,
         titles, use_legend, legend, pickle, cumulative, filenames):
+
     file_ext = 'pickle' if pickle else 'png'
+
     plot = _Plot.plot_cumulative_histogram if cumulative else _Plot.plot_histogram
     legends = iter(legend)
 
@@ -71,7 +74,7 @@ def main(
             else:
                 filename = 'histogram_{}.{}'.format('_'.join(fields), file_ext)
             filepath = os.path.join(root, filename)
-            save(figure, filepath, pickle)
+            save(figure, filepath, pickle,False)
             collect_agent.store_files(collect_agent.now(), figure=filepath)
 
 

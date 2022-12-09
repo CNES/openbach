@@ -25,6 +25,70 @@
 
 ---
 
+- block:
+  - name: Install Build Dependencies
+    apt:
+      pkg:
+        - build-essential
+        - debhelper
+        - dh-make
+        - git
+        - gcc
+        - g++
+        - libnetfilter-queue-dev
+        - iptables
+      state: latest
+      update_cache: yes
+    become: yes
+    environment: "{{ openbach_proxies }}"
+
+  - name: Clone Iperf3 Repository
+    git:
+      repo: https://github.com/esnet/iperf.git
+      dest: /tmp/iperf3
+      version: 169b0d9b4e360646b8562d3395d94cc6c609e799
+    environment: "{{ openbach_proxies }}"
+
+  - name: Build Iperf3
+    shell:
+      cmd: |
+        sed -i 's/2.71/2.69/' configure.ac
+        DEBEMAIL="support@openbach.org" DEBFULLNAME="OpenBACH support Team" dh_make --createorig --single --packagename iperf3-openbach_3.10.1 --yes
+        sed -i '/^Depends.*$/a\
+        Provides: iperf3, libiperf0\
+        Conflicts: iperf3, libiperf0' debian/control
+        dpkg-buildpackage -rfakeroot -us -uc
+      chdir: /tmp/iperf3/
+
+  - name: Gather Version and Architecture of Compiled Package
+    find:
+      paths: /tmp
+      recurse: no
+      patterns: iperf3-openbach_*.deb
+    register: openbach_iperf3_built_package
+
+  - name: Install Iperf3
+    apt:
+      deb: "{{ openbach_iperf3_built_package.files | map(attribute='path') | sort | last }}"
+    become: yes
+
+  - name: Gather Leftover Files
+    find:
+      paths: /tmp
+      recurse: no
+      patterns: iperf3*
+      file_type: any
+    register: openbach_collect_agent_leftovers
+
+  - name: Remove Leftover Files
+    file:
+      path: "{{ item.path }}"
+      state: absent
+    loop: "{{ openbach_collect_agent_leftovers.files }}"
+    loop_control:
+      label: "{{ item.path }}"
+  when: ansible_architecture != 'x86_64'
+
 - name: Install iperf3 requirements
   apt: name=iperf3-openbach state=present
   become: yes

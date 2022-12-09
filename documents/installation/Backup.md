@@ -51,3 +51,23 @@ variable for each host in the `[restore]` section. Additionally, for each Contro
 you restore, you will **need** to provide the `openbach_backend_admin_name` and
 `openbach_backend_admin_password` variables so databases can be altered to update the
 addresses of the Agents being restored.
+
+### Failures due to existing data in the databases
+
+The restore operation is meant to be used when a machine in the platform has crashed and you need
+to switch it for a new one or reinstall it from scratch and populate it with data from a previous
+backup. As such, the restore operation need empty databases to behave properly. **The restore
+operation is not meant to "go back in time" and remove some data from databases**. As such, checks
+are in place to prevent data losses if some database are found prior to the restore operation.
+
+If you need to remove some data, first check with the usual OpenBACH tools: you may be able to
+achieve the desired state this way. Otherwise, manually remove the databases you wish to restore
+to a previous state. **This operation is at your own risks**, this may lead to loss of data if
+the backup archive is corrupted or any issue arise during the restore process.
+
+You can also use the `--skip-tags` option to avoid restoring some databases. Acceptable values are:
+  * `restore_backend_database`
+  * `restore_influxdb_database`
+  * `restore_elasticsearch_database`
+When skipping one of these tags, the associated database will be left untouched and no data present
+in the backup archive will be inserted into them.
