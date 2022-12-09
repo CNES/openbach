@@ -32,13 +32,16 @@
 __author__ = 'Viveris Technologies'
 __credits__ = '''Contributors:
  * Aichatou Garba Abdou <aichatou.garba-abdou@viveris.fr>
+ * Mathias Ettinger <mathias.ettinger@viveris.fr>
 '''
 
 
 import os
+import re
 import syslog
 import argparse
 import tempfile
+import textwrap
 import itertools
 from datetime import datetime,timedelta
 
@@ -83,33 +86,128 @@ def multiplier(base, unit):
         return 1
 
 
+# Text wrapping within axes boundaries copied from
+# https://stackoverflow.com/a/33790466/5069029
+def wrap_text(text, margin=4):
+    """Wrap an mpl.text object content within is axes boundaries
+
+    Attaches an on-draw event to a given mpl.text object which will
+    automatically wrap its string wthin the parent axes object.
+
+    The margin argument controls the gap between the text and axes
+    frame in points.
+    """
+    ax = text.axes
+    margin = margin / 72 * ax.figure.get_dpi()
+
+    def _wrap(event):
+        """Wraps text within its parent axes."""
+        def _width(s):
+            """Gets the length of a string in pixels."""
+            text.set_text(s)
+            return text.get_window_extent().width
+
+        # Find available space
+        clip = ax.get_window_extent()
+        x0, y0 = text.get_transform().transform(text.get_position())
+        if text.get_horizontalalignment() == 'left':
+            width = clip.x1 - x0 - margin
+        elif text.get_horizontalalignment() == 'right':
+            width = x0 - clip.x0 - margin
+        else:
+            width = (min(clip.x1 - x0, x0 - clip.x0) - margin) * 2
+
+        # Wrap the text string
+        words = [''] + _splitText(text.get_text())[::-1]
+        wrapped = []
+
+        line = words.pop()
+        while words:
+            line = line if line else words.pop()
+            lastLine = line
+
+            while _width(line) <= width:
+                if words:
+                    lastLine = line
+                    line += words.pop()
+                    # Add in any whitespace since it will not affect redraw width
+                    while words and (words[-1].strip() == ''):
+                        line += words.pop()
+                else:
+                    lastLine = line
+                    break
+
+            wrapped.append(lastLine)
+            line = line[len(lastLine):]
+            if not words and line:
+                wrapped.append(line)
+
+        text.set_text('\n'.join(wrapped))
+
+        # Draw wrapped string after disabling events to prevent recursion
+        handles = ax.figure.canvas.callbacks.callbacks[event.name]
+        ax.figure.canvas.callbacks.callbacks[event.name] = {}
+        ax.figure.canvas.draw()
+        ax.figure.canvas.callbacks.callbacks[event.name] = handles
+
+    ax.figure.canvas.mpl_connect('draw_event', _wrap)
+
+
+def _splitText(text):
+    """Splits a string into its underlying chucks for wordwrapping.
+
+    This mostly relies on the textwrap library but has some additional
+    logic to avoid splitting latex/mathtext segments.
+    """
+    math_re = re.compile(r'(?<!\\)\$')
+    textWrapper = textwrap.TextWrapper()
+
+    if len(math_re.findall(text)) <= 1:
+        return textWrapper._split(text)
+    else:
+        chunks = []
+        for n, segment in enumerate(math_re.split(text)):
+            if segment and (n % 2):
+                # Mathtext
+                chunks.append('${}$'.format(segment))
+            else:
+                chunks += textWrapper._split(segment)
+        return chunks
+
+
+def _format_title(ax, text, fontsize=10):
+    return ax.text(
+            .5, .5, text,
+            fontsize=fontsize,
+            horizontalalignment='center',
+            verticalalignment='center',
+            transform=ax.transAxes)
+
+
 def plot_summary_agent_comparison(axis, function_result, reference, agent, num_bars, filled_box):
     axs = iter(axis)
-    header = next(axs)
-    header.axis([0, 10, 0, 10])
-    header.text(.1, .5, agent, fontsize=10, transform=header.transAxes)
+    wrap_text(_format_title(next(axs), agent))
 
     step = 100 // num_bars
     for ax, moment in zip(axs, ('Jour', 'Soirée', 'Nuit')):
         for index, value in function_result.items():
             if isinstance(index, str) and index.startswith(moment):
                 if reference is None:
-                    ax.axis([0, 10, 0, 10])
-                    ax.text(3, 5, f'{value:.02f}', fontsize=10)
-                    continue
+                    _format_title(ax, f'{value:.02f}', fontsize=16)
+                    break
 
                 if filled_box:
                     percentage = value * 100 / reference
-                    ax.set(ylim=(0, 10))
+                    ax.set(xlim=(-5, 105), ylim=(0, 10))
                     ax.barh([3], [100], height=3, align='center', color=(.1, .1, .1, .2))
                     ax.barh([3], [percentage], height=3, align='center', color='black')
-                    ax.text(1, 8, f'{value:.02f} ({percentage:.02f}%)', fontsize=8)
+                    ax.text(.5, .9, f'{value:.02f} ({percentage:.02f}%)', fontsize=8, horizontalalignment='center', verticalalignment='top', transform=ax.transAxes)
                 else:
                     background = [step * (i+1) for i in range(num_bars)]
                     foreground = [height for i, height in enumerate(background) if value > reference * i / num_bars]
                     ax.bar(np.arange(num_bars), background, width=0.7, color=(.1, .1, .1, .2))
                     ax.bar(np.arange(len(foreground)), foreground, width=0.7, color='black')
-                    ax.text(-.3, 80, f'{value:.02f}', fontsize=7)
+                    ax.text(0, 80, f'{value:.02f}', fontsize=8)
 
                 break
 
@@ -136,24 +234,24 @@ def main(
 
         scale_factor = 1 if stat_unit is None else multiplier(stat_unit, table_unit or stat_unit)
 
-        figure, axis = plt.subplots(
-                len(agents_name) + 1,  # Account for header + 1 line per agent
-                4)  # [Agent name, day, evening, night]
+        row_num = len(agents_name) + 1  # Account for header + 1 line per agent
+        col_num = 4  # [Agent name, day, evening, night]
+        # figure, axis = plt.subplots(row_num, col_num, autoscalex_on=True)
+        figure, axis = plt.subplots(row_num, col_num, gridspec_kw={'width_ratios': [3, 2, 2, 2]})
         plt.subplots_adjust(hspace=0,wspace=0)
         for ax in axis.flat:
             ax.tick_params(which='both', bottom=False, left=False, top=False, labelleft=False, labelbottom=False)
 
         headers = [
                 f'{FUNCTIONS[function]}\n{stat_title or statistic_name}\n{table_unit or ""}',
-                f'Journée ({start_day}h − {start_evening}h)',
-                f'Soirée ({start_evening}h − {start_night}h)',
-                f'Nuit ({start_night}h − {start_day}h)',
+                f'Journée\n({start_day}h − {start_evening}h)',
+                f'Soirée\n({start_evening}h − {start_night}h)',
+                f'Nuit\n({start_night}h − {start_day}h)',
         ]
 
         axs = iter(axis)
         for header, ax in zip(headers, next(axs)):
-            ax.axis([0, 10, 0, 10])
-            ax.text(.5, 3, header, fontsize=10)
+            wrap_text(_format_title(ax, header))
 
         names = itertools.chain(agents_title, itertools.repeat(None))
         for agent, name, axes in zip(agents_name, names, axs):
