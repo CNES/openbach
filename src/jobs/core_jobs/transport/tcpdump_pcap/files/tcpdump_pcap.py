@@ -8,6 +8,7 @@
 #
 #
 # Copyright © 2016-2020 CNES
+# Copyright © 2022 Eutelsat
 #
 #
 # This file is part of the OpenBACH testbed.
@@ -34,6 +35,7 @@ __credits__ = '''Contributors:
  * Joaquin MUGUERZA <joaquin.muguerza@viveris.fr>
  * Francklin SIMO <francklin.simo@viveris.fr>
  * David FERNANDES <david.fernandes@viveris.fr>
+ * Bastien TAURAN <bastien.tauran@viveris.fr>
 '''
 
 import sys
@@ -52,7 +54,7 @@ def save_pcap(capture_file, copy, signum=None, frame=None):
     collect_agent.store_files(collect_agent.now(), pcap_file=capture_file, copy=copy)
 
 
-def format_capture_filter(src_ip, dst_ip, src_port, dst_port, proto):
+def format_capture_filter(src_ip, dst_ip, src_port, dst_port, proto, ignore_ports=()):
     """Build a capture filter"""
 
     if src_ip is not None:
@@ -76,9 +78,12 @@ def format_capture_filter(src_ip, dst_ip, src_port, dst_port, proto):
             yield '{} dst port {}'.format(proto, dst_port)
         else:
             yield 'dst port {}'.format(dst_port)
-    
 
-def main(src_ip, dst_ip, src_port, dst_port, proto, interface, capture_file, duration):
+    for p in ignore_ports:
+        yield 'port not {}'.format(p)
+
+
+def main(src_ip, dst_ip, src_port, dst_port, proto, ignore_ports, interface, capture_file, duration):
     """Capture packets on a live network interface. Only consider packets matching the specified fields."""
 
     do_save_pcap = partial(save_pcap, capture_file, False)
@@ -90,7 +95,7 @@ def main(src_ip, dst_ip, src_port, dst_port, proto, interface, capture_file, dur
     signal.signal(signal.SIGINT, do_save_pcap)
 
     capture_file = pathlib.Path(capture_file)
-    capture_filter = ' and '.join(format_capture_filter(src_ip, dst_ip, src_port, dst_port, proto))
+    capture_filter = ' and '.join(format_capture_filter(src_ip, dst_ip, src_port, dst_port, proto, ignore_ports))
     cmd = ['tcpdump', '-i', interface, capture_filter, '-w', capture_file.as_posix(), '-Z', 'root']
     if duration:
         cmd += ['-G', str(duration), '-W', '1']
@@ -98,9 +103,9 @@ def main(src_ip, dst_ip, src_port, dst_port, proto, interface, capture_file, dur
     try:
         capture_file.parent.mkdir(parents=True, exist_ok=True)
         capture_file.unlink(missing_ok=True)
-        subprocess.run(cmd, capture_output=True, check=True)
+        subprocess.run(cmd, capture_output=True, text=True, check=True)
     except subprocess.CalledProcessError as p:
-        message = 'ERROR when lauching tcpdump: {}'.format(p.stderr)
+        message = 'ERROR when launching tcpdump: {}'.format(p.stderr)
         collect_agent.send_log(syslog.LOG_ERR, message)
         sys.exit(message)
     except Exception as ex:
@@ -119,18 +124,26 @@ if __name__ == '__main__':
               'If a filter is specified, only the filtered packets will be captured. '
               'The captured traffic is saved to an output file.',
               formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-        
+
         parser.add_argument(
-                '-f', '--capture-file',
+                '-f', '--capture_file', type=argparse.FileType('w'),
                 help='The path to the file to save captured file. Leave blank '
                 'to let the collector determine location, and save it as a statistic')
-        parser.add_argument('-i', '--interface', type=str, default='any', help='Network interface to sniff')
+        parser.add_argument('-i', '--interface', default='any', help='Network interface to sniff')
         parser.add_argument('-A', '--src-ip', help='Source IP address')
         parser.add_argument('-a', '--dst-ip', help='Destination IP address')
         parser.add_argument('-D', '--src-port', type=int, help='Source port number')
         parser.add_argument('-d', '--dst-port', type=int, help='Destination port number')
         parser.add_argument('-p', '--proto', choices=['udp', 'tcp'], help='Transport protocol')
         parser.add_argument('-t', '--duration', type=int, default=None, help='Duration of the capture in seconds')
+        parser.add_argument(
+                '-n', '--ignore-ports',
+                type=int, nargs='+', default=[],
+                help='Do not capture if one of the following ports is used')
 
-        args = vars(parser.parse_args())
-        main(**args)
+        args = parser.parse_args()
+        if args.capture_file:
+            with args.capture_file as f:
+                args.caputure_file = f.name
+
+        main(**vars(args))
