@@ -36,7 +36,7 @@ from . import errors
 ProjectInfos = namedtuple('ProjectInfos', ['id', 'jobs_path', 'dest_dir'])
 
 
-REF_NAME = 'dev'
+REF_NAME = 'master'
 # We want this token to be public as it is associated to an account limited to
 # read access on an already public repository. However GitHub is being stubborn
 # and deactivates it if left in plain-text in a commit.
