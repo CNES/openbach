@@ -3,13 +3,13 @@ Upstream-Name: collect-agent
 Source: http://www.openbach.org/
 
 Files: *
-Copyright: 2017 CNES
+Copyright: 2017-2023 CNES
 License: GPL-3+
 
 # If you want to use GPL v2 or later for the /debian/* files use 
 # the following clauses, or change it to suit. Delete these two lines
 Files: debian/*
-Copyright: 2017 OpenBACH maintainers <admin@openbach.org>
+Copyright: 2017-2023 OpenBACH maintainers <admin@openbach.org>
 License: GPL-2+
  This package is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
