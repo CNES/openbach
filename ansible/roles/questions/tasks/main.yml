@@ -4,7 +4,7 @@
 #   Agents (one for each network entity that wants to be tested).
 #   
 #   
-#   Copyright © 2016-2020 CNES
+#   Copyright © 2016-2023 CNES
 #   
 #   
 #   This file is part of the OpenBACH testbed.
@@ -41,18 +41,18 @@
         restart it using the '--skip-tags configure_ntp_server' flag.
 
 
-        NTP source for the controller ([keep] / IP address)
+        NTP source for the controller {{ item }} ([keep] / IP address)
     register: openbach_ntp_prompt
-    when: openbach_ntp_server_address is not defined
-  - name: Storing the NTP Answer for all the Plays
-    set_fact: openbach_keep_ntp_server_configuration={{ not openbach_ntp_prompt.user_input or openbach_ntp_prompt.user_input in ['k', 'keep'] }}
-    when: openbach_ntp_prompt is not skipped
+    when: hostvars[item].openbach_ntp_server_address is not defined
+    with_items: "{{ play_hosts }}"
+
   - name: Storing the NTP Answer for all the Plays
     set_fact:
-      openbach_keep_ntp_server_configuration: yes
-    when: openbach_ntp_prompt is skipped
-  - name: Storing the NTP Address for all the Plays
-    set_fact: openbach_ntp_server_address={{ openbach_ntp_prompt.user_input | lower }}
-    when: openbach_ntp_prompt is not skipped
+      openbach_keep_ntp_server_configuration: "{{ item is not skipped and (not item.user_input or item.user_input in ['k', 'keep']) }}"
+      openbach_ntp_server_address: "{{ omit if item is skipped else item.user_input | lower }}"
+    loop: "{{ hostvars[play_hosts.0].openbach_ntp_prompt.results }}"
+    loop_control:
+      label: "{{ item.item }}"
+    when: item.item == inventory_hostname
   tags:
     - configure_ntp_server

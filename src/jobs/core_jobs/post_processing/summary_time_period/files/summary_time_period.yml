@@ -1,0 +1,158 @@
+#   OpenBACH is a generic testbed able to control/configure multiple
+#   network/physical entities (under test) and collect data from them. It is
+#   composed of an Auditorium (HMIs), a Controller, a Collector and multiple
+#   Agents (one for each network entity that wants to be tested).
+#   
+#   
+#   Copyright © 2016-2023 CNES
+#   
+#   
+#   This file is part of the OpenBACH testbed.
+#   
+#   
+#   OpenBACH is a free software : you can redistribute it and/or modify it under
+#   the terms of the GNU General Public License as published by the Free Software
+#   Foundation, either version 3 of the License, or (at your option) any later
+#   version.
+#   
+#   This program is distributed in the hope that it will be useful, but WITHOUT
+#   ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS
+#   FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+#   details.
+#   
+#   You should have received a copy of the GNU General Public License along with
+#   this program. If not, see http://www.gnu.org/licenses/.
+
+---
+
+general:
+  name: summary_time_period
+  description: >
+      This job post-process data of other jobs. It generates period-aggregated table of jobs metrics mean and median to perform statistics analysis.
+  job_version: '1.3'
+  keywords:
+    - post-processing
+    - summary-period
+    - statistics
+    - mean
+    - median
+    - evolution
+    - aggregation
+  persistent: no
+
+platform_configuration:
+  - ansible_system: Debian
+    ansible_distribution: Ubuntu
+    ansible_distribution_version: '20.04'
+    command: '/usr/bin/env python3 /opt/openbach/agent/jobs/summary_time_period/summary_time_period.py'
+    command_stop:
+  - ansible_system: Debian
+    ansible_distribution: Ubuntu
+    ansible_distribution_version: '22.04'
+    command: '/usr/bin/env python3 /opt/openbach/agent/jobs/summary_time_period/summary_time_period.py'
+    command_stop:
+
+
+arguments:
+  required:
+    - name: agent
+      type: str
+      count: 1
+      description: Agent name to fetch data from
+    - name: job
+      type: str
+      count: 1
+      description: The job name to plot data from
+    - name: statistic
+      type: str
+      count: 1
+      description: Statistic name to be analysed
+    - name: reference
+      type: int
+      count: 1
+      description: Reference value for comparison
+
+  optional:
+    - name: timestamp_boundaries
+      type: str
+      count: 2
+      flag: '-d'
+      description: Start and End date in format YYYY:MM:DD hh:mm:ss
+    - name: start_day
+      type: str
+      count: 1
+      flag: '-D'
+      description: Starting time of the day
+    - name: start_evening
+      type: str
+      count: 1
+      flag: '-E'
+      description: Starting time of the evening
+    - name: start_night
+      type: str
+      count: 1
+      flag: '-N'
+      description: Starting time of the night
+    - name: level
+      type: int
+      count: 1
+      flag: '-l'
+      description: Percentage level under which the evolution is considered stable
+    - name: path_to_file
+      type: str
+      count: 1
+      flag: '-p'
+      description: Path to previous XLSX file for evolution calculation
+    - name: stat_unit
+      type: str
+      count: 1
+      flag: '-u'
+      description: The unit of the statistic
+      choices:
+       - s
+       - ms
+       - bits/s
+       - Kbits/s
+       - Gbits/s
+       - Bytes
+       - KBytes
+       - MBytes
+       - GBytes
+    - name: table_unit
+      type: str
+      count: 1
+      flag: '-U'
+      description: Unit to show on the table
+      choices:
+       - s
+       - ms
+       - bits/s
+       - Kbits/s
+       - Mbits/s
+       - Gbits/s
+       - Bytes
+       - KBytes
+       - MBytes
+       - GBytes
+    - name: stat_title
+      type: str
+      count: 1
+      flag: '-t'
+      description: Statistics names to display on the table, instead of the name used to fetch data
+    - name: no_suffix
+      type: None
+      count: 0
+      flag: '-w'
+      description: Do not plot statistics with suffixes
+    - name: no_median
+      type: None
+      count: 0
+      flag: '--no_median'
+      description: Do not compute median
+    - name: no_mean
+      type: None
+      count: 0
+      flag: '--no_mean'
+      description: Do not compute mean
+
+statistics:

@@ -1,6 +1,7 @@
 [Unit]
 Description=Startup script for OpenBACH Backend
-Requires=network.target
+Requires=network.target pgbouncer.service
+After=pgbouncer.service
 
 [Service]
 Type=simple

@@ -6,7 +6,7 @@
 # Agents (one for each network entity that wants to be tested).
 #
 #
-# Copyright © 2016-2020 CNES
+# Copyright © 2016-2023 CNES
 #
 #
 # This file is part of the OpenBACH testbed.
@@ -34,16 +34,12 @@ __credits__ = '''Contributors:
  * Francklin SIMO <francklin.simo@toulouse.viveris.com>
 '''
 
-import os
-import sys
-import time
+import statistics
 import syslog
 import os.path
 import argparse
 import tempfile
 import itertools
-import traceback
-import contextlib
 
 import matplotlib.pyplot as plt
 
@@ -51,34 +47,12 @@ import collect_agent
 from data_access.post_processing import Statistics, _Plot, save
 
 
-@contextlib.contextmanager
-def use_configuration(filepath):
-    success = collect_agent.register_collect(filepath)
-    if not success:
-        message = 'ERROR connecting to collect-agent'
-        collect_agent.send_log(syslog.LOG_ERR, message)
-        sys.exit(message)
-    collect_agent.send_log(syslog.LOG_DEBUG, 'Starting job ' + os.environ.get('JOB_NAME', '!'))
-    try:
-        yield
-    except Exception:
-        message = traceback.format_exc()
-        collect_agent.send_log(syslog.LOG_CRIT, message)
-        raise
-    except SystemExit as e:
-        if e.code != 0:
-            collect_agent.send_log(syslog.LOG_CRIT, 'Abrupt program termination: ' + str(e.code))
-        raise
-
-
-def now():
-    return int(time.time() * 1000)
-
-
 def main(
         job_instance_ids, bins, statistics_names, stats_with_suffixes, labels,
         titles, use_legend, legend, pickle, cumulative, filenames):
+
     file_ext = 'pickle' if pickle else 'png'
+
     plot = _Plot.plot_cumulative_histogram if cumulative else _Plot.plot_histogram
     legends = iter(legend)
 
@@ -100,12 +74,12 @@ def main(
             else:
                 filename = 'histogram_{}.{}'.format('_'.join(fields), file_ext)
             filepath = os.path.join(root, filename)
-            save(figure, filepath, pickle)
-            collect_agent.store_files(now(), figure=filepath)
+            save(figure, filepath, pickle,False)
+            collect_agent.store_files(collect_agent.now(), figure=filepath)
 
 
 if __name__ == '__main__':
-    with use_configuration('/opt/openbach/agent/jobs/histogram/histogram_rstats_filter.conf'):
+    with collect_agent.use_configuration('/opt/openbach/agent/jobs/histogram/histogram_rstats_filter.conf'):
         parser = argparse.ArgumentParser(description=__doc__)
     
         parser.add_argument(

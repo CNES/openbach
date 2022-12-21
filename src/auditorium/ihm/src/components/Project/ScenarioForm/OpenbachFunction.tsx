@@ -47,7 +47,7 @@ class OpenbachFunction extends React.Component<IProps & IStoreProps, IState> {
     }
 
     public render() {
-        const {formIndex, formName, reduxForm, sections, onSectionChange} = this.props;
+        const {formIndex, formName, reduxForm} = this.props;
         const openbachFunctions: IOpenbachFunctionForm[] = OpenbachFunction.getFormValues(reduxForm, formName).functions;
         const currentFunction = openbachFunctions[formIndex];
         const otherFunctions = openbachFunctions.filter(
@@ -61,10 +61,9 @@ class OpenbachFunction extends React.Component<IProps & IStoreProps, IState> {
         const innerComponent = (
             <Paper zDepth={1} style={{paddingBottom: "15px"}}>
                 <OpenbachFunctionHeader
+                    failPolicy={currentFunction ? currentFunction.on_fail ? currentFunction.on_fail.policy : undefined : undefined}
                     index={formIndex}
                     ids={openbachFunctionReferences}
-                    sections={sections}
-                    onSectionChange={onSectionChange}
                 />
                 <ScenarioDivider />
                 {this.openbachFunctionRenderer(currentFunction, otherFunctions)}
@@ -226,16 +225,20 @@ class OpenbachFunction extends React.Component<IProps & IStoreProps, IState> {
         }
 
         const time = waitConditions.time ? `${waitConditions.time} seconds` : "immediately";
-        const started = this.dependencyString("started", waitConditions.launched_ids, functions);
-        const finished = this.dependencyString("finished", waitConditions.finished_ids, functions);
-        if (started && finished) {
-            return `Started ${time} after ${started} and ${finished}`;
-        } else if (started) {
-            return `Started ${time} after ${started}`;
-        } else if (finished) {
-            return `Started ${time} after ${finished}`;
-        } else {
+        const schedules = [
+            this.dependencyString("running", waitConditions.running_ids, functions),
+            this.dependencyString("ended", waitConditions.ended_ids, functions),
+            this.dependencyString("started", waitConditions.launched_ids, functions),
+            this.dependencyString("finished", waitConditions.finished_ids, functions),
+        ].filter((s: string) => Boolean(s));
+
+        if (!schedules.length) {
             return `Started ${time} in`;
+        } else {
+            if (schedules.length > 1) {
+                schedules[schedules.length - 1] = "and " + schedules[schedules.length - 1];
+            }
+            return "Started " + time + " after " + schedules.join(schedules.length > 2 ? ", " : " ");
         }
     }
 
@@ -305,8 +308,6 @@ interface IProps {
     formName: string;
     formIndex: number;
     remove: () => void;
-    sections: string[];
-    onSectionChange: (name: string, index: number) => void;
 };
 
 

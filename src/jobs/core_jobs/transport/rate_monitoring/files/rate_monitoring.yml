@@ -4,7 +4,7 @@
 #   Agents (one for each network entity that wants to be tested).
 #   
 #   
-#   Copyright © 2016-2020 CNES
+#   Copyright © 2016-2023 CNES
 #   
 #   
 #   This file is part of the OpenBACH testbed.
@@ -31,7 +31,7 @@ general:
       This Job measures the rate (b/s) of flows with specific
       characteristics (e.g. dest/src IP/port, protocol,
       interface) using iptables chains.
-  job_version: '2.2'
+  job_version: '2.3'
   keywords:
     - rate
     - monitoring
@@ -43,6 +43,11 @@ platform_configuration:
   - ansible_system: 'Debian'
     ansible_distribution: 'Ubuntu'
     ansible_distribution_version: '20.04'
+    command: '/usr/bin/env python3 /opt/openbach/agent/jobs/rate_monitoring/rate_monitoring.py'
+    command_stop:
+  - ansible_system: 'Debian'
+    ansible_distribution: 'Ubuntu'
+    ansible_distribution_version: '22.04'
     command: '/usr/bin/env python3 /opt/openbach/agent/jobs/rate_monitoring/rate_monitoring.py'
     command_stop:
 

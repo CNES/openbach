@@ -51,70 +51,21 @@ const styles: IStyle = {
 };
 
 
-export default class OpenbachFunctions extends React.Component<IProps & IFieldArrayProps<IOpenbachFunctionForm>, IState> {
+export default class OpenbachFunctions extends React.Component<IProps & IFieldArrayProps<IOpenbachFunctionForm>, {}> {
     constructor(props) {
         super(props);
-        this.state = { newSection: "", sections: [...props.initialSections] };
         this.addOpenBachFunction = this.addOpenBachFunction.bind(this);
-        this.onNewSectionChange = this.onNewSectionChange.bind(this);
-        this.addSection = this.addSection.bind(this);
-        this.changeSection = this.changeSection.bind(this);
     }
 
     public render() {
-        const {sections, newSection} = this.state;
-
-        const openbachFunctions = [];
-        let lastSection: string = null;
-        let knownSectionIndex: number = 0;
-
-        this.props.fields.forEach((fieldName: string, index: number, fields: IFieldsProps<IOpenbachFunctionForm>) => {
-            const section = fields.get(index).section;
-            if (section !== lastSection) {
-                lastSection = section;
-                const sectionKey: string = `section_${section}_${index}`;
-                while (knownSectionIndex < sections.length && sections[knownSectionIndex] !== section) {
-                    openbachFunctions.push(this.buildSectionDelimiter(sections[knownSectionIndex], sectionKey + "_" + knownSectionIndex));
-                    ++knownSectionIndex;
-                }
-                if (section || knownSectionIndex !== sections.length) {
-                    openbachFunctions.push(this.buildSectionDelimiter(section, sectionKey));
-                } else {
-                    openbachFunctions.push((
-                        <div key={sectionKey} style={styles.defaultContainer}>
-                            <TextField
-                                floatingLabelText="New Section"
-                                value={newSection}
-                                fullWidth={true}
-                                onChange={this.onNewSectionChange}
-                            />
-                            <IconButton
-                                tooltip="Add a new section with the given name"
-                                touch={true}
-                                tooltipPosition="top-right"
-                                onClick={this.addSection}
-                                style={styles.newSection}
-                            >
-                                <ContentAddIcon />
-                            </IconButton>
-                        </div>
-                    ));
-                }
-                if (knownSectionIndex < sections.length) {
-                    ++knownSectionIndex;
-                }
-            }
-            openbachFunctions.push((
-                <OpenbachFunction
-                    key={`${fieldName}_${index}`}
-                    formIndex={index}
-                    formName={this.props.formName}
-                    remove={this.removeOpenBachFunction.bind(this, index)}
-                    sections={sections}
-                    onSectionChange={this.changeSection}
-                />
-            ));
-        });
+        const openbachFunctions = this.props.fields.map((fieldName: string, index: number, fields: IFieldsProps<IOpenbachFunctionForm>) => (
+            <OpenbachFunction
+                key={`${fieldName}_${index}`}
+                formIndex={index}
+                formName={this.props.formName}
+                remove={this.removeOpenBachFunction.bind(this, index)}
+            />
+        ));
 
         return (
             <List>
@@ -132,10 +83,6 @@ export default class OpenbachFunctions extends React.Component<IProps & IFieldAr
         if (nextProps.formName !== this.props.formName) {
             this.props.fields.removeAll();
         }
-        if (nextProps.initialSections !== this.props.initialSections) {
-            const sections = [...nextProps.initialSections];
-            this.setState({ sections });
-        }
     }
 
     private addOpenBachFunction() {
@@ -149,27 +96,10 @@ export default class OpenbachFunctions extends React.Component<IProps & IFieldAr
             id: newGuid,
             kind: undefined,
             label: undefined,
+            on_fail: undefined,
             parameters: {},
             wait: undefined,
         });
-    }
-
-    private buildSectionDelimiter(section, key) {
-        return (
-            <div key={key} style={styles.container}>
-                {section}
-                <IconButton
-                    tooltip="Remove this section and move its openbach functions into the unnamed section"
-                    touch={true}
-                    tooltipPosition="top-center"
-                    onClick={this.removeSection.bind(this, section)}
-                    style={styles.removeSection}
-                    iconStyle={styles.removeSectionIcon}
-                >
-                    <DeleteIcon />
-                </IconButton>
-            </div>
-        );
     }
 
     private removeOpenBachFunction(index: number) {
@@ -180,7 +110,13 @@ export default class OpenbachFunctions extends React.Component<IProps & IFieldAr
                 const openbachFunction = fields.get(i);
                 const {wait, jobs, conditionTrue, conditionFalse} = openbachFunction;
                 if (wait) {
-                    const {launched_ids, finished_ids} = wait;
+                    const {running_ids, ended_ids, launched_ids, finished_ids} = wait;
+                    if (running_ids) {
+                        openbachFunction.wait.running_ids = running_ids.filter(excludeRemoved);
+                    }
+                    if (ended_ids) {
+                        openbachFunction.wait.ended_ids = ended_ids.filter(excludeRemoved);
+                    }
                     if (launched_ids) {
                         openbachFunction.wait.launched_ids = launched_ids.filter(excludeRemoved);
                     }
@@ -201,78 +137,9 @@ export default class OpenbachFunctions extends React.Component<IProps & IFieldAr
         });
         this.props.fields.remove(index);
     }
-
-    private onNewSectionChange(event, newSection: string) {
-        this.setState({ newSection });
-    }
-
-    private addSection() {
-        const {newSection} = this.state;
-        if (newSection && !this.state.sections.includes(newSection)) {
-            const sections = [...this.state.sections, newSection];
-            this.setState({ newSection: "", sections });
-        } else {
-            this.setState({ newSection: "" });
-        }
-    }
-
-    private removeSection(sectionName: string) {
-        const {fields} = this.props;
-        const sections = this.state.sections.filter((name: string) => name !== sectionName);
-
-        if (sections.length !== this.state.sections.length) {
-            this.setState({ sections });
-            const movedFunctions = [];
-            for (let i = fields.length - 1; i >= 0; --i) {
-                const openbachFunction = fields.get(i);
-                if (openbachFunction.section === sectionName) {
-                    openbachFunction.section = undefined;
-                    fields.remove(i);
-                    movedFunctions.unshift(openbachFunction);
-                }
-            }
-            movedFunctions.forEach((func) => fields.push(func));
-        }
-    }
-
-    private changeSection(sectionName: string, index: number) {
-        const {fields} = this.props;
-        const name = sectionName ? sectionName : undefined;
-
-        const sectionIndex = name ? this.state.sections.indexOf(name) : this.state.sections.length;
-        let firstOfItsKind = 0;
-        for (; firstOfItsKind < fields.length; ++firstOfItsKind) {
-            const functionIndex = this.state.sections.indexOf(fields.get(firstOfItsKind).section);
-            if (functionIndex === -1 || functionIndex >= sectionIndex) {
-                break;
-            }
-        }
-        while (firstOfItsKind !== fields.length && fields.get(firstOfItsKind).section === name) {
-            ++firstOfItsKind;
-        }
-
-        if (index < firstOfItsKind) {
-            --firstOfItsKind;
-        }
-        const openbachFunction = fields.get(index);
-        openbachFunction.section = name;
-        fields.remove(index);
-        if (firstOfItsKind === fields.length - 1) {
-            fields.push(openbachFunction);
-        } else {
-            fields.insert(firstOfItsKind, openbachFunction);
-        }
-    }
-};
-
-
-interface IState {
-    newSection: string;
-    sections: string[];
 };
 
 
 interface IProps {
     formName: string;
-    initialSections: string[];
 };

@@ -4,7 +4,7 @@
 #   Agents (one for each network entity that wants to be tested).
 #   
 #   
-#   Copyright © 2016-2020 CNES
+#   Copyright © 2016-2023 CNES
 #   
 #   
 #   This file is part of the OpenBACH testbed.
@@ -29,7 +29,7 @@ general:
   name: histogram
   description: >
       This job post-process statistics from other job instances. It computes/compares the histogram of different statistics.
-  job_version: '3.1'
+  job_version: '3.2'
   keywords:
     - post-processing
     - histogram
@@ -39,6 +39,11 @@ platform_configuration:
   - ansible_system: Debian
     ansible_distribution: Ubuntu
     ansible_distribution_version: '20.04'
+    command: '/usr/bin/env python3 /opt/openbach/agent/jobs/histogram/histogram.py'
+    command_stop:
+  - ansible_system: Debian
+    ansible_distribution: Ubuntu
+    ansible_distribution_version: '22.04'
     command: '/usr/bin/env python3 /opt/openbach/agent/jobs/histogram/histogram.py'
     command_stop:
 

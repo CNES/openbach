@@ -44,7 +44,7 @@ class App extends React.Component<IStoreProps, IState> {
                         />
                         <MainButton
                             label="Statistics"
-                            link="/grafana"
+                            link="/chronograf/"
                             onClick={this.openLink}
                         />
                         <Separator />

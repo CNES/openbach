@@ -40,13 +40,6 @@ const styles: IStyles = {
 class ScenarioForm extends React.Component<IProps & FormProps<{}, {}, {}>, {}> {
     public render() {
         const {scenario} = this.props;
-        const sections = [];
-        scenario.functions.filter((func) => func.section).forEach((func) => {
-            const {section} = func;
-            if (sections.length === 0 || sections[sections.length - 1] !== section) {
-                sections.push(section);
-            }
-        });
 
         return (
             <form onSubmit={this.props.handleSubmit}>
@@ -78,7 +71,6 @@ class ScenarioForm extends React.Component<IProps & FormProps<{}, {}, {}>, {}> {
                     name="functions"
                     component={OpenbachFunctions}
                     formName={this.props.form}
-                    initialSections={sections}
                 />
                 <div style={styles.save}>
                     <FlatButton disabled={this.props.pristine} label="Save" type="submit" secondary={true} />

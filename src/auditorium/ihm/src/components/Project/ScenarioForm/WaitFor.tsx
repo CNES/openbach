@@ -35,7 +35,7 @@ export default class WaitFor extends React.Component<IProps, {}> {
             <div style={styles.container}>
                 <div style={styles.wrappedSelect}>
                     <ReduxFormMultiSelectField
-                        name={this.props.formName}
+                        name={this.props.parameterName}
                         component={SelectFormInput}
                         multi={true}
                         autosize={true}
@@ -52,5 +52,5 @@ export default class WaitFor extends React.Component<IProps, {}> {
 interface IProps {
     ids: Array<{value: number, label: string}>;
     text: string;
-    formName: string;
+    parameterName: string;
 };

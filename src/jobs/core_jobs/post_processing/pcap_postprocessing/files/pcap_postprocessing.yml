@@ -4,7 +4,8 @@
 #   Agents (one for each network entity that wants to be tested).
 #   
 #   
-#   Copyright © 2016-2020 CNES
+#   Copyright © 2016-2023 CNES
+#   Copyright © 2022 Eutelsat
 #   
 #   
 #   This file is part of the OpenBACH testbed.
@@ -23,6 +24,7 @@
 #   You should have received a copy of the GNU General Public License along with
 #   this program. If not, see http://www.gnu.org/licenses/.
 
+
 ---
 
 general:
@@ -31,7 +33,7 @@ general:
       This job analyzes a pcap file in order to get the average packet length,
       average inter packets delay, bitrate, etc. If a filter is specified,
       only filtered packets will be considered.
-  job_version: '1.3'
+  job_version: '2.0'
   keywords:
     - pcap
     - network
@@ -45,13 +47,18 @@ platform_configuration:
     ansible_distribution_version: '20.04'
     command: '/usr/bin/env python3 /opt/openbach/agent/jobs/pcap_postprocessing/pcap_postprocessing.py'
     command_stop:
+  - ansible_system: 'Debian'
+    ansible_distribution:  'Ubuntu'
+    ansible_distribution_version: '22.04'
+    command: '/usr/bin/env python3 /opt/openbach/agent/jobs/pcap_postprocessing/pcap_postprocessing.py'
+    command_stop:
 
 arguments:
   required:
-    - name:          capture_file
-      type:          str
-      count:         1
-      description:   The path of the pcap file to analyze
+    - name:        capture_file
+      type:        str
+      count:       1
+      description: The path of the pcap file to analyze
   optional:
     - name:        src_ip
       type:        str
@@ -79,8 +86,8 @@ arguments:
       flag:        '-p'
       description: The transport protocol
       choices: 
-                   - udp
-                   - tcp
+        - udp
+        - tcp
   subcommand:
     - group_name: mode
       optional: no
@@ -88,16 +95,28 @@ arguments:
         - name: stats_one_file
           required:
           optional:
-            - name:  metrics_interval
-              type:  int
+            - name: metrics_interval
+              type: int
               count: 1
-              flag:  '-T'
+              flag: '-T'
+              description: The time period in ms to compute statistics (default 500)
+        - name: stats_two_files
+          required:
+            - name: second_capture_file
+              type: str
+              count: 1
+              description: The path of the second pcap file to analyze (must be traffic receiver)
+          optional:
+            - name: metrics_interval
+              type: int
+              count: 1
+              flag: '-T'
               description: The time period in ms to compute statistics (default 500)
         - name: gilbert_elliot
           required:
-            - name:        second_capture_file
-              type:        str
-              count:       1
+            - name: second_capture_file
+              type: str
+              count: 1
               description: The path of the second pcap file to analyze
           optional:
 
@@ -150,3 +169,21 @@ statistics:
     - name: gilbert_elliot_lost_rate
       description: Loss rate between packets sent and received, only filtered packets are considered
       frequency: 'once'
+    - name: two_files_delay
+      description: Propagation delay between the two captures in ms
+      frequency: 'every *metrics_interval* ms'
+    - name: two_files_jitter
+      description: Jitter between the two captures in ms
+      frequency: 'every *metrics_interval* ms'
+    - name: two_files_loss_rate_bytes
+      description: Loss rate between the two captures in bytes
+      frequency: 'every *metrics_interval* ms'
+    - name: two_files_loss_rate_pkts
+      description: Loss rate between the two captures in packets
+      frequency: 'every *metrics_interval* ms'
+    - name: two_files_throughput_sent
+      description: Throughput of packets sent measured in bytes/s when two pcaps
+      frequency: 'every *metrics_interval* ms'
+    - name: two_files_throughput_received
+      description: Throughput of packets received measured in bytes/s when two pcaps
+      frequency: 'every *metrics_interval* ms'

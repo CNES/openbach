@@ -1,0 +1,277 @@
+#   OpenBACH is a generic testbed able to control/configure multiple
+#   network/physical entities (under test) and collect data from them. It is
+#   composed of an Auditorium (HMIs), a Controller, a Collector and multiple
+#   Agents (one for each network entity that wants to be tested).
+#   
+#   
+#   Copyright © 2016-2023 CNES
+#   
+#   
+#   This file is part of the OpenBACH testbed.
+#   
+#   
+#   OpenBACH is a free software : you can redistribute it and/or modify it under
+#   the terms of the GNU General Public License as published by the Free Software
+#   Foundation, either version 3 of the License, or (at your option) any later
+#   version.
+#   
+#   This program is distributed in the hope that it will be useful, but WITHOUT
+#   ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS
+#   FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+#   details.
+#   
+#   You should have received a copy of the GNU General Public License along with
+#   this program. If not, see http://www.gnu.org/licenses/.
+
+---
+
+- name: Expand openbach User
+  user:
+    name: openbach
+    generate_ssh_key: yes
+    ssh_key_bits: 4096
+    shell: /bin/bash
+  become: yes
+
+- name: Enable SUDO Rights for openbach User
+  copy:
+    src: sudoers
+    dest: /etc/sudoers.d/passwordless_openbach
+    mode: 0440
+  become: yes
+
+- block:
+  - name: Install Build Dependencies
+    apt:
+      pkg:
+        - build-essential
+        - debhelper
+        - python3-dev
+      state: latest
+      update_cache: yes
+    become: yes
+    environment: "{{ openbach_proxy_env }}"
+
+  - name: Push Source Files for the Collect-Agent Library
+    synchronize:
+      src: ../src/agent/collect-agent/
+      dest: /tmp/collect-agent/
+      recursive: yes
+      delete: yes
+      rsync_opts:
+        - --exclude=__pycache__
+        - --exclude=build
+
+  - name: Build the Collect-Agent Library
+    shell: dpkg-buildpackage -rfakeroot -us -uc
+    args:
+      chdir: /tmp/collect-agent/
+
+  - name: Gather Version and Architecture of Compiled Package
+    find:
+      paths: /tmp
+      recurse: no
+      patterns: collect-agent_*.deb
+    register: openbach_collect_agent_built_package
+
+  - name: Install the Collect-Agent Library
+    apt:
+      deb: "{{ openbach_collect_agent_built_package.files | map(attribute='path') | sort | last }}"
+    become: yes
+
+  - name: Gather Leftover Files
+    find:
+      paths: /tmp
+      recurse: no
+      patterns: collect-agent*
+      file_type: any
+    register: openbach_collect_agent_leftovers
+
+  - name: Remove Leftover Files
+    file:
+      path: "{{ item.path }}"
+      state: absent
+    loop: "{{ openbach_collect_agent_leftovers.files }}"
+    loop_control:
+      label: "{{ item.path }}"
+  when: ansible_architecture != 'x86_64'
+
+- name: Install apt dependencies
+  apt:
+    pkg:
+      - ntp
+      - python3-pip
+      - python3-setuptools
+      - rsyslog
+      - rsync
+      - grub-common
+      - collect-agent
+    state: latest
+    update_cache: yes
+  become: yes
+  environment: "{{ openbach_proxy_env }}"
+  notify:
+    - restart ntp
+    - restart rsyslog
+
+- name: Upload pip Mirror
+  synchronize:
+    src: ../pip_mirror/
+    dest: /opt/openbach/pip_mirror/
+    recursive: yes
+    delete: yes
+  remote_user: openbach
+
+- name: Install pip3 Dependencies
+  pip:
+    name:
+      - apscheduler==3.7.0
+      - psutil==5.8.0
+      - PyYAML==5.4.1
+      - requests==2.22.0
+      - pandas
+      - matplotlib
+    executable: pip3
+    extra_args: "-U"
+  environment: "{{ openbach_proxy_env }}"
+  become: yes
+
+- name: Install OpenBach APIs
+  pip:
+    name:
+      - openbach_api
+    executable: pip3
+    extra_args: "-U --no-index --find-links=file:///opt/openbach/pip_mirror/python3/"
+  become: yes
+
+- name: Configure NTP Server
+  template:
+    src: ntp.conf.j2
+    dest: /etc/ntp.conf
+    backup: yes
+  become: yes
+  notify: restart ntp
+  when: openbach_keep_ntp_server_configuration is not defined or not openbach_keep_ntp_server_configuration
+  tags:
+    - configure_ntp_server
+
+- name: Create OpenBACH's log folder
+  file:
+    path: /var/log/openbach
+    state: directory
+    mode: 0777
+  become: yes
+
+- name: Configure logrotate
+  copy:
+    src: openbach_logrotate.conf
+    dest: /etc/logrotate.d/
+  become: yes
+
+- name: Create OpenBACH's stats folder
+  file:
+    path: /var/openbach_stats/openbach_agent
+    state: directory
+    mode: 0755
+    owner: openbach
+    group: openbach
+  become: yes
+
+- name: Create Service Files
+  copy:
+    src: "{{ item }}.service"
+    dest: /etc/systemd/system/
+    mode: 0644
+  with_items:
+    - openbach_agent
+    - rstats
+  become: yes
+
+- block:
+  - name: Configure Rsyslog
+    template:
+      src: "{{ item }}.j2"
+      dest: /etc/rsyslog.d/{{ item }}.conf
+      mode: 0644
+    with_items:
+      - rstats
+      - rstats_local
+      - openbach_agent
+      - openbach_agent_local
+    vars:
+      collector_ip: "{{ openbach_collector | default('127.0.0.1') }}"
+    become: yes
+    notify:
+      - restart rsyslog
+
+  - name: Create OpenBACH repository
+    file:
+      path: /opt/openbach/agent/{{ item }}
+      state: directory
+    with_items:
+      - jobs
+      - job_instances
+      - rstats
+    remote_user: openbach
+
+  - name: Install Rstats
+    copy:
+      src: ../src/agent/rstats/{{ item }}.py
+      dest: /opt/openbach/agent/rstats/
+      mode: 0755
+    with_items:
+      - rstats
+      - rstats_reload
+    remote_user: openbach
+
+  - name: Configure Rstats
+    template:
+      src: rstats.yml.j2
+      dest: /opt/openbach/agent/rstats/rstats.yml
+    remote_user: openbach
+
+  - name: Install the Agent's Daemon
+    copy:
+      src: ../src/agent/openbach-agent/{{ item.name }}
+      dest: /opt/openbach/agent/
+      mode: "{{ item.mode }}"
+    with_items:
+      - {name: 'openbach_agent.py', mode: '0755'}
+      - {name: 'openbach_agent_filter.conf', mode: '0644'}
+    remote_user: openbach
+
+  - name: Configure the Agent
+    template:
+      src: "{{ item }}.j2"
+      dest: /opt/openbach/agent/{{ item }}
+    with_items:
+      - agent_name
+      - collector.yml
+    vars:
+      collector_ip: "{{ openbach_collector | default('127.0.0.1') }}"
+    remote_user: openbach
+
+  - name: Copy the version file on the Agent
+    copy:
+      src: ../version
+      dest: /opt/openbach/agent/version
+    remote_user: openbach
+  when: openbach_restore_host is not defined
+
+- name: Extract Backup Files
+  unarchive:
+    src: "{{ openbach_archive_root }}/{{ openbach_restore_host }}/openbach_agent.tar.gz"
+    dest: "/"
+  remote_user: openbach
+  when: openbach_restore_host is defined
+
+- name: Restart OpenBACH Services
+  systemd:
+    name: "{{ item }}"
+    state: restarted
+    enabled: yes
+    daemon_reload: yes
+  with_items:
+    - rstats
+    - openbach_agent
+  become: yes

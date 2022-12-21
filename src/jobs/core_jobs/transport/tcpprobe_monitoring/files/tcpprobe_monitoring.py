@@ -6,7 +6,7 @@
 # Agents (one for each network entity that wants to be tested).
 #
 #
-# Copyright © 2016-2020 CNES
+# Copyright © 2016-2023 CNES
 #
 #
 # This file is part of the OpenBACH testbed.
@@ -39,46 +39,26 @@ __credits__ = '''Contributors:
 '''
 
 import os
+import sys
 import time
 import signal
 import syslog
 import argparse
-import traceback
-import contextlib
-from sys import exit
+import subprocess
 
 import collect_agent
 
 
-@contextlib.contextmanager
-def use_configuration(filepath):
-    success = collect_agent.register_collect(filepath)
-    if not success:
-        message = 'ERROR connecting to collect-agent'
-        collect_agent.send_log(syslog.LOG_ERR, message)
-        sys.exit(message)
-    collect_agent.send_log(syslog.LOG_DEBUG, 'Starting job ' + os.environ.get('JOB_NAME', '!'))
-    try:
-        yield
-    except Exception:
-        message = traceback.format_exc()
-        collect_agent.send_log(syslog.LOG_CRIT, message)
-        raise
-    except SystemExit as e:
-        if e.code != 0:
-            collect_agent.send_log(syslog.LOG_CRIT, 'Abrupt program termination: ' + str(e.code))
-        raise
+PID_FILENAME = '/var/run/tcpprobe_monitoring.pid'
+
 
 def signal_term_handler(signal, frame):
-    cmd = 'PID=`cat /var/run/tcpprobe_monitoring.pid`; kill -TERM $PID; rm '
-    cmd += '/var/run/tcpprobe_monitoring.pid'
-    os.system(cmd)
-    cmd = 'rmmod tcp_probe > /dev/null 2>&1'
-    os.system(cmd)
-    exit(0)
-
-
-signal.signal(signal.SIGTERM, signal_term_handler)
+    with open(PID_FILENAME) as pid_file:
+        pid = pid_file.read().strip()
+    subprocess.run(['kill', '-TERM', pid])
+    os.remove(PID_FILENAME)
+    subprocess.run(['rmmod', 'tcp_probe'])
+    sys.exit(0)
 
 
 def watch(fn):
@@ -112,83 +92,87 @@ def main(path, port, interval, readonly):
 
     ## if in monitoring mode (listening on port(s)
     if not readonly:
-        # Unload existing tcp_probe job and/or module (if exists)
-        cmd = 'PID=`cat /var/run/tcpprobe_monitoring.pid`; kill -TERM $PID; rm '
-        cmd += '/var/run/tcpprobe_monitoring.pid'
         try:
-            os.system(cmd)
-        except Exception as exe_error:
-            collect_agent.send_log(syslog.LOG_DEBUG, 'No previous tcp_probe job to kill before launching the job: %s' % exe_error)
-            exit('No previous tcp_probe job to kill before launching the job')
-        
-        cmd = 'rmmod tcp_probe > /dev/null 2>&1'
-        try:
-            os.system(cmd)
-        except Exception as exe_error:
-            collect_agent.send_log(syslog.LOG_ERROR, 'Existing tcp_probe cannot be unloaded: %s' % exe_error)
+            # Unload existing tcp_probe job and/or module (if exists)
+            with open(PID_FILENAME) as pid_file:
+                pid = pid_file.read().strip()
+            subprocess.run(['kill', '-TERM', pid], stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, check=True)
+            os.remove(PID_FILENAME)
+        except OSError as os_error:
+            message = 'No previous tcp_probe job to kill before launching the job: {}'.format(os_error)
+            collect_agent.send_log(syslog.LOG_ERROR, message)
+            sys.exit(message)
+        except subprocess.CalledProcessError as exe_error:
+            message = 'No previous tcp_probe job to kill before launching the job: {}'.format(exe_error.stderr)
+            collect_agent.send_log(syslog.LOG_ERROR, message)
+            sys.exit(message)
 
-        # Monitoring setup
-        cmd = (
-                'modprobe tcp_probe port={}'
-                ' full=1 > /dev/null 2>&1'.format(port)
-        )
-    
+        try:
+            subprocess.run(['rmmod', 'tcp_probe'], stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, check=True)
+        except subprocess.CalledProcessError as p:
+            collect_agent.send_log(syslog.LOG_ERROR, 'Existing tcp_probe cannot be unloaded: {}'.format(p.stderr))
+
         # The reference time
-        init_time = int(time.time() * 1000)
-        initTime_file = open('/tmp/tcpprobe_initTime.txt','w')
-        initTime_file.write(str(init_time))
-        initTime_file.close()
+        with open('/tmp/tcpprobe_initTime.txt', 'w') as f:
+            print(collect_agent.now(), file=f)
         
         try:
-            os.system(cmd)
-        except Exception as exe_error:
-            collect_agent.send_log(syslog.LOG_ERROR, 'tcp_probe cannot be executed: %s' % exe_error)
-            exit('tcp_probe cannot be executed')
+            # Monitoring setup
+            subprocess.run(
+                    ['modprobe', 'tcp_probe', 'port={}'.format(port), 'full=1'],
+                    stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, check=True)
+        except subprocess.CalledProcessError as exe_error:
+            message = 'tcp_probe cannot be executed: {}'.format(exe_error.stderr)
+            collect_agent.send_log(syslog.LOG_ERROR, message)
+            sys.exit(message)
 
-        cmd = 'chmod 444 /proc/net/tcpprobe'
-        os.system(cmd)
-        cmd = 'PID=`cat /proc/net/tcpprobe > ' + path + ' & echo $!`; echo $PID >'
-        cmd += ' /var/run/tcpprobe_monitoring.pid'
-        os.system(cmd)
+        os.chmod('/proc/net/tcpprobe', 0o444)
+        p = subprocess.Popen('cat /proc/net/tcpprobe > ' + path, shell=True)
+        with open(PID_FILENAME, 'w') as pid_file:
+            print(p.pid, file=pid_file)
     #if readonly check if the file is pre-existing
     elif not os.path.isfile(path) :
         message = "file from argument 'path' does not exist, can not readonly a non existing file"
         collect_agent.send_log(syslog.LOG_ERR, message)
-        exit(message)
+        sys.exit(message)
 
     collect_agent.send_log(syslog.LOG_DEBUG, "Finished setting up probe")
+
+    # Collect initial time only once
+    with open('/tmp/tcpprobe_initTime.txt') as f:
+        init_time = int(initTime_file.read())
 
     ## if monitoring or reading only one port
     ## when listening to all ports, do not send stats
     for i, row in enumerate(watch(path)):
-        if i % interval == 0:
-            data = row.split()
-            if len(data) == 11 and port != 0:
-                timestamp = data[0].strip('\x00')
-                timestamp_sec, timestamp_nsec = timestamp.split('.', 1)
-                initTime_file = open('/tmp/tcpprobe_initTime.txt','r')
-                init_time = int(initTime_file.read())
-                initTime_file.close()
-                timestamp_real = init_time + int(timestamp_sec)*1000 + int(timestamp_nsec[:3])
-                try:
-                    # if the port in the monitoring file is the port
-                    # we want to monitor
-                    if str(data[2].split(":")[1]) == str(port):
-                        collect_agent.send_stat(
-                                timestamp_real,
-                                cwnd_monitoring=data[6],
-                                ssthresh_monitoring=data[7],
-                                sndwnd_monitoring=data[8],
-                                rtt_monitoring=data[9],
-                                rcvwnd_monitoring=data[10],)
-                except Exception as connection_err:
-                    message = 'ERROR: {}'.format(connection_err)
-                    collect_agent.send_log( syslog.LOG_ERR, message)
-                    exit(message)
+        if not port or i % interval != 0:
+            continue
+
+        try:
+            timestamp, _, address, _, _, _, cwnd, ssthreshold, sndwnd, rtt, rcvwnd = row.split()
+            monitored_port = int(address.split(':')[1])
+        except (ValueError, IndexError):
+            continue
+
+        if port == monitored_port:
+            try:
+                timestamp_sec, timestamp_nsec = timestamp.strip('\x00').split('.', 1)
+                timestamp_real = init_time + int(timestamp_sec + timestamp_nsec[:3])
+                collect_agent.send_stat(
+                        timestamp_real,
+                        cwnd_monitoring=cwnd,
+                        ssthresh_monitoring=ssthreshold,
+                        sndwnd_monitoring=sndwnd,
+                        rtt_monitoring=rtt,
+                        rcvwnd_monitoring=rcvwnd)
+            except Exception as connection_err:
+                message = 'ERROR: {}'.format(connection_err)
+                collect_agent.send_log(syslog.LOG_ERR, message)
+                sys.exit(message)
 
 
 if __name__ == '__main__':
-    with use_configuration('/opt/openbach/agent/jobs/tcpprobe_monitoring/tcpprobe_monitoring_rstats_filter.conf'):
+    with collect_agent.use_configuration('/opt/openbach/agent/jobs/tcpprobe_monitoring/tcpprobe_monitoring_rstats_filter.conf'):
         # Define Usage
         parser = argparse.ArgumentParser(
                 description='Activate/Deactivate tcpprobe monitoring on outgoing traffic.',
@@ -210,4 +194,5 @@ if __name__ == '__main__':
         path = args.path
         interval = args.packet_sampling_interval
 
+        signal.signal(signal.SIGTERM, signal_term_handler)
         main(path, port, interval, readonly)

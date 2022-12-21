@@ -15,7 +15,7 @@ For specific requirements of each kind of machine, see the
 
 ### Installation machine
 
-  * Any Linux flavor with Ansible (at least version 2.10) and
+  * Any Linux flavor with Ansible (at least version 2.11.12, but due to the separation of versionning scheme between the core and the modules collections, it is recommended to install version 4.5+) and
     Python 3.8.5 or newer on the installation machine;
   * The installation machine needs to have access to all target
     machines (could e.g. be one of the target machines);
@@ -29,12 +29,15 @@ and **not** Python 2. If this is not the case please refer to the
 
 ```
 $ ansible --version
-ansible 2.10.5
-  config file = None
+ansible [core 2.13.4]
+  config file = /etc/ansible/ansible.cfg
   configured module search path = ['/home/ubuntu/.ansible/plugins/modules', '/usr/share/ansible/plugins/modules']
-  ansible python module location = /usr/local/lib/python3.8/dist-packages/ansible
+  ansible python module location = /usr/local/lib/python3.10/dist-packages/ansible
+  ansible collection location = /home/ubuntu/.ansible/collections:/usr/share/ansible/collections
   executable location = /usr/local/bin/ansible
-  python version = 3.8.5 (default, Jul 28 2020, 12:59:40) [GCC 9.3.0]
+  python version = 3.10.7 (main, Sep  6 2022, 21:22:27) [GCC 12.2.0]
+  jinja version = 3.1.2
+  libyaml = True
 ```
 
 ## Getting OpenBACH

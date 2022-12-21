@@ -4,7 +4,7 @@
 # Agents (one for each network entity that wants to be tested).
 #
 #
-# Copyright © 2016-2020 CNES
+# Copyright © 2016-2023 CNES
 #
 #
 # This file is part of the OpenBACH testbed.
@@ -71,7 +71,11 @@ class _BaseSocketCommunicator:
             self.socket = socket.socket(self._family, self._kind)
             self.socket.settimeout(2)
             self.socket.connect(self._address)
-        except (OSError, socket.timeout) as e:
+        except socket.timeout as e:
+            raise errors.UnreachableError(
+                    'Cannot connect socket to its destination {}: {}'
+                    .format(self._address, e))
+        except OSError as e:
             raise errors.UnprocessableError(
                     'Cannot connect socket to its destination {}: {}'
                     .format(self._address, e))
@@ -89,7 +93,13 @@ class _BaseSocketCommunicator:
     def receive_message(self):
         size = receive_all(self.socket, 4)
         length, = struct.unpack('>I', size)
-        return receive_all(self.socket, length)
+        response = receive_all(self.socket, length)
+        actual_length = len(response)
+        if actual_length != length:
+            raise errors.UnreachableError(
+                    'Response from the socket truncated at {} bytes instead of the expected {}'
+                    .format(actual_length, length))
+        return response
 
     def send_message(self, message):
         length = struct.pack('>I', len(message))
@@ -107,10 +117,10 @@ class _BaseSocketCommunicator:
                 else:
                     return self.receive_message()
         except OSError as e:
-            raise errors.UnprocessableError(
+            raise errors.UnreachableError(
                     'Sending message through the socket {} failed: {}'
                     .format(self.socket, e))
-        raise errors.UnprocessableError(
+        raise errors.UnreachableError(
                 'Sending message through the socket {} failed: {}'
                 .format(self.socket, st))
 

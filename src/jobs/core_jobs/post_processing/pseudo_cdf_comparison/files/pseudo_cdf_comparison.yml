@@ -1,0 +1,148 @@
+#   OpenBACH is a generic testbed able to control/configure multiple
+#   network/physical entities (under test) and collect data from them. It is
+#   composed of an Auditorium (HMIs), a Controller, a Collector and multiple
+#   Agents (one for each network entity that wants to be tested).
+#   
+#   
+#   Copyright © 2016-2023 CNES
+#   
+#   
+#   This file is part of the OpenBACH testbed.
+#   
+#   
+#   OpenBACH is a free software : you can redistribute it and/or modify it under
+#   the terms of the GNU General Public License as published by the Free Software
+#   Foundation, either version 3 of the License, or (at your option) any later
+#   version.
+#   
+#   This program is distributed in the hope that it will be useful, but WITHOUT
+#   ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS
+#   FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+#   details.
+#   
+#   You should have received a copy of the GNU General Public License along with
+#   this program. If not, see http://www.gnu.org/licenses/.
+
+---
+
+general:
+  name: pseudo_cdf_comparison
+  description: >
+      This job post-process data of other jobs. It allows to performs statistics analysis of jobs metrics.
+  job_version: '1.2'
+  keywords:
+    - post-processing
+    - pseudo_cdf
+    - statistics
+  persistent: no
+
+platform_configuration:
+  - ansible_system: Debian
+    ansible_distribution: Ubuntu
+    ansible_distribution_version: '20.04'
+    command: '/usr/bin/env python3 /opt/openbach/agent/jobs/pseudo_cdf_comparison/pseudo_cdf_comparison.py'
+    command_stop:
+  - ansible_system: Debian
+    ansible_distribution: Ubuntu
+    ansible_distribution_version: '22.04'
+    command: '/usr/bin/env python3 /opt/openbach/agent/jobs/pseudo_cdf_comparison/pseudo_cdf_comparison.py'
+    command_stop:
+
+arguments:
+  required:
+    - name: agents
+      type: str
+      count: '+'
+      description: Agent name to fetch data from
+    - name: job
+      type: str
+      count: 1
+      description: The job name to plot data from
+    - name: statistic
+      type: str
+      count: 1
+      description: statistics names to be analysed
+    - name: reference
+      type: int
+      count: 1
+      description: Reference value for comparison  
+  optional:
+    - name: timestamp_boundaries
+      type: str
+      count: 2
+      flag: '-d'
+      description: Start and End date in format YYYY:MM:DD hh:mm:ss
+    - name: step
+      type: int
+      count: 1
+      flag: '-p'
+      description: Percentage step on the Y-axis
+    - name: stat_unit
+      type: str
+      count: 1
+      flag: '-u'
+      description: The unit of the statistic
+      choices:
+       - s
+       - ms
+       - bits/s
+       - Kbits/s
+       - Mbits/s
+       - Gbits/s
+       - Bytes
+       - KBytes
+       - MBytes
+       - GBytes
+    - name: table_unit
+      type: str
+      count: 1
+      flag: '-U'
+      description: Desired unit to show on the figure
+      choices:
+       - s
+       - ms
+       - bits/s
+       - Kbits/s
+       - Mbits/s
+       - Gbits/s
+       - Bytes
+       - KBytes
+       - MBytes
+       - GBytes
+    - name: title
+      type: str
+      count: 1
+      flag: '-t'
+      description: the title of figure
+    - name: ylabel
+      type: str
+      count: 1
+      flag: '-y'
+      description: the label of y-axis
+    - name: xlabel
+      type: str
+      count: 1
+      flag: '-x'
+      description: the label of x-axis
+    - name: agents_legend
+      type: str
+      count: '+'
+      flag: '-a'
+      description: Agent name to display on the legend
+    - name: no_suffix
+      type: None
+      count: 0
+      flag: '-w'
+      description: Do not plot statistics with suffixes
+    - name: hide_grid
+      type: None
+      count: 0
+      flag: '--hide-grid'
+      description: Do not show grid on the graph
+    - name: hide_legend
+      type: None
+      count: 0
+      flag: '--hide-legend'
+      description: Do not show any legend on the graph
+
+statistics:

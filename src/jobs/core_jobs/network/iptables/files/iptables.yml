@@ -4,7 +4,7 @@
 #   Agents (one for each network entity that wants to be tested).
 #   
 #   
-#   Copyright © 2016-2020 CNES
+#   Copyright © 2016-2023 CNES
 #   
 #   
 #   This file is part of the OpenBACH testbed.
@@ -29,7 +29,7 @@ general:
   name: iptables
   description: >
       This Job allows to add any iptables rule (you should specify your full chain).
-  job_version: '1.0'
+  job_version: '2.0'
   keywords:
     - iptables
     - rule
@@ -44,13 +44,18 @@ platform_configuration:
     ansible_distribution: 'Ubuntu'
     ansible_distribution_version: '20.04'
     command: '/usr/bin/env python3 /opt/openbach/agent/jobs/iptables/iptables.py'
-    command_stop:  
+    command_stop:
+  - ansible_system: 'Debian'
+    ansible_distribution: 'Ubuntu'
+    ansible_distribution_version: '22.04'
+    command: '/usr/bin/env python3 /opt/openbach/agent/jobs/iptables/iptables.py'
+    command_stop:
 
 arguments:
   required:
     - name: rule
       type: str
-      count: 1
+      count: '+'
       description: "The iptables rule to apply, e.g '-A INPUT -p tcp -m tcp --dport 80 -j ACCEPT'"
   
 statistics:

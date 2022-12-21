@@ -4,7 +4,7 @@
 # Agents (one for each network entity that wants to be tested).
 #
 #
-# Copyright © 2016-2020 CNES
+# Copyright © 2016-2023 CNES
 #
 #
 # This file is part of the OpenBACH testbed.
@@ -97,6 +97,11 @@ class BadRequestError(ConductorError):
 class UnprocessableError(ConductorError):
     """Error dedicated to requests that fail even though arguments are well formed"""
     ERROR_CODE = 422
+
+
+class UnreachableError(UnprocessableError):
+    """Error dedicated to requests that fail because an other component (mostly the agent) could not be reached"""
+    pass
 
 
 class ConductorWarning(ConductorError):

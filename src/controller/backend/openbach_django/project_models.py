@@ -4,7 +4,7 @@
 # Agents (one for each network entity that wants to be tested).
 #
 #
-# Copyright © 2016-2020 CNES
+# Copyright © 2016-2023 CNES
 #
 #
 # This file is part of the OpenBACH testbed.
@@ -138,11 +138,22 @@ class Collector(models.Model):
 class Agent(models.Model):
     """Data associated to an Agent"""
 
+    class Status(models.TextChoices):
+        AGENT_UNREACHABLE = 'U'
+        AGENT_REACHABLE_BUT_DAEMON_UNAVAILABLE = 'R'
+        AVAILABLE = 'A'
+        INSTALLING = 'I'
+        UNINSTALL_FAILED = 'F'
+        DETACH_FAILED = 'D'
+
     name = models.CharField(max_length=500, db_index=True, unique=True)
     address = models.CharField(max_length=500, db_index=True, unique=True)
     port = models.SmallIntegerField(default=1112)
     rstats_port = models.SmallIntegerField(default=1111)
-    status = models.CharField(max_length=500, null=True, blank=True)
+    status = models.CharField(
+            max_length=max(map(len, Status.values)),
+            choices=Status.choices,
+            default=Status.INSTALLING)
     update_status = models.DateTimeField(null=True, blank=True)
     reachable = models.BooleanField(default=False)
     update_reachable = models.DateTimeField(null=True, blank=True)
@@ -172,6 +183,9 @@ class Agent(models.Model):
                 collector = Collector.objects.get(address=self.__original_address)
                 collector.address = self.address
                 collector.save()
+
+    def get_status(self):
+        return self.Status(self.status)
 
     def set_status(self, status):
         self.status = status
@@ -209,7 +223,7 @@ class Agent(models.Model):
                 'collector_ip': self.collector.address,
                 'reachable': self.reachable,
                 'available': self.available,
-                'status': self.status,
+                'status': self.get_status().label,
                 'project': project,
                 'reserved': self.project and self.project.name,
         }

@@ -6,7 +6,7 @@
 # Agents (one for each network entity that wants to be tested).
 #
 #
-# Copyright © 2016-2020 CNES
+# Copyright © 2016-2023 CNES
 #
 #
 # This file is part of the OpenBACH testbed.
@@ -50,26 +50,6 @@ from statistics import mean
 import collect_agent
 
 
-@contextlib.contextmanager
-def use_configuration(filepath):
-    success = collect_agent.register_collect(filepath)
-    if not success:
-        message = 'ERROR connecting to collect-agent'
-        collect_agent.send_log(syslog.LOG_ERR, message)
-        sys.exit(message)
-    collect_agent.send_log(syslog.LOG_DEBUG, 'Starting job ' + os.environ.get('JOB_NAME', '!'))
-    try:
-        yield
-    except Exception:
-        message = traceback.format_exc()
-        collect_agent.send_log(syslog.LOG_CRIT, message)
-        raise
-    except SystemExit as e:
-        if e.code != 0:
-            collect_agent.send_log(syslog.LOG_CRIT, 'Abrupt program termination: ' + str(e.code))
-        raise
-
-
 def command_line_flag_for_argument(argument, flag):
     if argument is not None:
         yield flag
@@ -103,6 +83,7 @@ def main(destination_ip, count, interval, interface, packetsize, ttl, n_mean):
             continue
 
         match = re.match(pattern, output)
+        
         if match is None:
             message = 'Unrecognised fping output: {}'.format(output)
             collect_agent.send_log(syslog.LOG_WARNING, message)
@@ -121,7 +102,7 @@ def main(destination_ip, count, interval, interface, packetsize, ttl, n_mean):
 
 
 if __name__ == "__main__":
-    with use_configuration('/opt/openbach/agent/jobs/fping/fping_rstats_filter.conf'):
+    with collect_agent.use_configuration('/opt/openbach/agent/jobs/fping/fping_rstats_filter.conf'):
         # Define Usage
         parser = argparse.ArgumentParser(
                 description=__doc__,

@@ -4,7 +4,7 @@
 #   Agents (one for each network entity that wants to be tested).
 #   
 #   
-#   Copyright © 2016-2020 CNES
+#   Copyright © 2016-2023 CNES
 #   
 #   
 #   This file is part of the OpenBACH testbed.
@@ -28,13 +28,12 @@
 - name: Install apt dependencies
   apt:
     pkg:
+    - ansible
     - acl
     - sshpass
-    - postgresql-server-dev-12
+    - postgresql-server-dev-14
     - postgresql
     - pgbouncer
-    - libpq-dev  # For psycopg2, necessary for ansible's postgresql_* modules
-    - python-dev  # For psycopg2, necessary for ansible's postgresql_* modules
     state: present
     update_cache: no
   become: yes
@@ -44,20 +43,18 @@
 - name: Install pip3 Dependencies
   pip:
     name:
-      - psycopg2
-      - apscheduler
-      - uwsgi
-      - fuzzywuzzy
-      - python-Levenshtein
-      - numpy
-      - ansible
-      - django
+      - psycopg2==2.8.6
+      - fuzzywuzzy==0.18.0
+      - python-Levenshtein==0.12.2
+      - django==3.0
+      - uwsgi==2.0.20
     executable: pip3
-    extra_args: '-U --no-index --find-links=file:///opt/openbach/pip_mirror/python3/'
+    extra_args: '-U'
   become: yes
+  environment: "{{ openbach_proxy_env }}"
 
 - name: Check the installed version of Ansible
-  command: python3 -c "from distutils.version import LooseVersion; from ansible import __version__; print(LooseVersion(__version__) < '2.9')"
+  command: python3 -c "from pkg_resources import parse_version as version; from ansible import __version__; print(version(__version__) < version('2.9'))"
   remote_user: openbach
   register: openbach_check_ansible_version
 
@@ -128,18 +125,12 @@
     recursive: yes
     delete: yes
     rsync_opts:
-      - --exclude
-      - __pycache__
-      - --exclude
-      - functional_tests.sh
-      - --exclude
-      - manage.py
-      - --filter
-      - P static_root
-      - --filter
-      - P local_settings.py
-      - --filter
-      - P pgbouncer_auth.txt
+      - --exclude=__pycache__
+      - --exclude=functional_tests.sh
+      - --exclude=manage.py
+      - --filter='P static_root'
+      - --filter='P local_settings.py'
+      - --filter='P pgbouncer_auth.txt'
   remote_user: openbach
 
 - name: Install the Conductor
@@ -149,8 +140,7 @@
     recursive: yes
     delete: yes
     rsync_opts:
-      - --exclude
-      - __pycache__
+      - --exclude=__pycache__
   remote_user: openbach
 
 - name: Fetch the openbach User's SSH public Key
@@ -248,20 +238,29 @@
     - fail:
         msg: >
           It appears that a previous OpenBACH database is still present in
-          the Controller. To avoid loss of data we won't overwrite it. Please
-          remove this database manually before retrying; or run the playbook
-          with the '--skip-tags restore_backend_database' option.
+          the Controller. To avoid loss of data we won't overwrite it. If
+          you know what you’re doing, remove this database manually before
+          retrying; or run the playbook with the
+          '--skip-tags restore_backend_database' option.
       when: not openbach_backend_database.changed
       tags:
         - restore_backend_database
 
     - name: Lookup for Database Dump Filename
-      shell: ls -d /tmp/openbach_controller_backup_*.sql
+      find:
+        paths: /tmp
+        recurse: no
+        patterns: openbach_controller_backup_*.sql
       register: openbach_sql_dump
+      failed_when: (openbach_sql_dupm.files | count) != 1
+
+    - name: Store Database Dump Filename
+      set_fact:
+        openbach_sql_dump_file: "{{ openbach_sql_dump.files | map(attribute='path') | first }}"
 
     - name: Fix Permissions of Database Dump File so Postgres Can Read It
       file:
-        path: "{{ openbach_sql_dump.stdout }}"
+        path: "{{ openbach_sql_dump_file }}"
         owner: postgres
         group: postgres
       become: yes
@@ -271,7 +270,7 @@
         name: openbach_db
         owner: openbach
         state: restore
-        target: "{{ openbach_sql_dump.stdout }}"
+        target: "{{ openbach_sql_dump_file }}"
       become: yes
       become_user: postgres
       tags:
@@ -279,7 +278,7 @@
 
     - name: Remove Extracted Files
       file:
-        path: "{{ openbach_sql_dump.stdout }}"
+        path: "{{ openbach_sql_dump_file }}"
         state: absent
       become: yes
 
@@ -308,8 +307,7 @@
     recursive: yes
     delete: yes
     rsync_opts:
-      - --exclude
-      - __pycache__
+      - --exclude=__pycache__
   remote_user: openbach
 
 - name: Copy the installation Playbooks
@@ -319,10 +317,8 @@
     recursive: yes
     delete: yes
     rsync_opts:
-      - --exclude
-      - __pycache__
-      - --exclude
-      - '*.pyc'
+      - --exclude=__pycache__
+      - --exclude=*.pyc
   with_items:
     - roles
     - library
@@ -341,10 +337,8 @@
     recursive: yes
     delete: yes
     rsync_opts:
-      - --exclude
-      - __pycache__
-      - --filter
-      - P private_jobs
+      - --exclude=__pycache__
+      - --filter='P private_jobs'
   remote_user: openbach
 
 - name: Copy the Sources of the User-provided Jobs
@@ -354,11 +348,12 @@
     recursive: yes
     delete: no
     rsync_opts:
-      - --exclude
-      - __pycache__
+      - --exclude=__pycache__
   with_items:
     - "{{ openbach_jobs_folders }}"
-  when: openbach_restore_host is not defined and openbach_jobs_folders is defined and openbach_jobs_folders
+  when:
+    - openbach_restore_host is not defined
+    - openbach_jobs_folders is defined and openbach_jobs_folders
   remote_user: openbach
 
 - name: Copy the version file on the Controller

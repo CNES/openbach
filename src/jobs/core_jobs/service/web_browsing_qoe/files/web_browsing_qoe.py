@@ -7,7 +7,7 @@
 # Agents (one for each network entity that wants to be tested).
 #
 #
-# Copyright © 2016-2020 CNES
+# Copyright © 2016-2023 CNES
 #
 #
 # This file is part of the OpenBACH testbed.
@@ -36,6 +36,7 @@ __credits__ = '''Contributors:
 '''
 
 import os
+import sys
 import yaml
 import time
 import signal
@@ -43,8 +44,6 @@ import psutil
 import syslog
 import argparse
 import threading
-import traceback
-import contextlib
 from seleniumwire import webdriver
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.firefox.firefox_binary import FirefoxBinary
@@ -54,25 +53,6 @@ from selenium.webdriver import FirefoxOptions
 from functools import partial
 
 import collect_agent
-
-@contextlib.contextmanager
-def use_configuration(filepath):
-    success = collect_agent.register_collect(filepath)
-    if not success:
-        message = 'ERROR connecting to collect-agent'
-        collect_agent.send_log(syslog.LOG_ERR, message)
-        sys.exit(message)
-    collect_agent.send_log(syslog.LOG_DEBUG, 'Starting job ' + os.environ.get('JOB_NAME', '!'))
-    try:
-        yield
-    except Exception:
-        message = traceback.format_exc()
-        collect_agent.send_log(syslog.LOG_CRIT, message)
-        raise
-    except SystemExit as e:
-        if e.code != 0:
-            collect_agent.send_log(syslog.LOG_CRIT, 'Abrupt program termination: ' + str(e.code))
-        raise
 
 
 # TODO: Add support for other web browsers
@@ -136,7 +116,7 @@ def compute_qos_metrics(driver, url_to_fetch, qos_metrics):
         print(message)
         collect_agent.send_log(syslog.LOG_ERR, message)
         driver.quit()
-        exit(message)
+        sys.exit(message)
     return results
 
     
@@ -183,7 +163,7 @@ def launch_thread(collect_agent, url, config, qos_metrics, stop_compression, pro
     except Exception as ex:
         message = 'ERROR when initializing the web driver: {}'.format(ex)
         collect_agent.send_log(syslog.LOG_ERR, message)
-        exit(message)
+        sys.exit(message)
     if my_driver is not None:
         timestamp = int(time.time() * 1000)
         statistics = compute_qos_metrics(my_driver, url, qos_metrics)
@@ -198,7 +178,7 @@ def launch_thread(collect_agent, url, config, qos_metrics, stop_compression, pro
     else:
         message = 'Sorry, specified driver is not available. For now, only Firefox driver is supported'
         collect_agent.send_log(syslog.LOG_ERR, message)
-        exit(message)
+        sys.exit(message)
 
 
 def main(nb_runs, max_threads, stop_compression, proxy_address, proxy_port, urls):
@@ -220,26 +200,29 @@ def main(nb_runs, max_threads, stop_compression, proxy_address, proxy_port, urls
     # Compute qos metrics for each url 'nb_runs' times
     thread_list = []
     try:
-        for i in range(1, args.nb_runs + 1, 1):
+        for _ in range(args.nb_runs):
             for url in urls:
                 # condition of "max_threads + 1" because seleniumwire uses 1 additional inner thread to monitor requests
                 while threading.active_count() > max_threads + 1:
                     time.sleep(1)
-                t = threading.Thread(target=launch_thread, args=(collect_agent, url, config, qos_metrics, stop_compression, proxy_address, proxy_port))
+                t = threading.Thread(
+                        target=launch_thread,
+                        args=(collect_agent, url, config, qos_metrics, stop_compression, proxy_address, proxy_port))
                 thread_list.append(t)
                 t.start()
                 time.sleep(2)
     except Exception as ex:
         message = 'An unexpected error occured: {}'.format(ex)
         collect_agent.send_log(syslog.LOG_ERR, message)
-        exit(message)
+        sys.exit(message)
     finally:
         for t in thread_list:
             t.join()
         kill_children(os.getpid())
 
+
 if __name__ == '__main__':
-    with use_configuration('/opt/openbach/agent/jobs/web_browsing_qoe/web_browsing_qoe_rstats_filter.conf'):
+    with collect_agent.use_configuration('/opt/openbach/agent/jobs/web_browsing_qoe/web_browsing_qoe_rstats_filter.conf'):
         # Argument parsing
         parser = argparse.ArgumentParser()
         parser.add_argument('nb_runs', help='The number of fetches to perform for each website', type=int)
@@ -248,8 +231,7 @@ if __name__ == '__main__':
         parser.add_argument('-Pa', '--proxy_address', help='Set the proxy address (also needs a proxy port)', type=str)
         parser.add_argument('-Pp', '--proxy_port', help='Set the proxy port (also needs a proxy address)', type=int)
         parser.add_argument('-u', '--urls', nargs='+', help='URLs to fetch (uses config.yaml if not set)', type=str)
-    
+
         args = parser.parse_args()
-    
+
         main(args.nb_runs, args.nb_parallel_runs, args.no_compression, args.proxy_address, args.proxy_port, args.urls)
-    

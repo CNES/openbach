@@ -4,7 +4,7 @@
 #   Agents (one for each network entity that wants to be tested).
 #   
 #   
-#   Copyright © 2016-2020 CNES
+#   Copyright © 2016-2023 CNES
 #   
 #   
 #   This file is part of the OpenBACH testbed.
@@ -34,6 +34,7 @@ elasticsearch_port: 9200
 elasticsearch_cluster_name: openbach
 django_port: 8000
 grafana_port: 3000
+chronograf_port: 8888
 kibana_port: 5601
 influxdb_port: 8086
 influxdb_database_name: openbach
@@ -41,7 +42,3 @@ influxdb_database_precision: ms
 auditorium_broadcast_mode: udp
 auditorium_broadcast_port: 2223
 database_max_cache: 1024m
-is_run_from_conductor: false
-openbach_repository_gpg_key: https://raw.githubusercontent.com/CNES/net4sat-packages/master/gpg/net4sat.gpg.key
-openbach_repository:
-  - deb https://raw.githubusercontent.com/CNES/net4sat-packages/master/ focal stable

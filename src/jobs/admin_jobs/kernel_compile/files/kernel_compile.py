@@ -6,7 +6,7 @@
 # Agents (one for each network entity that wants to be tested).
 #
 #
-# Copyright © 2016-2020 CNES
+# Copyright © 2016-2023 CNES
 #
 #
 # This file is part of the OpenBACH testbed.
@@ -85,4 +85,3 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     main(args.kernel_url, args.target_folder, args.git_branch, args.tag)
-

@@ -7,7 +7,7 @@
 # Agents (one for each network entity that wants to be tested).
 #
 #
-# Copyright © 2016-2020 CNES
+# Copyright © 2016-2023 CNES
 #
 #
 # This file is part of the OpenBACH testbed.
@@ -40,15 +40,11 @@ __credits__ = '''Contributors:
 '''
 
 
-import os
 import re
 import sys
-import time
 import syslog
 import argparse
-import traceback
 import subprocess
-import contextlib
 from itertools import repeat
 from collections import defaultdict
 
@@ -67,32 +63,9 @@ class AutoIncrementFlowNumber:
         return 'Flow{0.count}'.format(self)
 
 
-@contextlib.contextmanager
-def use_configuration(filepath):
-    success = collect_agent.register_collect(filepath)
-    if not success:
-        message = 'ERROR connecting to collect-agent'
-        collect_agent.send_log(syslog.LOG_ERR, message)
-        sys.exit(message)
-    collect_agent.send_log(
-        syslog.LOG_DEBUG, 'Starting job ' + os.environ.get('JOB_NAME', '!'))
-    try:
-        yield
-    except Exception:
-        message = traceback.format_exc()
-        collect_agent.send_log(syslog.LOG_CRIT, message)
-        raise
-    except SystemExit as e:
-        if e.code != 0:
-            collect_agent.send_log(
-                syslog.LOG_CRIT, 'Abrupt program termination: ' + str(e.code))
-        raise
-
-
 def run_process(cmd):
     try:
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE)
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     except Exception as ex:
         message = 'Error running {} : {}'.format(cmd, ex)
         collect_agent.send_log(syslog.LOG_ERR, message)
@@ -101,16 +74,20 @@ def run_process(cmd):
     return p
 
 
-def _parse_to_bytes(entry):
-    if entry.isnumeric():
-        return int(entry)
-    value, unit = int(entry[:-1]), entry[-1]
+def compact_bytes(value):
+    match = re.fullmatch(r'(\d+)(K|M|G)?', value)
+    if not match:
+        raise argparse.ArgumentError('wrong format: use numbers followed by an optionnal K, M, or G')
+
+    base, unit = match.groups()
     if unit == 'K':
-        return value * 1024
-    if unit == 'M':
-        return value * 1024 * 1024
-    if unit == 'G':
-        return value * 1024 * 1024 * 1024
+        return int(base) * 1024
+    elif unit == 'M':
+        return int(base) * 1024 * 1024
+    elif unit == 'G':
+        return int(base) * 1024 * 1024 * 1024
+    else:
+        return int(base)
 
 
 def multiplier(unit, base):
@@ -146,36 +123,61 @@ def sender(cmd):
     flow_map = defaultdict(AutoIncrementFlowNumber())
 
     first_line = {}
-    total_sent_data = {}
+    total_sent_data = defaultdict(int)
 
     for flow_number in repeat(None):
         line = p.stdout.readline().decode()
         tokens = BRACKETS.sub('', line).split()
+       
         if not tokens:
             if p.poll() is not None:
                 break
             continue
 
-        timestamp = int(time.time() * 1000)
+        timestamp = collect_agent.now()
         try:
+            # check if it is a line with total download time
+            if len(tokens) < 2:
+                continue
+
+            flow = tokens[0]
+            interval_begin, interval_end = map(float, tokens[1].split("-"))
             try:
-                # check if it is a line with total download time
-                if len(tokens) < 2:
-                    continue
-                flow = tokens[0]
-                interval_begin, interval_end = map(float, tokens[1].split("-"))
-                try:
-                    flow_number = flow_map[int(flow)]
-                except ValueError:
-                    if flow.upper() != "SUM":
-                        continue
-                if interval_begin == 0 and flow in first_line:
-                    statistics = {'download_time': interval_end}
-                    collect_agent.send_stat(
-                        timestamp, suffix=flow_number, **statistics)
-                    del first_line[flow]
+                flow_number = flow_map[int(flow)]
+            except ValueError:
+                flow_number = None
+                if flow.upper() != "SUM":
                     continue
 
+            if interval_begin == 0 and flow in first_line:
+                statistics = {'download_time': interval_end}
+
+                try:
+                    #if UDP
+                    flow, duration, _, t_transfer, t_transfer_units, a_bandwidth, a_bandwidth_units, l_jitter, l_jitter_unit, t_pkts_stat, total_datagrams, entity = tokens 
+                    t_lost, total = map(int, t_pkts_stat.split('/'))
+                    l_jitter = float(l_jitter)
+                    t_plr = float(total_datagrams[1:-2])
+
+                    statistics['total_sent_pkts'] = total
+                    statistics['total_lost_pkts'] = t_lost
+                    statistics['total_plr'] = t_plr
+                except ValueError:
+                    #if TCP
+                    flow, duration, _, t_transfer, t_transfer_units, a_bandwidth, a_bandwidth_units, t_retries, entity = tokens
+                    statistics['total_retransmission'] = int(t_retries)
+
+                t_transfer = float(t_transfer)
+                a_bandwidth = float(a_bandwidth)
+                statistics['total_transfer'] = t_transfer * multiplier(t_transfer_units, 'Bytes')
+                statistics['average_throughput'] = a_bandwidth * multiplier(a_bandwidth_units, 'bits/sec')
+
+                if entity == "receiver":
+                    collect_agent.send_stat(timestamp, flow_number, **statistics)
+
+                continue
+
+            try:
                 # otherwise test if TCP or UDP traffic
                 flow, duration, _, transfer, transfer_units, bandwidth, bandwidth_units, total_datagrams = tokens
                 total_datagrams = int(total_datagrams)
@@ -186,6 +188,7 @@ def sender(cmd):
                 cwnd = float(cwnd)
             else:
                 udp = True
+         
             transfer = float(transfer)
             bandwidth = float(bandwidth)
             interval_begin, interval_end = map(float, duration.split('-'))
@@ -196,12 +199,11 @@ def sender(cmd):
         try:
             flow_number = flow_map[int(flow)]
         except ValueError:
+            flow_number = None
             if flow.upper() != "SUM":
                 continue
 
         first_line[flow] = True
-        if flow not in total_sent_data:
-            total_sent_data[flow] = 0
         total_sent_data[flow] += transfer * multiplier(transfer_units, 'Bytes')
 
         statistics = {
@@ -214,6 +216,8 @@ def sender(cmd):
         else:
             statistics['cwnd'] = cwnd * multiplier(cwnd_units, 'Bytes')
             statistics['retransmissions'] = retries
+
+        
         collect_agent.send_stat(timestamp, suffix=flow_number, **statistics)
 
     error_log = p.stderr.readline()
@@ -234,29 +238,66 @@ def receiver(cmd):
     for flow_number in repeat(None):
         line = p.stdout.readline().decode()
         tokens = BRACKETS.sub('', line).split()
+      
         if not tokens:
             if p.poll() is not None:
                 break
             continue
 
-        timestamp = int(time.time() * 1000)
+        timestamp = collect_agent.now()
         try:
             try:
                 # check if it is a line with total download time
                 if len(tokens) < 2:
                     continue
+
                 flow = tokens[0]
                 interval_begin, interval_end = map(float, tokens[1].split("-"))
                 try:
                     flow_number = flow_map[int(flow)]
+
                 except ValueError:
                     if flow.upper() != "SUM":
                         continue
+                
+
                 if interval_begin == 0 and flow in first_line:
+                    
                     statistics = {'download_time': interval_end}
+
+
+                    try:
+                        #if UDP
+                        flow, duration, _, t_transfer, t_transfer_units, a_bandwidth, a_bandwidth_units,l_jitter,l_jitter_unit,t_pkts_stat, total_datagrams,_ = tokens
+                        l_jitter=float(l_jitter)
+                        t_lost, total = map(int, t_pkts_stat.split('/'))
+                        t_plr=float(total_datagrams[1:-2])
+
+                        statistics['total_lost_pkts']=t_lost
+                        statistics['last_jitter']=l_jitter* multiplier(l_jitter_unit, 's')
+                        statistics['total_sent_pkts']=total
+                        statistics['total_plr']=t_plr
+
+                    except ValueError:
+
+                        #if TCP
+                        flow, duration, _, t_transfer, t_transfer_units, a_bandwidth, a_bandwidth_units,_ = tokens
+
+                    t_transfer=float(t_transfer)                   
+                    a_bandwidth=float(a_bandwidth)
+                    statistics['total_transfer']=t_transfer* multiplier(t_transfer_units, 'Bytes')
+                    statistics['average_throughput']=a_bandwidth* multiplier(a_bandwidth_units, 'bits/sec')
+
+
+                    if flow.upper()=="SUM":
+                        suffix=flow
+                    else:
+                        suffix=flow_number
                     collect_agent.send_stat(
-                        timestamp, suffix=flow_number, **statistics)
+                        timestamp, suffix, **statistics)
+
                     del first_line[flow]
+
                     continue
 
                 # otherwise test if TCP or UDP traffic
@@ -278,6 +319,7 @@ def receiver(cmd):
 
         try:
             flow_number = flow_map[int(flow)]
+
         except ValueError:
             if flow.upper() != "SUM":
                 continue
@@ -296,6 +338,8 @@ def receiver(cmd):
             statistics['lost_pkts'] = lost
             statistics['sent_pkts'] = total
             statistics['plr'] = datagrams
+
+        
         collect_agent.send_stat(timestamp, suffix=flow_number, **statistics)
 
     error_log = p.stderr.readline()
@@ -326,7 +370,7 @@ def client(
 
     cmd.extend(_command_build_helper('-t', time_duration))
     if time_duration is None:
-        if transmitted_size is not None and _parse_to_bytes(transmitted_size) < 1024 * 1024:
+        if transmitted_size is not None and transmitted_size < 1024 * 1024:
             message = 'Error : the number of bytes to transmit is too low.'
             collect_agent.send_log(syslog.LOG_ERR, message)
             sys.exit(message)
@@ -358,7 +402,7 @@ def server(exit, bind, metrics_interval, port, num_flows, reverse):
 
 
 if __name__ == "__main__":
-    with use_configuration('/opt/openbach/agent/jobs/iperf3/iperf3_rstats_filter.conf'):
+    with collect_agent.use_configuration('/opt/openbach/agent/jobs/iperf3/iperf3_rstats_filter.conf'):
         # Define Usage
         parser = argparse.ArgumentParser(
             description=__doc__,
@@ -402,7 +446,7 @@ if __name__ == "__main__":
             '-t', '--time_duration', type=float,
             help='The duration of the transmission (default 10 sec).')
         parser_client.add_argument(
-            '-s', '--transmitted_size', type=str,
+            '-s', '--transmitted_size', type=compact_bytes,
             help='The number of bytes to transmit (if set the time_duration parameter has more priority). You can '
             'use [K/M/G]: set 100M to send 100 MBytes. Needs to be more than 1 MB.')
         parser_client.add_argument(
@@ -447,4 +491,3 @@ if __name__ == "__main__":
         args = vars(parser.parse_args())
         main = args.pop('function')
         main(**args)
-

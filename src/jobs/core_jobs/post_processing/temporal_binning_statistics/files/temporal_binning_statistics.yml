@@ -4,7 +4,7 @@
 #   Agents (one for each network entity that wants to be tested).
 #   
 #   
-#   Copyright © 2016-2020 CNES
+#   Copyright © 2016-2023 CNES
 #   
 #   
 #   This file is part of the OpenBACH testbed.
@@ -29,7 +29,7 @@ general:
   name: temporal_binning_statistics
   description: >
       This job post-process data of other jobs. It allows to performs statistics analysis of jobs metrics.
-  job_version: '1.1'
+  job_version: '1.2'
   keywords:
     - post-processing
     - temporal-binning
@@ -47,6 +47,11 @@ platform_configuration:
   - ansible_system: Debian
     ansible_distribution: Ubuntu
     ansible_distribution_version: '20.04'
+    command: '/usr/bin/env python3 /opt/openbach/agent/jobs/temporal_binning_statistics/temporal_binning_statistics.py'
+    command_stop:
+  - ansible_system: Debian
+    ansible_distribution: Ubuntu
+    ansible_distribution_version: '22.04'
     command: '/usr/bin/env python3 /opt/openbach/agent/jobs/temporal_binning_statistics/temporal_binning_statistics.py'
     command_stop:
 
@@ -113,6 +118,11 @@ arguments:
       count: 0
       flag: '-n'
       description: Do not draw any legend on the graph
+    - name: hide_grid
+      type: None
+      count: 0
+      flag: '-d'
+      description: Do not show grid on the graph
     - name: hide_median
       type: None
       count: 0

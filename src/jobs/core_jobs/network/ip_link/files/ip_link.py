@@ -6,7 +6,7 @@
 # Agents (one for each network entity that wants to be tested).
 #
 #
-# Copyright © 2016-2020 CNES
+# Copyright © 2016-2023 CNES
 #
 #
 # This file is part of the OpenBACH testbed.
@@ -60,26 +60,6 @@ def extend_arguments(cmd, name, argument):
         cmd.extend([name, str(argument)])
 
 
-@contextlib.contextmanager
-def use_configuration(filepath):
-    success = collect_agent.register_collect(filepath)
-    if not success:
-        message = 'ERROR connecting to collect-agent'
-        collect_agent.send_log(syslog.LOG_ERR, message)
-        sys.exit(message)
-    collect_agent.send_log(syslog.LOG_DEBUG, 'Starting job ' + os.environ.get('JOB_NAME', '!'))
-    try:
-        yield
-    except Exception:
-        message = traceback.format_exc()
-        collect_agent.send_log(syslog.LOG_CRIT, message)
-        raise
-    except SystemExit as e:
-        if e.code != 0:
-            collect_agent.send_log(syslog.LOG_CRIT, 'Abrupt program termination: ' + str(e.code))
-        raise
-
-
 def ip_link_add(name, link, txqueuelen, address, broadcast, mtu, type, **type_args):
     cmd = ['ip', 'link', 'add', 'name', name]
     extend_arguments(cmd, 'link', link)
@@ -121,7 +101,7 @@ def ip_link_set(dev, group, state, arp, dynamic, multicast, txqueuelen, address,
 
 
 if __name__ == '__main__':
-    with use_configuration('/opt/openbach/agent/jobs/ip_link/ip_link_rstats_filter.conf'):
+    with collect_agent.use_configuration('/opt/openbach/agent/jobs/ip_link/ip_link_rstats_filter.conf'):
         # Define Usage
         parser = argparse.ArgumentParser(
                 description=__doc__,
@@ -186,5 +166,3 @@ if __name__ == '__main__':
         args = vars(parser.parse_args())
         main = args.pop('function')
         main(**args)
-
-

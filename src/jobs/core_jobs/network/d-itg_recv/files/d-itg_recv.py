@@ -6,7 +6,7 @@
 # Agents (one for each network entity that wants to be tested).
 #
 #
-# Copyright © 2016-2020 CNES
+# Copyright © 2016-2023 CNES
 #
 #
 # This file is part of the OpenBACH testbed.
@@ -42,24 +42,6 @@ import contextlib
 
 import collect_agent
 
-@contextlib.contextmanager
-def use_configuration(filepath):
-    success = collect_agent.register_collect(filepath)
-    if not success:
-        message = 'ERROR connecting to collect-agent'
-        collect_agent.send_log(syslog.LOG_ERR, message)
-        sys.exit(message)
-    collect_agent.send_log(syslog.LOG_DEBUG, 'Starting job ' + os.environ.get('JOB_NAME', '!'))
-    try:
-        yield
-    except Exception:
-        message = traceback.format_exc()
-        collect_agent.send_log(syslog.LOG_CRIT, message)
-        raise
-    except SystemExit as e:
-        if e.code != 0:
-            collect_agent.send_log(syslog.LOG_CRIT, 'Abrupt program termination: ' + str(e.code))
-        raise
 
 def main(log_buffer_size, signal_port=9000):
     if log_buffer_size:
@@ -76,13 +58,18 @@ def main(log_buffer_size, signal_port=9000):
 
 
 if __name__ == "__main__":
-    with use_configuration("/opt/openbach/agent/jobs/d-itg_recv/d-itg_recv_rstats_filter.conf"):
-        parser = argparse.ArgumentParser(description='Create a D-ITG command',
-                                         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-        parser.add_argument('-P', '--signal_port', type=int, metavar='SIGNAL PORT', default=9000,
-                            help='Set port for signal transmission (default=9000)')
-        parser.add_argument('-q', '--log_buffer_size', type=int, metavar='LOG BUFFER SIZE',
-                            help='Number of packets to push to the log at once (Default: 50)')
+    with collect_agent.use_configuration("/opt/openbach/agent/jobs/d-itg_recv/d-itg_recv_rstats_filter.conf"):
+        parser = argparse.ArgumentParser(
+                description='Create a D-ITG command',
+                formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        parser.add_argument(
+                '-P', '--signal_port',
+                type=int, metavar='SIGNAL PORT', default=9000,
+                help='Set port for signal transmission (default=9000)')
+        parser.add_argument(
+                '-q', '--log_buffer_size',
+                type=int, metavar='LOG BUFFER SIZE',
+                help='Number of packets to push to the log at once (Default: 50)')
 
         # get args
         args = parser.parse_args()

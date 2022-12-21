@@ -4,7 +4,7 @@
 #   Agents (one for each network entity that wants to be tested).
 #   
 #   
-#   Copyright © 2016-2020 CNES
+#   Copyright © 2016-2023 CNES
 #   
 #   
 #   This file is part of the OpenBACH testbed.
@@ -28,12 +28,19 @@
 - name: Create the Temporary Files to Archive the Controller Into
   tempfile:
     prefix: openbach_controller_backup_
-    suffix: .sql
+    suffix: "{{ item }}"
     state: file
   with_items:
     - .tar.gz
     - .sql
+  become: yes
   register: openbach_backup_archive_name
+
+- name: Add Read Permissions to the Archive File
+  file:
+    path: "{{ openbach_backup_archive_name.results[0].path }}"
+    mode: a+r
+  become: yes
 
 - name: Backup Django's Database
   command: python3 -c "import subprocess, os; os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.settings'); from django.conf import settings; db = settings.DATABASES['default']; s = subprocess.Popen(['pg_dump', '-U', db['USER'], db['NAME'], '-h', db['HOST'], '-p', db['PORT'], '-f', '{{ openbach_backup_archive_name.results[1].path }}']); s.communicate(db['PASSWORD'].encode()); s.wait()"
@@ -61,3 +68,4 @@
     path: "{{ item }}"
     state: absent
   with_items: "{{ openbach_backup_archive_name.results | map(attribute='path') | list }}"
+  become: yes

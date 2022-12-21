@@ -4,7 +4,7 @@
 #   Agents (one for each network entity that wants to be tested).
 #   
 #   
-#   Copyright © 2016-2020 CNES
+#   Copyright © 2016-2023 CNES
 #   
 #   
 #   This file is part of the OpenBACH testbed.
@@ -40,12 +40,11 @@
   with_items:
     - https://dl.influxdata.com/chronograf/releases/chronograf_{{ chronograf_version }}_amd64.deb
     - https://artifacts.elastic.co/downloads/kibana/kibana-{{ kibana_version }}-amd64.deb
-    - https://dl.grafana.com/oss/release/grafana_{{ grafana_version }}_amd64.deb
   become: yes
   environment: "{{ openbach_proxy_env }}"
 
-- name: Configure Grafana
-  template: src=grafana.ini.j2 dest=/etc/grafana/grafana.ini mode=0640
+- name: Configure Chronograf
+  template: src=chronograf.j2 dest=/etc/default/chronograf mode=0640
   become: yes
 
 - name: Configure Kibana
@@ -78,7 +77,7 @@
   systemd: name={{ item }} state=restarted enabled=yes daemon_reload=yes
   with_items:
     - kibana
-    - grafana-server
+    - chronograf
     - nginx
   become: yes
 
@@ -148,86 +147,50 @@
           - { filename: 'dashboard.json', url: 'dashboard/default_dashboard'}
   when: openbach_restore_host is not defined
 
-- name: Wait for Grafana to Start
-  wait_for: port={{ grafana_port }} timeout=60
+- name: Wait for Chronograf to Start
+  wait_for: port={{ chronograf_port }} timeout=60
 
 - block:
-    - name: Authenticate into Grafana
-      uri:
-        url: http://localhost:{{ grafana_port }}/login
-        method: POST
-        body_format: json
-        body:
-          user: "admin"
-          password: "admin"
-          email: ""
-      register: openbach_grafana_login
-
-    - name: Lookup the List of Configured Datasources for Grafana
-      uri:
-        url: http://localhost:{{ grafana_port }}/api/datasources
-        method: GET
-        headers:
-          Cookie: "grafana_remember={{ openbach_grafana_login.cookies.grafana_remember }}; grafana_sess={{ openbach_grafana_login.cookies.grafana_sess }}; grafana_user={{ openbach_grafana_login.cookies.grafana_user }}"
-      register: openbach_grafana_datasources
-
-    - name: Add Our InfluxDB Cluster as Datasource for Grafana
-      uri:
-        url: http://localhost:{{ grafana_port }}/api/datasources
-        method: POST
-        body_format: json
-        body:
-          name: openbach
-          type: influxdb
-          url: http://{{ openbach_collector }}:{{ influxdb_port }}/
-          database: "{{ influxdb_database_name }}"
-          access: proxy
-          user: openbach
-          password: openbach
-        headers:
-          Cookie: "grafana_remember={{ openbach_grafana_login.cookies.grafana_remember }}; grafana_sess={{ openbach_grafana_login.cookies.grafana_sess }}; grafana_user={{ openbach_grafana_login.cookies.grafana_user }}"
-      when: not (openbach_grafana_datasources.json | map(attribute='name') | intersect(['openbach']))
-
-  rescue:
-    - debug:
-        msg: >
-          Automatically setting the collector's InfluxDB cluster as a Grafana's
-          data source failed. You should have details of the error above, but
-          this is not a fatal issue. You can configure the data source manually
-          from Grafana's administrative interface. See the wiki for details.
-
-- block:
-    - name: Authenticate into Grafana
-      uri:
-        url: http://localhost:{{ grafana_port }}/login
-        method: POST
-        body_format: json
-        body:
-          user: "admin"
-          password: "admin"
-          email: ""
-      register: openbach_grafana_restore_login
-
     - name: Extract Backup Files
       unarchive:
         src: "{{ openbach_archive_root }}/{{ openbach_restore_host }}/openbach_auditorium.tar.gz"
         dest: "/tmp/"
 
-    - name: Lookup for Grafana Dump Filename
-      shell: ls -d /tmp/openbach_auditorium_backup_*_grafana
-      register: openbach_grafana_dump
+    - name: Lookup for Chronograf Dump Folder
+      find:
+        paths: /tmp
+        recurse: no
+        patterns: openbach_auditorium_backup_*_chronograf
+        file_type: directory
+      register: openbach_chronograf_dump_folder
+      failed_when: (openbach_chronograf_dump_folder.files | count) != 1
 
-    - name: Restore Grafana Dashboards
-      include_tasks: restore_grafana_dashboard.yml
-      vars:
-        openbach_grafana_dashboard_filename: "{{ openbach_grafana_dump.stdout }}/{{ item.path }}"
-        openbach_grafana_url: http://localhost:{{ grafana_port }}/api/dashboards/db
-        openbach_grafana_cookies: "grafana_remember={{ openbach_grafana_login.cookies.grafana_remember }}; grafana_sess={{ openbach_grafana_login.cookies.grafana_sess }}; grafana_user={{ openbach_grafana_login.cookies.grafana_user }}"
-      with_filetree: "{{ openbach_grafana_dump.stdout }}"
+    - name: Store Chronograf Dump Folder Name
+      set_fact:
+        openbach_chronograf_dump_folder_name: "{{ openbach_chronograf_dump_folder.files | map(attribute='path') | first }}"
+
+    - name: Lookup for Chronograf Dump Filename
+      find:
+        paths: "{{ openbach_chronograf_dump_folder_name }}"
+        recurse: no
+        patterns: '*'
+      register: openbach_chronograf_dump
+
+    - name: Restore Chronograf Dashboards
+      uri:
+        url: http://localhost:{{ chronograf_port }}/chronograf/v1/dashboards
+        method: POST
+        src: "{{ item.path }}"
+        remote_src: yes
+        status_code: 201
+        body_format: json
+      loop: "{{ openbach_chronograf_dump.files }}"
+      loop_control:
+        label: "{{ item.path }}"
 
     - name: Remove Extracted Files
       file:
-        path: "{{ openbach_grafana_dump.stdout }}"
+        path: "{{ openbach_chronograf_dump_folder_name }}"
         state: absent
   remote_user: openbach
   when: openbach_restore_host is defined
