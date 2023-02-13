@@ -100,6 +100,16 @@
   roles:
     - configure_backend
 
+- name: Manage controller env variables
+  hosts: controller
+  gather_facts: no
+  any_errors_fatal: yes
+  tags:
+    - encrypt_sensitive_data
+  roles:
+    - role: manage_env_variable
+      when: openbach_proxy_env != {}
+
 - name: Install Auditoriums
   hosts: auditorium
   any_errors_fatal: yes

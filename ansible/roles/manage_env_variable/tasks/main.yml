@@ -1,0 +1,26 @@
+---
+
+- name: get vault password
+  pause:
+    prompt: type Vault password
+    echo: no 
+  register: vault_pass
+  no_log: true
+
+- name: Create vault_pass file
+  template: src=vault_pass.j2 dest=/home/openbach/vault_pass
+  remote_user: openbach
+  when: vault_pass.user_input != ''
+
+- name: Encrypt agent sensitive data
+  shell: ansible-vault encrypt /opt/openbach/controller/ansible/host_vars/{{ item }} --vault-password-file /home/openbach/vault_pass
+  with_items: "{{ groups.agent }}"
+  remote_user: openbach
+  when: vault_pass.user_input != ''
+
+- name: Remove vault password file
+  file:
+     path: /home/openbach/vault_pass
+     state: absent
+  remote_user: openbach
+  when: vault_pass.user_input != ''
