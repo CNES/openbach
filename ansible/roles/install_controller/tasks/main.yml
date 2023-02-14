@@ -125,6 +125,28 @@
     recursive: yes
     delete: yes
     rsync_opts:
+      - --exclude
+      - __pycache__
+      - --exclude
+      - functional_tests.sh
+      - --exclude
+      - manage.py
+      - --filter
+      - P static_root
+      - --filter
+      - P local_settings.py
+      - --filter
+      - P pgbouncer_auth.txt
+  remote_user: openbach
+  when: openbach_rsync_version < '3.2.5'
+
+- name: Install the Backend
+  synchronize:
+    src: ../src/controller/backend/
+    dest: /opt/openbach/controller/backend/
+    recursive: yes
+    delete: yes
+    rsync_opts:
       - --exclude=__pycache__
       - --exclude=functional_tests.sh
       - --exclude=manage.py
@@ -132,6 +154,19 @@
       - --filter='P local_settings.py'
       - --filter='P pgbouncer_auth.txt'
   remote_user: openbach
+  when: openbach_rsync_version >= '3.2.5'
+
+- name: Install the Conductor
+  synchronize:
+    src: ../src/controller/openbach-conductor/
+    dest: /opt/openbach/controller/conductor/
+    recursive: yes
+    delete: yes
+    rsync_opts:
+      - --exclude
+      - __pycache__
+  remote_user: openbach
+  when: openbach_rsync_version < '3.2.5'
 
 - name: Install the Conductor
   synchronize:
@@ -142,6 +177,7 @@
     rsync_opts:
       - --exclude=__pycache__
   remote_user: openbach
+  when: openbach_rsync_version >= '3.2.5'
 
 - name: Fetch the openbach User's SSH public Key
   fetch:
@@ -307,8 +343,40 @@
     recursive: yes
     delete: yes
     rsync_opts:
+      - --exclude
+      - __pycache__
+  remote_user: openbach
+  when: openbach_rsync_version < '3.2.5'
+
+- name: Copy the sources of the Agent
+  synchronize:
+    src: ../src/agent/
+    dest: /opt/openbach/controller/src/agent/
+    recursive: yes
+    delete: yes
+    rsync_opts:
       - --exclude=__pycache__
   remote_user: openbach
+  when: openbach_rsync_version >= '3.2.5'
+
+- name: Copy the installation Playbooks
+  synchronize:
+    src: ../ansible/{{ item }}/
+    dest: /opt/openbach/controller/ansible/{{ item }}/
+    recursive: yes
+    delete: yes
+    rsync_opts:
+      - --exclude
+      - __pycache__
+      - --exclude
+      - '*.pyc'
+  with_items:
+    - roles
+    - library
+    - action_plugins
+    - filter_plugins
+  remote_user: openbach
+  when: openbach_rsync_version < '3.2.5'
 
 - name: Copy the installation Playbooks
   synchronize:
@@ -325,6 +393,7 @@
     - action_plugins
     - filter_plugins
   remote_user: openbach
+  when: openbach_rsync_version >= '3.2.5'
 
 - name: Place a Link to /opt/openbach/pip_mirror so that Playbooks can Find it
   file: path=/opt/openbach/controller/pip_mirror src=/opt/openbach/pip_mirror state=link
@@ -337,8 +406,40 @@
     recursive: yes
     delete: yes
     rsync_opts:
+      - --exclude
+      - __pycache__
+      - --filter
+      - P private_jobs
+  remote_user: openbach
+  when: openbach_rsync_version < '3.2.5'
+
+- name: Copy the Sources of the Core Jobs
+  synchronize:
+    src: ../src/jobs/
+    dest: /opt/openbach/controller/src/jobs/
+    recursive: yes
+    delete: yes
+    rsync_opts:
       - --exclude=__pycache__
       - --filter='P private_jobs'
+  remote_user: openbach
+  when: openbach_rsync_version >= '3.25'
+
+- name: Copy the Sources of the User-provided Jobs
+  synchronize:
+    src: "{{ item }}"
+    dest: /opt/openbach/controller/src/jobs/private_jobs/
+    recursive: yes
+    delete: no
+    rsync_opts:
+      - --exclude
+      - __pycache__
+  with_items:
+    - "{{ openbach_jobs_folders }}"
+  when:
+    - openbach_rsync_version < '3.2.5'
+    - openbach_restore_host is not defined
+    - openbach_jobs_folders is defined and openbach_jobs_folders
   remote_user: openbach
 
 - name: Copy the Sources of the User-provided Jobs
@@ -352,6 +453,7 @@
   with_items:
     - "{{ openbach_jobs_folders }}"
   when:
+    - openbach_rsync_version >= '3.2.5'
     - openbach_restore_host is not defined
     - openbach_jobs_folders is defined and openbach_jobs_folders
   remote_user: openbach
