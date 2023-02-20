@@ -1,0 +1,32 @@
+- name: Configure Vault pass variable 
+  set_fact:
+    openbach_vault_pass: "{{ hostvars[openbach_controller].vault_pass.user_input }}"
+  when: openbach_vault_pass is undefined 
+    
+- name: Create temporary file to store vault password
+  tempfile:
+    state: file
+  register: vault_pass_file
+  delegate_to: "{{openbach_controller}}"
+  remote_user: openbach
+  when: openbach_vault_pass != ''
+
+- name: Create vault_pass file
+  template: src=vault_pass.j2 dest="{{vault_pass_file.path}}"
+  delegate_to: "{{openbach_controller}}"
+  remote_user: openbach
+  when: openbach_vault_pass != ''
+
+- name: Encrypt agent sensitive data
+  shell: ansible-vault encrypt /opt/openbach/controller/ansible/host_vars/{{ inventory_hostname }} --vault-password-file "{{vault_pass_file.path}}"
+  delegate_to: "{{openbach_controller}}"
+  remote_user: openbach
+  when: openbach_vault_pass != ''
+
+- name: Remove vault password file
+  file:
+     path: "{{vault_pass_file.path}}"
+     state: absent
+  remote_user: openbach
+  delegate_to: "{{openbach_controller}}"
+  when: vault_pass_file.path is defined

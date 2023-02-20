@@ -57,6 +57,8 @@ import yaml
 
 from .utils import send_fifo, extract_integer, user_to_json, build_storage_path
 
+PATH_TO_VAULT_PASS='/home/openbach/.vault_pass'
+
 class GenericView(base.View):
     """Base class for our own class-based views"""
 
@@ -82,7 +84,8 @@ class GenericView(base.View):
                 return JsonResponse(
                         status=400,
                         data={'error': 'API error: data should be sent as JSON in the request body'})
-
+        if 'vault_password' in request.JSON:
+            request.session['vault_password'] = request.JSON.pop('vault_password')  
         try:
             response = super().dispatch(request, *args, **kwargs)
         except Exception:
@@ -119,6 +122,7 @@ class GenericView(base.View):
     def conductor_execute(self, **command):
         """Send a command to openbach_conductor"""
         command['_username'] = self.request.user.get_username()
+        command['vault_password']=self.request.session.get('vault_password')
         response = send_fifo(command)
         result = json.loads(response)
         returncode = result.pop('returncode')

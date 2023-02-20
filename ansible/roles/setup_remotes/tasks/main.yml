@@ -33,6 +33,7 @@
     openbach_https_proxy: "{{ openbach_https_proxy is defined and (openbach_https_proxy | encode_url) or (lookup('env', 'HTTPS_PROXY') | encode_url) }}"
     openbach_proxy_env: "{{ openbach_proxy_env | default({}) }}"
 
+
 - name: Configure Http Proxy in Environment
   set_fact:
     openbach_proxy_env: "{{ openbach_proxy_env | combine({'http_proxy': openbach_http_proxy, 'HTTP_PROXY': openbach_http_proxy}) }}"

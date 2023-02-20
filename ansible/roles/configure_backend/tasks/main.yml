@@ -110,7 +110,7 @@
       with_items:
         - "{{ openbach_jobs_metadata_core.openbach_jobs }}"
         - "{{ openbach_jobs_metadata_extra.openbach_jobs }}"
-
+        
   when: openbach_restore_host is not defined
         
 - name: Add Collectors into the Backend Database

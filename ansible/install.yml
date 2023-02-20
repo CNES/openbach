@@ -45,15 +45,6 @@
   roles:
     - check_resources
 
-- name: Ask Questions
-  hosts: controller
-  gather_facts: no
-  any_errors_fatal: yes
-  tags:
-    - questions
-  roles:
-    - questions
-
 - name: Pre-configure Agents and Auditoriums
   hosts:
     - agent
@@ -64,6 +55,15 @@
     - tests
   roles:
     - setup_remotes
+
+- name: Ask Questions
+  hosts: controller
+  gather_facts: no
+  any_errors_fatal: yes
+  tags:
+    - questions
+  roles:
+    - questions
 
 - name: Install Agents
   hosts: agent
@@ -100,15 +100,15 @@
   roles:
     - configure_backend
 
-- name: Manage controller env variables
-  hosts: controller
+- name: Encrypt proxy variables
+  hosts: agent
   gather_facts: no
   any_errors_fatal: yes
   tags:
-    - encrypt_sensitive_data
+    - encrypt_proxy_variable
   roles:
-    - role: manage_env_variable
-      when: openbach_proxy_env != {}
+    - role: encrypt_proxy_variable
+      when: openbach_proxy_env
 
 - name: Install Auditoriums
   hosts: auditorium
