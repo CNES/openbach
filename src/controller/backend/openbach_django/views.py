@@ -295,17 +295,40 @@ class AgentsView(BaseAgentView):
         """create a new agent"""
         command = 'attach_agent' if 'reattach' in request.GET else 'install_agent'
         try:
-            return self.conductor_execute(
-                    command=command,
-                    name=request.JSON['name'],
-                    address=request.JSON['address'],
-                    collector=request.JSON['collector_ip'],
-                    username=request.JSON.get('username'),
-                    password=request.JSON.get('password'),
-                    skip_playbook=request.JSON.get('skip_playbook', False),
-                    cookie=request.COOKIES.get('sessionid'))
+            parameters={
+            'command':command,
+            'name':request.JSON['name'],
+            'address':request.JSON['address'],
+            'collector':request.JSON['collector_ip'],
+            'username':request.JSON.get('username'),
+            'password':request.JSON.get('password'),
+            'http_proxy':request.JSON.get('http_proxy'),
+            'https_proxy':request.JSON.get('https_proxy'),
+            'skip_playbook':request.JSON.get('skip_playbook', False),
+            'cookie':request.COOKIES.get('sessionid')}
+
+            if 'private_file' in request.FILES and 'public_file' in request.FILES:
+                private_file=request.FILES['private_file']
+                public_file=request.FILES['public_file']
+                
+                with tempfile.NamedTemporaryFile('wb',prefix='ansible-ssh-key-' ,delete=False) as private_key:
+                    for chunk in private_file.chunks() :
+                        private_key.write(chunk)
+                    private_storage=private_key.name
+                
+                public_storage = Path(private_storage+'.pub')                
+                with public_storage.open('wb') as public_key:
+                    for chunk in public_file.chunks():
+                        public_key.write(chunk)
+                public_storage.chmod(mode=0o600)
+
+                parameters['private_key_file']=private_storage
+                return self.conductor_execute(**parameters)
+
+            else:
+                return self.conductor_execute(**parameters)
         except KeyError as e:
-            return {'msg': 'Missing parameter {}'.format(e)}, 400
+            return {'msg': 'Missing parameter {}'.format(e)}, 400     
 
 
 class AgentView(BaseAgentView):
@@ -1136,11 +1159,16 @@ class PushFile(GenericView):
         if isinstance(remote_path, str):
             remote_path = [remote_path]
 
-        users = request.JSON.get('users', [])
+        try:
+            users = request.JSON.getlist('users')
+        except AttributeError:
+            users = request.JSON.get('users', [])
         if users and len(users) != len(remote_path):
             return {'msg': 'POST data malformed: users and paths length mismatch'}, 400
-
-        groups = request.JSON.get('groups', [])
+        try:
+            groups = request.JSON.getlist('groups')
+        except AttributeError:
+            groups = request.JSON.get('groups', [])
         if groups and len(groups) != len(remote_path):
             return {'msg': 'POST data malformed: groups and paths length mismatch'}, 400
 

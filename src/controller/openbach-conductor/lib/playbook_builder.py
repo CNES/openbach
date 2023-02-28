@@ -141,7 +141,7 @@ class ServicesResult(SilentResult):
 class PlaybookBuilder():
     """Easy Playbook configuration and launching"""
 
-    def __init__(self, agent_address, group_name='agent', username=None, password=None,vault_file=None):
+    def __init__(self, agent_address, group_name='agent', username=None, password=None,vault_password_file=None):
         self.inventory_filename = None
         with tempfile.NamedTemporaryFile('w', delete=False) as inventory:
             print('[{}]'.format(group_name), file=inventory)
@@ -197,8 +197,8 @@ class PlaybookBuilder():
                 vault_password_files=[],
                 verbosity=0,
         )
-        if vault_file is not None:
-            self.options.vault_password_files.append(vault_file)
+        if vault_password_file is not None:
+            self.options.vault_password_files.append(vault_password_file)
 
         if username is None:
             self.options.remote_user = 'openbach'
@@ -262,7 +262,7 @@ class PlaybookBuilder():
         with tempfile.NamedTemporaryFile('w',prefix='openbach-ansible-vault-') as vault_file:
             vault_file_name = vault_file.name
             print(vault_password,file=vault_file,flush=True)
-            self = cls(collector['address'], 'collector', username, password,vault_file=vault_file_name)
+            self = cls(collector['address'], 'collector', username, password,vault_password_file=vault_file_name)
             self.add_variables(
                     openbach_name=name,
                     openbach_rstats_port=1111,
@@ -285,7 +285,7 @@ class PlaybookBuilder():
         with tempfile.NamedTemporaryFile('w',prefix='openbach-ansible-vault-') as vault_file:
             vault_file_name = vault_file.name
             print(vault_password,file=vault_file,flush=True)
-            self = cls(collector['address'], group_name='collector',vault_file=vault_file_name)
+            self = cls(collector['address'], group_name='collector',vault_password_file=vault_file_name)
             self.add_variables(
                     openbach_collector=collector['address'],
                     openbach_rstats_port=1111,
@@ -303,11 +303,13 @@ class PlaybookBuilder():
             self.launch_playbook('uninstall', session_cookie=cookie)
 
     @classmethod
-    def install_agent(cls, address, name, port, rstats_port, collector, username=None, password=None,vault_password=None, cookie=None):
+    def install_agent(cls, address, name, port, rstats_port, collector, username=None, password=None,vault_password=None,private_key_file=None,http_proxy=None,https_proxy=None,cookie=None):
         with tempfile.NamedTemporaryFile('w',prefix='openbach-ansible-vault-') as vault_file:
             vault_file_name = vault_file.name
             print(vault_password,file=vault_file,flush=True)
-            self = cls(address, username=username, password=password,vault_file=vault_file_name)
+            if private_key_file is not None:
+                address=f'{address} ansible_ssh_private_key_file={private_key_file}'
+            self = cls(address,username=username, password=password,vault_password_file=vault_file_name)
             self.add_variables(
                     openbach_name=name,
                     openbach_rstats_port=rstats_port,
@@ -323,6 +325,12 @@ class PlaybookBuilder():
                     influxdb_database_precision=collector['stats_database_precision'],
                     auditorium_broadcast_mode=collector['logstash_broadcast_mode'],
                     auditorium_broadcast_port=collector['logstash_broadcast_mode'])
+            if http_proxy is not None:
+                self.add_variables(
+                    openbach_http_proxy=http_proxy)
+            if https_proxy is not None:
+                self.add_variables(
+                    openbach_https_proxy=https_proxy)
             self.launch_playbook('install', session_cookie=cookie)
 
     @classmethod
@@ -330,7 +338,7 @@ class PlaybookBuilder():
         with tempfile.NamedTemporaryFile('w',prefix='openbach-ansible-vault-') as vault_file:
             vault_file_name = vault_file.name
             print(vault_password,file=vault_file,flush=True)
-            self = cls(address,vault_file=vault_file_name)
+            self = cls(address,vault_password_file=vault_file_name)
             if jobs is not None:
                 self.add_variables(jobs=jobs)
             self.add_variables(
@@ -351,7 +359,7 @@ class PlaybookBuilder():
         with tempfile.NamedTemporaryFile('w',prefix='openbach-ansible-vault-') as vault_file:
             vault_file_name = vault_file.name
             print(vault_password,file=vault_file,flush=True)
-            self = cls(address,vault_file=vault_file_name)
+            self = cls(address,vault_password_file=vault_file_name)
             self.add_variables(
                     openbach_restart=restart,
                     openbach_agent_port=port)
@@ -362,7 +370,7 @@ class PlaybookBuilder():
         with tempfile.NamedTemporaryFile('w',prefix='openbach-ansible-vault-') as vault_file:
             vault_file_name = vault_file.name
             print(vault_password,file=vault_file,flush=True)
-            self = cls('\n'.join(addresses),vault_file=vault_file_name)
+            self = cls('\n'.join(addresses),vault_password_file=vault_file_name)
             self.options.forks = len(addresses)
             self.add_variables(collect_metrics=True)
             playbook_results = ServicesResult()
@@ -374,7 +382,7 @@ class PlaybookBuilder():
         with tempfile.NamedTemporaryFile('w',prefix='openbach-ansible-vault-') as vault_file:
             vault_file_name = vault_file.name
             print(vault_password,file=vault_file,flush=True)
-            self = cls(address,vault_file=vault_file_name)
+            self = cls(address,vault_password_file=vault_file_name)
             self.add_variables(
                     collector_ip=collector['address'],
                     logstash_logs_port=collector['logs_port'],
@@ -392,7 +400,7 @@ class PlaybookBuilder():
         with tempfile.NamedTemporaryFile('w',prefix='openbach-ansible-vault-') as vault_file:
             vault_file_name = vault_file.name
             print(vault_password,file=vault_file,flush=True)
-            self = cls(address,vault_file=vault_file_name)
+            self = cls(address,vault_password_file=vault_file_name)
             self.add_variables(
                     openbach_collector=collector_ip,
                     logstash_logs_port=logs_port,
@@ -404,7 +412,7 @@ class PlaybookBuilder():
         with tempfile.NamedTemporaryFile('w',prefix='openbach-ansible-vault-') as vault_file:
             vault_file_name = vault_file.name
             print(vault_password,file=vault_file,flush=True)
-            self = cls(address,vault_file=vault_file_name)
+            self = cls(address,vault_password_file=vault_file_name)
             self.add_variables(
                     openbach_collector=collector_ip,
                     jobs=[{'name': job_name, 'path': job_path}])
@@ -415,7 +423,7 @@ class PlaybookBuilder():
         with tempfile.NamedTemporaryFile('w',prefix='openbach-ansible-vault-') as vault_file:
             vault_file_name = vault_file.name
             print(vault_password,file=vault_file,flush=True)
-            self = cls(address,vault_file=vault_file_name)
+            self = cls(address,vaultvault_password_file_file=vault_file_name)
             self.add_variables(job=job)
             if severity is not None:
                 self.add_variables(
@@ -431,7 +439,7 @@ class PlaybookBuilder():
         with tempfile.NamedTemporaryFile('w',prefix='openbach-ansible-vault-') as vault_file:
             vault_file_name = vault_file.name
             print(vault_password,file=vault_file,flush=True)
-            self = cls(address,vault_file=vault_file_name)
+            self = cls(address,vault_password_file=vault_file_name)
             self.add_variables(
                     copy_parameters=parameters,
                     restart_services=restart_services)
@@ -442,7 +450,7 @@ class PlaybookBuilder():
         with tempfile.NamedTemporaryFile('w',prefix='openbach-ansible-vault-') as vault_file:
             vault_file_name = vault_file.name
             print(vault_password,file=vault_file,flush=True)
-            self = cls(address,vault_file=vault_file_name)
+            self = cls(address,vault_password_file=vault_file_name)
             self.add_variables(
                     copy_parameters=parameters,
                     restart_services=restart_services)
@@ -453,7 +461,7 @@ class PlaybookBuilder():
         with tempfile.NamedTemporaryFile('w',prefix='openbach-ansible-vault-') as vault_file:
             vault_file_name = vault_file.name
             print(vault_password,file=vault_file,flush=True)
-            self = cls(address,vault_file=vault_file_name)
+            self = cls(address,vault_password_file=vault_file_name)
             self.add_variables(
                     local_path=local_path,
                     remote_paths=remote_paths,
@@ -465,7 +473,7 @@ class PlaybookBuilder():
         with tempfile.NamedTemporaryFile('w',prefix='openbach-ansible-vault-') as vault_file:
             print(vault_password,file=vault_file,flush=True)
             vault_file_name = vault_file.name
-            self = cls(address,vault_file=vault_file_name)
+            self = cls(address,vault_password_file=vault_file_name)
             playbook_results = SetupResult()
             self.launch_playbook('check_connection', playbook_results,session_cookie=cookie)
             return playbook_results.ansible_facts
@@ -475,7 +483,7 @@ class PlaybookBuilder():
         with tempfile.NamedTemporaryFile('w',prefix='openbach-ansible-vault-') as vault_file:
             vault_file_name = vault_file.name
             print(vault_password,file=vault_file,flush=True)
-            self = cls(address, username=username, password=password,vault_file=vault_file_name)
+            self = cls(address, username=username, password=password,vault_password_file=vault_file_name)
             self.add_variables(openbach_controller_key_state='present')
             self.launch_playbook('controller_access', session_cookie=cookie)
 
@@ -484,7 +492,7 @@ class PlaybookBuilder():
         with tempfile.NamedTemporaryFile('w',prefix='openbach-ansible-vault-') as vault_file:
             vault_file_name = vault_file.name
             print(vault_password,file=vault_file,flush=True)
-            self = cls(address,vault_file=vault_file_name)
+            self = cls(address,vault_password_file=vault_file_name)
             self.add_variables(openbach_controller_key_state='absent')
             self.launch_playbook('controller_access', session_cookie=cookie)
 
@@ -493,7 +501,7 @@ class PlaybookBuilder():
         with tempfile.NamedTemporaryFile('w',prefix='openbach-ansible-vault-') as vault_file:
             vault_file_name = vault_file.name
             print(vault_password,file=vault_file,flush=True)
-            self = cls(address,vault_file=vault_file_name)
+            self = cls(address,vault_password_file=vault_file_name)
             if kernel is not None:
                 self.add_variables(kernel=kernel)
             self.launch_playbook('reboot',session_cookie=cookie)
@@ -503,7 +511,7 @@ class PlaybookBuilder():
         with tempfile.NamedTemporaryFile('w',prefix='openbach-ansible-vault-') as vault_file:
             vault_file_name = vault_file.name
             print(vault_password,file=vault_file,flush=True)    
-            self = cls(address,vault_file=vault_file_name)
+            self = cls(address,vault_password_file=vault_file_name)
             self.add_variables(openbach_influx_database=openbach_influx_database)
             self.add_variables(influxdb_port=influxdb_port)
             self.launch_playbook('manage_retention_policies',session_cookie=cookie)

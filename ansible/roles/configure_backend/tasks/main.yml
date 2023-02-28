@@ -62,11 +62,6 @@
     - rsyslog_job_local.j2
   remote_user: openbach
 
-- name: Configure HTTP Proxies for Agents
-  template: src=host_vars.j2 dest=/opt/openbach/controller/ansible/host_vars/{{ item }}
-  with_items: "{{ groups.agent | default([]) }}"
-  remote_user: openbach
-
 - name: Restart OpenBACH Services
   systemd: name={{ item }} state=restarted enabled=yes daemon_reload=yes
   with_items:
@@ -156,6 +151,7 @@
       address: "{{ item }}"
       name: "{{ hostvars[item].openbach_name }}"
       collector_ip: "{{ hostvars[item].openbach_collector }}"
+      controller: "{{hostvars[item].openbach_controller}}"
       skip_playbook: true
     headers:
       Cookie: "sessionid={{ openbach_backend_login.cookies.sessionid }}"

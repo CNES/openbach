@@ -587,12 +587,13 @@ class AgentAction(ConductorAction):
 class InstallAgent(ThreadedAction, AgentAction):
     """Action responsible for the installation of an Agent"""
 
-    def __init__(self, address, name, collector, port=1112, rstats=1111,
-                 username=None, password=None, skip_playbook=False, cookie=None):
+    def __init__(self, address, name, collector,port=1112, rstats=1111,
+                 username=None, password=None,private_key_file=None,http_proxy=None,https_proxy=None,skip_playbook=False, cookie=None):
         super().__init__(address=address, username=username,
                          name=name, password=password,
                          agent_port=port, rstats_port=rstats,
-                         collector_ip=collector,
+                         collector_ip=collector,private_key_file=private_key_file,
+                         http_proxy=http_proxy,https_proxy=https_proxy,
                          skip_playbook=skip_playbook,
                          cookie=cookie)
 
@@ -616,6 +617,9 @@ class InstallAgent(ThreadedAction, AgentAction):
                         self.username,
                         self.password,
                         self.vault_password,
+                        self.private_key_file,
+                        self.http_proxy,
+                        self.https_proxy,
                         cookie=self.cookie)
             except errors.ConductorError:
                 agent.delete()
