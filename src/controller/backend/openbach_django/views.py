@@ -57,7 +57,6 @@ import yaml
 
 from .utils import send_fifo, extract_integer, user_to_json, build_storage_path
 
-PATH_TO_VAULT_PASS='/home/openbach/.vault_pass'
 
 class GenericView(base.View):
     """Base class for our own class-based views"""

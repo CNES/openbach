@@ -41,6 +41,7 @@ import argparse
 import tempfile
 import itertools
 from datetime import datetime
+import logging
 
 import numpy as np
 import pandas as pd
@@ -53,8 +54,7 @@ import collect_agent
 from data_access.post_processing import Statistics
 
 
-UNIT_OPTION={'s', 'ms' ,'bits/s', 'Kbits/s', 'Mbits/s','Gbits/s','Bytes' ,'KBytes', 'MBytes', 'GBytes'}
-
+logging.basicConfig(level=logging.DEBUG)
 
 def worksheet_style(worksheet, title):
     worksheet.title = title
@@ -135,34 +135,10 @@ def get_trend(stability_threshold, value, reference):
 
     return f'{state} {difference * 100 / reference}%'
 
-
-def multiplier(base, unit):
-        if unit == base:
-                return 1
-        if unit.startswith('GBytes'):
-                return 1024 * 1024 * 1024
-        if unit.startswith('MBytes'):
-                return 1024 * 1024
-        if unit.startswith('KBytes'):
-                return 1024
-        if unit.startswith('m'):
-                return 0.001
-        if unit.startswith('s'):
-                return 1000
-        if unit.startswith('Gbits'):
-                return 1000 * 1000 * 1000
-        if unit.startswith('Mbits'):
-                return 1000 * 1000
-        if unit.startswith('Kbits'):
-                return 1000
-
-        return 1
-
-
 def main(
         agent_name, job_name, statistic_name, timestamp_boundaries,
         start_day, start_evening, start_night,
-        reference, stability_threshold, stat_unit, table_unit,
+        reference, stability_threshold, display_ratio,unit,
         path_to_file, stat_title, compute_median, compute_mean, stats_with_suffixes):
 
     statistics = Statistics.from_default_collector()
@@ -171,8 +147,7 @@ def main(
         if not timestamp_boundaries:
             timestamp = None
         else:
-            begin_date, end_date = map(parse, timestamp_boundaries)
-            timestamp = [int(begin_date.timestamp() * 1000), int(end_date.timestamp() * 1000)]
+            timestamp=timestamp_boundaries
 
         data_collection = statistics.fetch_all(
                 job=job_name, agent=agent_name,
@@ -181,15 +156,13 @@ def main(
 
         workbook = Workbook()
         worksheet = workbook.active
-
-        scale_factor = 1 if stat_unit is None else multiplier(stat_unit, table_unit or stat_unit)
-        means = data_collection.compute_function('mean', scale_factor, start_day, start_evening, start_night).round(2)
-        medians = data_collection.compute_function('median', scale_factor, start_day, start_evening, start_night).round(2)
+        means = data_collection.compute_function('mean', display_ratio, start_day, start_evening, start_night).round(2)
+        medians = data_collection.compute_function('median', display_ratio, start_day, start_evening, start_night).round(2)
         means_ref = get_evol_value(path_to_file, statistic_name, 'Moyenne')
         medians_ref = get_evol_value(path_to_file, statistic_name, 'Médiane')
         df = pd.concat([means, means_ref, medians, medians_ref], axis=1)
 
-        header = [f'{statistic_name} ({table_unit})' if table_unit else statistic_name]
+        header = [f'{statistic_name} ({unit})' if unit else statistic_name]
         if compute_mean:
             header.extend(('Moyenne', '% Moyenne Cible'))
             if path_to_file:
@@ -249,7 +222,7 @@ if __name__ == '__main__':
                 'reference', metavar='REFERENCE', type=int,
                 help='Reference value for comparison in desired stat unit')
         parser.add_argument(
-                '-d', '--timestamp-boundaries',
+                '-d', '--timestamp-boundaries',type=int,
                 metavar=('BEGIN_DATE', 'END_DATE'), nargs=2,
                 help='Start and End date in format YYYY:MM:DD hh:mm:ss')
         parser.add_argument(
@@ -272,13 +245,12 @@ if __name__ == '__main__':
                 '-p', '--path-to-file', metavar='PATH',
                 help='Path to XLSX file for evolution calculation')
         parser.add_argument(
-                '-u', '--stat-unit',
-                metavar='STAT_UNIT', choices=UNIT_OPTION,
-                help='Unit of the statistic')
+                '-u', '--unit',metavar='UNIT',
+                help='Stats Unit to display on the table')
         parser.add_argument(
-                '-U', '--table-unit',
-                metavar='TABLE_UNIT', choices=UNIT_OPTION,
-                help='Unit to show on the table')
+                '-R', '--display-ratio',type=float,
+                metavar='DISPLAY-RATIO', 
+                help='Prefix of displayed unit')
         parser.add_argument(
                 '-t', '--stat-title',
                 help='Statistic name to display on the table')
@@ -300,5 +272,5 @@ if __name__ == '__main__':
         main(
             args.agent, args.job, args.statistic, args.timestamp_boundaries,
             args.start_day, args.start_evening, args.start_night, args.reference,
-            args.stability_threshold, args.stat_unit, args.table_unit,
+            args.stability_threshold, args.display_ratio,args.unit,
             args.path_to_file, args.stat_title, compute_median, compute_mean, stats_with_suffixes)

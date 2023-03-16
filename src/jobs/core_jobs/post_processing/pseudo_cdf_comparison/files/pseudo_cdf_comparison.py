@@ -52,35 +52,11 @@ import collect_agent
 from data_access.post_processing import Statistics, save, _Plot
 
 
-UNIT_OPTION={'s', 'ms' ,'bits/s', 'Kbits/s', 'Mbits/s','Gbits/s','Bytes' ,'KBytes', 'MBytes', 'GBytes'}
 SET_AXIS_PARAMETERS = {'axis': 1}
 if version(pd.__version__) < version('1.5.0'):
     SET_AXIS_PARAMETERS['inplace'] = False
 else:
     SET_AXIS_PARAMETERS['copy'] = True
-
-
-def multiplier(base, unit):
-        if unit == base:
-                return 1
-        if unit.startswith('GBytes'):
-                return 1024 * 1024 * 1024
-        if unit.startswith('MBytes'):
-                return 1024 * 1024
-        if unit.startswith('KBytes'):
-                return 1024
-        if unit.startswith('m'):
-                return 0.001
-        if unit.startswith('s'):
-                return 1000
-        if unit.startswith('Gbits'):
-                return 1000 * 1000 * 1000
-        if unit.startswith('Mbits'):
-                return 1000 * 1000
-        if unit.startswith('Kbits'):
-                return 1000
-
-        return 1
 
 
 def format_label(labels):
@@ -89,7 +65,7 @@ def format_label(labels):
 
 def main(
         agents_name, job_name, statistic_name, timestamp_boundaries,
-        reference, step, stat_unit, table_unit,
+        reference, step, display_ratio,unit,
         figure_title, y_label, x_label, agents_legend,
         stats_with_suffixes, use_grid, use_legend):
     statistics = Statistics.from_default_collector()
@@ -99,10 +75,8 @@ def main(
         if not timestamp_boundaries:
             timestamps = None
         else:
-            begin_date, end_date = map(parse, timestamp_boundaries)
-            timestamps = [int(begin_date.timestamp() * 1000), int(end_date.timestamp() * 1000)]
+            timestamps=timestamp_boundaries
 
-        scale_factor = 1 if stat_unit is None else multiplier(stat_unit, table_unit or stat_unit)
         figure, axis = plt.subplots()
 
         for agent, agent_legend in zip(agents_name, itertools.chain(agents_legend, itertools.repeat(None))):
@@ -118,7 +92,7 @@ def main(
                     for plot in data_collection
             ])
 
-            df = (df.dropna() / scale_factor / reference) * 100
+            df = (df.dropna() / display_ratio / reference) * 100
             df.sort_values(by=statistic_name, inplace=True)
             df.reset_index(drop=True, inplace=True)
             values_amount = 100 // step
@@ -179,18 +153,19 @@ if __name__ == '__main__':
                 'reference', type=int,
                 help='Reference value for comparison')
         parser.add_argument(
-                '-d', '--timestamp-boundaries',
+                '-d', '--timestamp-boundaries',type=int,
                 metavar=('BEGIN_DATE', 'END_DATE'), nargs=2,
                 help='Start and End date in format YYYY:MM:DD hh:mm:ss')
         parser.add_argument(
                 '-p', '--step', type=int, default=1,
                 help='Percentage step on the Y-axis')
         parser.add_argument(
-                '-u', '--stat-unit', choices = UNIT_OPTION,
-                help='Unit of the statistic')
+                '-u', '--unit',metavar='UNIT',
+                help='Stats Unit to display on the table')
         parser.add_argument(
-                '-U', '--table-unit', choices = UNIT_OPTION,
-                help='Desired unit to show on the figure')
+                '-R', '--display-ratio',type=float,
+                metavar='DISPLAY-RATIO', 
+                help='Prefix of displayed unit')
         parser.add_argument(
                 '-t', '--title',
                 help='The title of figure')
@@ -221,6 +196,6 @@ if __name__ == '__main__':
         main(
             args.agents, args.job, args.statistic,
             args.timestamp_boundaries, args.reference, args.step,
-            args.stat_unit, args.table_unit,
+            args.display_ratio,args.unit,
             args.title, args.ylabel, args.xlabel,
             args.agents_legend, stats_with_suffixes, use_grid, use_legend)

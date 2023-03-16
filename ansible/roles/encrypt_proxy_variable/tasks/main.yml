@@ -30,7 +30,14 @@
   with_items: "{{ groups.agent | default([]) }}"
   delegate_to: "{{openbach_controller}}"
   remote_user: openbach
-    
+
+- name: Set openbach Vault password variable 
+  set_fact:
+    openbach_vault_pass: "{{hostvars[openbach_controller].vault_pass.user_input }}"
+  when: 
+    - openbach_vault_pass is undefined
+    - hostvars[openbach_controller].vault_pass is defined
+
 - name: Create temporary file to store vault password
   tempfile:
     state: file

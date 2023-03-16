@@ -117,40 +117,16 @@ arguments:
       flag: '-l'
       repeatable: yes
       description: The title of the legend
-    - name: stat_unit
+    - name: unit
       type: str
-      count: '+'
+      count: 1
       flag: '-u'
-      repeatable: yes
-      description: The unit of the statistic
-      choices:
-       - s
-       - ms
-       - bits/s
-       - Kbits/s
-       - Mbits/s
-       - Gbits/s
-       - Bytes
-       - KBytes
-       - MBytes
-       - GBytes
-    - name: legend_unit
-      type: str
-      count: '+'
-      flag: '-U'
-      repeatable: yes
-      description: The unit of the legend
-      choices:
-       - s
-       - ms
-       - bits/s
-       - Kbits/s
-       - Mbits/s
-       - Gbits/s
-       - Bytes
-       - KBytes
-       - MBytes
-       - GBytes
+      description: Stats Unit to display on the table
+    - name: display_ratio
+      type: ratio
+      count: 1
+      flag: '-R'
+      description: Prefix of displayed unit
     - name: add_global
       type: None
       count: 0

@@ -216,6 +216,9 @@ class PlaybookBuilder():
         """Remove the Inventory file when this object is garbage collected"""
         if self.inventory_filename is not None:
             os.remove(self.inventory_filename)
+        if hasattr(self,'private_key_file'):
+            os.remove(self.private_key_file)
+            os.remove(self.private_key_file + '.pub')
 
     def add_variables(self, **kwargs):
         """Add extra_vars for the current playbook execution.
@@ -310,6 +313,7 @@ class PlaybookBuilder():
             if private_key_file is not None:
                 address=f'{address} ansible_ssh_private_key_file={private_key_file}'
             self = cls(address,username=username, password=password,vault_password_file=vault_file_name)
+            self.private_key_file=private_key_file
             self.add_variables(
                     openbach_name=name,
                     openbach_rstats_port=rstats_port,
@@ -423,7 +427,7 @@ class PlaybookBuilder():
         with tempfile.NamedTemporaryFile('w',prefix='openbach-ansible-vault-') as vault_file:
             vault_file_name = vault_file.name
             print(vault_password,file=vault_file,flush=True)
-            self = cls(address,vaultvault_password_file_file=vault_file_name)
+            self = cls(address,vault_password_file=vault_file_name)
             self.add_variables(job=job)
             if severity is not None:
                 self.add_variables(

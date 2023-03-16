@@ -3067,7 +3067,7 @@ class ModifyNetworks(ProjectAction):
         for network in self.json_data:
             with suppress(KeyError, Network.DoesNotExist):
                 network_obj = Network.objects.get(address=network['address'], project=project)
-                netnwork_obj.name = network['name']
+                network_obj.name = network['name']
                 network_obj.save()
         return project.json, 200
 

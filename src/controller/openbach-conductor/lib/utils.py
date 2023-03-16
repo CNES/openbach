@@ -23,13 +23,18 @@
 # You should have received a copy of the GNU General Public License along with
 # this program. If not, see http://www.gnu.org/licenses/.
 
+
 import ipaddress
 
-from django.core.serializers.json import DjangoJSONEncoder
 
+from django.core.serializers.json import DjangoJSONEncoder
+from openbach_django.base_models import Ratio
 
 class OpenbachJSONEncoder(DjangoJSONEncoder):
     def default(self, o):
         if isinstance(o, ipaddress._BaseAddress):
             return str(o)
+        if isinstance(o,Ratio):
+            return o.name
         return super().default(o)
+

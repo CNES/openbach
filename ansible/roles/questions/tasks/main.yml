@@ -65,11 +65,6 @@
     register: vault_pass
     no_log: True
     when: openbach_proxy_env
-  - name: Set openbach Vault password variable 
-    set_fact:
-      openbach_vault_pass: "{{vault_pass.user_input }}"
-    when: 
-      - openbach_vault_pass is undefined
-      - vault_pass is not skipped
+
   tags:
     - encrypt_proxy_variable
