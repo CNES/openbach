@@ -34,11 +34,11 @@ all: build/libcollectagent.so
 
 build/collectagent.o: ./src/collectagent.cpp ./src/collectagent.h ./src/syslog.h
 	@mkdir -p build
-	g++ $(CPPFLAGS) ${BUILD_FLAGS} ${ASIO_FLAGS} -c $< -o $@
+	$(CXX) $(CPPFLAGS) ${BUILD_FLAGS} ${ASIO_FLAGS} -c $< -o $@
 
 build/libcollectagent.so: ./build/collectagent.o
 	@mkdir -p build
-	g++ -o $@ $< $(LDFLAGS) -shared ${LIBS_FLAGS}
+	$(CXX) -o $@ $< $(LDFLAGS) -shared ${LIBS_FLAGS}
 
 install: all
 	mkdir -p ${DESTDIR}${PREFIX}/lib/
