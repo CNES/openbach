@@ -210,6 +210,7 @@ class ConductorAction:
     def __init__(self, **kwargs):
         self.openbach_function_instance = None
         self.connected_user = AnonymousUser()
+        self.vault_password = None
         for name, value in kwargs.items():
             setattr(self, name, value)
 
@@ -221,10 +222,9 @@ class ConductorAction:
         """Override this in subclasses to implement the desired action"""
         raise NotImplementedError
 
-    def configure_user(self, username,vault_password=None):
+    def configure_user(self, username, vault_password=None):
         if not username:
             return
-        self.vault_password=vault_password
         try:
             self.connected_user = User.objects.get(username=username)
         except User.DoesNotExist:
@@ -234,9 +234,12 @@ class ConductorAction:
                     '{} as it is not found in the database. '
                     'Continuing anonymously.'
                     .format(self.__class__.__name__, username))
+        else:
+            self.vault_password = vault_password
 
     def share_user(self, other):
         other.connected_user = self.connected_user
+        other.vault_password = self.vault_password
 
     def _assert_user_in(self, identity):
         if self.connected_user.is_staff:
@@ -397,7 +400,6 @@ class AddCollector(ThreadedAction, CollectorAction):
         agent = InstallAgent(
                 self.address, self.name,
                 self.address, skip_playbook=True)
-        agent.vault_password=self.vault_password
         self.share_user(agent)
         with suppress(errors.ConductorWarning):
             agent._threaded_action(agent._action)
@@ -453,7 +455,7 @@ class ModifyCollector(ThreadedAction, CollectorAction):
             raise errors.ConductorWarning('No modification to do')
 
         for agent in collector.agents.all():
-            start_playbook('assign_collector',self.vault_password, agent.address, agent.port, collector.json)
+            start_playbook('assign_collector', self.vault_password, agent.address, agent.port, collector.json)
 
 
 class DeleteCollector(ThreadedAction, CollectorAction):
@@ -477,7 +479,7 @@ class DeleteCollector(ThreadedAction, CollectorAction):
                     agents_addresses=[agent.address for agent in other_agents])
 
         # Perform physical uninstallation through a playbook
-        start_playbook('uninstall_collector',self.vault_password, collector.json)
+        start_playbook('uninstall_collector', self.vault_password, collector.json)
 
         # The associated Agent was removed by the playbook, remove it from DB
         try:
@@ -528,7 +530,6 @@ class ChangeCollectorAddress(CollectorAction):
 
         for agent_address, in collector.agents.values_list('address'):
             assignment = AssignCollector(agent_address, new_address)
-            assignment.vault_password=self.vault_password
             self.share_user(assignment)
             assignment.action()
 
@@ -554,7 +555,7 @@ class AgentAction(ConductorAction):
         """Update the local status of an Agent by trying to connect to it"""
         agent = self.get_agent_or_not_found_error()
         try:
-            start_playbook('check_connection',self.vault_password, agent.address, agent.port, restart)
+            start_playbook('check_connection', self.vault_password, agent.address, agent.port, restart)
         except errors.ConductorError:
             agent.set_reachable(False)
             agent.set_available(False)
@@ -700,7 +701,7 @@ class AttachAgent(InstallAgent):
         if not self.skip_playbook:
             try:
                 # Perform physical installation through a playbook
-                start_playbook('enable_controller_access', self.address, self.username, self.password,self.vault_password)
+                start_playbook('enable_controller_access', self.address, self.username, self.password, self.vault_password)
                 with tempfile.NamedTemporaryFile('w', prefix='openbach_files/') as f:
                     print(self.name, file=f, flush=True)
                     parameters = {
@@ -708,8 +709,8 @@ class AttachAgent(InstallAgent):
                             'source': f.name,
                             'destination': '/opt/openbach/agent/agent_name',
                     }
-                    start_playbook('push_file', self.address,self.vault_password, [parameters])
-                start_playbook('assign_collector', self.address, self.agent_port, agent.collector.json,self.vault_password)
+                    start_playbook('push_file', self.address, self.vault_password, [parameters])
+                start_playbook('assign_collector', self.address, self.agent_port, agent.collector.json, self.vault_password)
             except errors.ConductorError:
                 agent.delete()
                 raise
@@ -752,8 +753,8 @@ class DetachAgent(UninstallAgent):
         # Create a fake collector with default values
         collector = Collector(address='127.0.0.1')
         try:
-            start_playbook('assign_collector', agent.address, agent.port, collector.json,self.vault_password)
-            start_playbook('disable_controller_access', self.address,self.vault_password)
+            start_playbook('assign_collector', agent.address, agent.port, collector.json, self.vault_password)
+            start_playbook('disable_controller_access', self.address, self.vault_password)
         except errors.ConductorError:
             agent.set_status(Agent.Status.DETACH_FAILED)
             agent.save()
@@ -819,7 +820,7 @@ class ListAgents(AgentAction):
         agents = self.queryset
         if self.update or self.services:
             addresses = list(itertools.chain.from_iterable(agents.values_list('address')))
-            errors, services = start_playbook('check_connections',self.vault_password, *addresses)
+            errors, services = start_playbook('check_connections', self.vault_password, *addresses)
             if self.services:
                 return [self._services_agent(agent, errors, services) for agent in agents], 200
             return [self._infos_agent(agent, errors) for agent in agents], 200
@@ -893,7 +894,7 @@ class AssignCollector(ThreadedAction, AgentAction):
     def _action(self):
         agent = self.get_agent_or_not_found_error()
         collector = InfosCollector(self.collector_ip).get_collector_or_not_found_error()
-        start_playbook('assign_collector', agent.address, agent.port,self.vault_password, collector.json)
+        start_playbook('assign_collector', agent.address, agent.port, self.vault_password, collector.json)
         agent.collector = collector
         agent.save()
 
@@ -922,12 +923,11 @@ class ModifyAgent(AgentAction):
                             'source': name_file.name,
                             'destination': '/opt/openbach/agent/agent_name',
                     }
-                    start_playbook('push_file', agent.address,self.vault_password, [parameters])
+                    start_playbook('push_file', agent.address, self.vault_password, [parameters])
             agent.save()
 
             if self.new_collector and self.new_collector != agent.collector.address:
                 new_collector = AssignCollector(agent.address, self.new_collector)
-                new_collector.vault_password=self.vault_password
                 self.share_user(new_collector)
                 new_collector._threaded_action(new_collector._action)
 
@@ -949,7 +949,6 @@ class SetLogSeverityAgent(ThreadedAction, AgentAction):
     def _action(self):
         self.get_agent_or_not_found_error()
         rsyslog_modifier = SetLogSeverityJob(self.address, 'openbach_agent', None)
-        rsyslog_modifier.vault_password=self.vault_password
         self.share_user(rsyslog_modifier)
         rsyslog_modifier._physical_set_severity(self.severity, self.local_severity)
 
@@ -968,7 +967,6 @@ class ReserveProject(AgentAction):
 
         if self.project is not None:
             infos_project = InfosProject(self.project)
-            infos_project.vault_password=self.vault_password
             self.share_user(infos_project)
             project = infos_project.get_project_or_not_found_error()
             self._assert_user_in(project.owners.all())
@@ -1419,7 +1417,7 @@ class InstallJob(ThreadedAction, InstalledJobAction):
 
         if not self.skip_playbook:
             # check os configuration arguments
-            ansible_fact = start_playbook('gather_facts',agent.address,self.vault_password)
+            ansible_fact = start_playbook('gather_facts', agent.address, self.vault_password)
             try:
                 job.os.get(
                         family=ansible_fact['ansible_os_family'],
@@ -1458,7 +1456,7 @@ class InstallJob(ThreadedAction, InstalledJobAction):
                             'uninstall_job',
                             agent.address,
                             agent.collector.address,
-                            job.name, job.path,self.vault_password)
+                            job.name, job.path, self.vault_password)
 
             # Physically install the job on the agent
             start_playbook(
@@ -1466,7 +1464,7 @@ class InstallJob(ThreadedAction, InstalledJobAction):
                     agent.address,
                     agent.collector.address,
                     agent.collector.logs_port,
-                    job.name, job.path,self.vault_password,
+                    job.name, job.path, self.vault_password,
                     cookie=self.cookie)
             OpenBachBaton(agent.address, agent.port).add_job(self.name)
 
@@ -1483,7 +1481,6 @@ class InstallJob(ThreadedAction, InstalledJobAction):
                 severity_setter = SetLogSeverityJob(
                         self.address, self.name,
                         self.severity, self.local_severity)
-                severity_setter.vault_password=self.vault_password
                 self.share_user(severity_setter)
                 severity_setter._threaded_action(severity_setter._action)
 
@@ -1511,7 +1508,6 @@ class InstallJobs(InstalledJobAction):
                     self.local_severity,
                     self.skip_playbook,
                     self.cookie)
-            installer.vault_password=self.vault_password
             self.share_user(installer)
             installer.action()
         return {}, 202
@@ -1557,7 +1553,7 @@ class UninstallJob(ThreadedAction, InstalledJobAction):
                 'uninstall_job',
                 agent.address,
                 agent.collector.address,
-                job.name, job.path,self.vault_password)
+                job.name, job.path, self.vault_password)
         installed_job.delete()
 
 
@@ -1571,7 +1567,6 @@ class UninstallJobs(InstalledJobAction):
     def _action(self):
         for name, address in itertools.product(self.names, self.addresses):
             uninstaller = UninstallJob(address, name)
-            uninstaller.vault_password=self.vault_password
             self.share_user(uninstaller)
             uninstaller.action()
         return {}, 202
@@ -1804,7 +1799,7 @@ class SetStatisticsPolicyJob(ThreadedAction, InstalledJobAction):
 
         # Launch the playbook and the associated job
         try:
-            start_playbook('push_file', self.address,self.vault_password, [parameters], True)
+            start_playbook('push_file', self.address, self.vault_password, [parameters], True)
         finally:
             with suppress(OSError):
                 os.remove(rstats_filter.name)
@@ -2632,7 +2627,7 @@ class ExportScenarioInstance(RecursiveScenarioInstanceAction):
                                 'fetch_file',
                                  start_job_instance.agent.address,
                                  normalized_job_name + '_'.join(stat_name.split()),
-                                 collect_directory,self.vault_password,
+                                 collect_directory, self.vault_password,
                                  files_to_fetch)
 
     def _action(self):
@@ -2754,7 +2749,7 @@ class ProjectAction(ConductorAction):
                 project.entities.exclude(agent__isnull=True)
         ]
         all_facts = {
-                address: start_playbook('gather_facts', address,self.vault_password)
+                address: start_playbook('gather_facts', address, self.vault_password)
                 for address in addresses
         }
 
@@ -3120,8 +3115,8 @@ class AddEntity(EntityAction):
     def _action(self):
         self._register_entity()
         entity = self.get_entity_or_not_found_error()
-        project=InfosProject(self.project)
-        project.vault_password=self.vault_password
+        project = InfosProject(self.project)
+        self.share_user(project)
         project._build_topology()
         return entity.project.json, 200
 
@@ -3142,7 +3137,7 @@ class ModifyEntity(EntityAction):
 
         entity = self.get_entity_or_not_found_error()
         project = InfosProject(self.project)
-        project.vault_password=self.vault_password
+        self.share_user(project)
 
         if entity.project.networks.filter(address__startswith='imported'):
             project._enforce_topology(entity)
@@ -3164,7 +3159,6 @@ class DeleteEntity(EntityAction):
         self._assert_user_in(entity.project.owners.all())
         entity.delete()
         project_infos = InfosProject(self.project)
-        project_infos.vault_password=self.vault_password
         self.share_user(project_infos)
         project_infos._build_topology()
         project = project_infos.get_project_or_not_found_error()
@@ -3191,7 +3185,6 @@ class ListEntities(EntityAction):
 
     def _action(self):
         project = InfosProject(self.project).get_project_or_not_found_error()
-        project.vault_password=self.vault_password
         self._assert_user_in(project.owners.all())
         entities = Entity.objects.filter(project=project)
         return [entity.json for entity in entities], 200
@@ -3579,7 +3572,7 @@ class PushFile(ConductorAction):
                 for local_path, remote_path, user, group, remove
                 in zip(self.local_path, self.remote_path, users, groups, removes)
         ]
-        start_playbook('push_file', agent.address,self.vault_password, parameters)
+        start_playbook('push_file', agent.address, self.vault_password, parameters)
 
         return None, 204
 
@@ -3627,7 +3620,7 @@ class PullFile(ConductorAction):
                 for local_path, remote_path, user, group, remove
                 in zip(self.local_path, self.remote_path, users, groups, removes)
         ]
-        start_playbook('pull_file', agent.address,self.vault_password, parameters)
+        start_playbook('pull_file', agent.address, self.vault_password, parameters)
 
         return None, 204
 
@@ -3781,6 +3774,6 @@ class Reboot(ConductorAction):
     def _action(self):
         agent_infos = InfosAgent(self.address)
         agent = agent_infos.get_agent_or_not_found_error()
-        start_playbook('reboot', agent.address, self.kernel,self.vault_password)
+        start_playbook('reboot', agent.address, self.kernel, self.vault_password)
 
         return None, 204

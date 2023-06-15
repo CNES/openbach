@@ -121,7 +121,7 @@ class GenericView(base.View):
     def conductor_execute(self, **command):
         """Send a command to openbach_conductor"""
         command['_username'] = self.request.user.get_username()
-        command['vault_password']=self.request.session.get('vault_password')
+        command['vault_password'] = self.request.session.get('vault_password')
         response = send_fifo(command)
         result = json.loads(response)
         returncode = result.pop('returncode')

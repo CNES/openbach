@@ -136,7 +136,7 @@ class BackendHandler(socketserver.BaseRequestHandler):
         """Analyze the data received to execute the right action"""
         request_name = request.pop('command')
         user_name = request.pop('_username')
-        vault_password=request.pop('vault_password')
+        vault_password = request.pop('vault_password')
         command_name = ''.join(map(str.title, request_name.split('_')))
         print('\n#', '-' * 76, '#')
         print('Executing the command', command_name, 'with parameters', request)
@@ -148,7 +148,7 @@ class BackendHandler(socketserver.BaseRequestHandler):
                     function_name=command_name)
 
         command = command_cls(**request)
-        command.configure_user(user_name,vault_password=vault_password)
+        command.configure_user(user_name, vault_password=vault_password)
         return command.action()
 
 
