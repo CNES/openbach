@@ -1,123 +1,178 @@
-import * as React from "react";
-import {browserHistory} from "react-router";
-import {FormProps, reduxForm} from "redux-form";
+import React from 'react';
+import {useForm, Controller} from 'react-hook-form';
 
-import ActionDialog from "../common/ActionDialog";
-import {FormField, TextFormField} from "../common/Form";
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import TextField from '@mui/material/TextField';
+
+import Dialog from '../common/ActionDialog';
+
+import {createUser} from '../../api/login';
+import {useDispatch} from '../../redux';
+import {setMessage} from '../../redux/message';
+import type {FieldErrors} from 'react-hook-form';
 
 
-class CreateUserDialog extends React.Component<IProps & FormProps<IFields, {}, {}>, {}> {
-    constructor(props) {
-        super(props);
-        this.doCreateUser = this.doCreateUser.bind(this);
-    }
+const CreateUserDialog: React.FC<Props> = (props) => {
+    const {open, onClose} = props;
+    const dispatch = useDispatch();
+    const {control, handleSubmit, reset} = useForm<FormData>();
 
-    public render() {
-        return (
-            <ActionDialog
-                title="Create New User"
-                open={this.props.open}
-                modal={false}
-                auto={true}
-                cancel={{label: "Cancel", action: this.props.onRequestClose}}
-                actions={[{label: "Create User", action: this.doCreateUser}]}
-            >
-                <form>
-                    <div><p>Required fields</p></div>
-                    <div><FormField
-                        name="username"
-                        component={TextFormField}
-                        fullWidth={true}
-                        text="Username"
-                    /></div>
-                    <div><FormField
-                        name="password"
-                        component={TextFormField}
-                        fullWidth={true}
-                        text="Password"
-                        type="password"
-                    /></div>
-                    <div><FormField
-                        name="password2"
-                        component={TextFormField}
-                        fullWidth={true}
-                        text="Confirm Password"
-                        type="password"
-                    /></div>
-                    <div><p>Optional fields</p></div>
-                    <div><FormField
-                        name="email"
-                        component={TextFormField}
-                        fullWidth={true}
-                        text="Email"
-                    /></div>
-                    <div><FormField
-                        name="firstName"
-                        component={TextFormField}
-                        fullWidth={true}
-                        text="First Name"
-                    /></div>
-                    <div><FormField
-                        name="lastName"
-                        component={TextFormField}
-                        fullWidth={true}
-                        text="Last Name"
-                    /></div>
-                </form>
-            </ActionDialog>
-        );
-    }
+    const onSubmit = React.useCallback((data: FormData) => {
+        dispatch(createUser({
+            login: data.username,
+            password: data.password,
+            email: data.email,
+            first_name: data.firstName,
+            last_name: data.lastName,
+        }));
+    }, [dispatch]);
 
-    private doCreateUser() {
-        const onSubmit = this.props.onNewUserRequired;
-        this.props.handleSubmit(onSubmit)(null);
-        if (this.props.valid) {
-            this.props.reset();
-            this.props.onRequestClose();
-            browserHistory.push("/app/settings");
+    const onError = React.useCallback((error: FieldErrors<FormData>) => {
+        const loginError = error?.username?.message;
+        if (loginError) {
+            dispatch(setMessage(loginError));
+            return;
         }
-    }
+        const passwordError = error?.password?.message;
+        if (passwordError) {
+            dispatch(setMessage(passwordError));
+            return;
+        }
+    }, [dispatch]);
+
+    React.useEffect(() => {
+        if (!open) {reset();}
+    }, [open, reset]);
+
+    return (
+        <Dialog
+            title="Create New User"
+            open={open}
+            onSubmit={handleSubmit(onSubmit, onError)}
+            cancel={{label: "Cancel", action: onClose}}
+            actions={[{label: "Create User", action: "submit"}]}
+        >
+            <DialogContent>
+                <DialogContentText>
+                    Required Fields
+                </DialogContentText>
+                <Controller
+                    name="username"
+                    control={control}
+                    rules={{required: true}}
+                    defaultValue=""
+                    render={({field: {onBlur, onChange, value, ref}}) => (
+                        <TextField
+                            autoFocus
+                            required
+                            margin="dense"
+                            variant="standard"
+                            label="Username"
+                            onChange={onChange}
+                            onBlur={onBlur}
+                            value={value}
+                            inputRef={ref}
+                            fullWidth
+                        />
+                    )}
+                />
+                <Controller
+                    name="password"
+                    control={control}
+                    rules={{required: true}}
+                    defaultValue=""
+                    render={({field: {onBlur, onChange, value, ref}}) => (
+                        <TextField
+                            required
+                            margin="dense"
+                            variant="standard"
+                            label="Password"
+                            type="password"
+                            onChange={onChange}
+                            onBlur={onBlur}
+                            value={value}
+                            inputRef={ref}
+                            fullWidth
+                        />
+                    )}
+                />
+                <DialogContentText>
+                    Optional Fields
+                </DialogContentText>
+                <Controller
+                    name="email"
+                    control={control}
+                    rules={{required: false}}
+                    defaultValue=""
+                    render={({field: {onBlur, onChange, value, ref}}) => (
+                        <TextField
+                            margin="dense"
+                            variant="standard"
+                            label="Email"
+                            onChange={onChange}
+                            onBlur={onBlur}
+                            value={value}
+                            inputRef={ref}
+                            fullWidth
+                        />
+                    )}
+                />
+                <Controller
+                    name="firstName"
+                    control={control}
+                    rules={{required: false}}
+                    defaultValue=""
+                    render={({field: {onBlur, onChange, value, ref}}) => (
+                        <TextField
+                            margin="dense"
+                            variant="standard"
+                            label="First Name"
+                            onChange={onChange}
+                            onBlur={onBlur}
+                            value={value}
+                            inputRef={ref}
+                            fullWidth
+                        />
+                    )}
+                />
+                <Controller
+                    name="lastName"
+                    control={control}
+                    rules={{required: false}}
+                    defaultValue=""
+                    render={({field: {onBlur, onChange, value, ref}}) => (
+                        <TextField
+                            margin="dense"
+                            variant="standard"
+                            label="Last Name"
+                            onChange={onChange}
+                            onBlur={onBlur}
+                            value={value}
+                            inputRef={ref}
+                            fullWidth
+                        />
+                    )}
+                />
+            </DialogContent>
+        </Dialog>
+    );
 };
 
 
-interface IProps {
+interface Props {
     open: boolean;
-    onRequestClose: () => void;
-    onNewUserRequired: () => void;
-};
+    onClose: () => void;
+}
 
 
-interface IFields {
-    username?: string;
-    password?: string;
-    password2?: string;
+interface FormData {
+    username: string;
+    password: string;
     email?: string;
-    lastName?: string;
     firstName?: string;
-};
+    lastName?: string;
+}
 
 
-const validate = (values): IFields => {
-    const errors: IFields = {};
-    if (!values.username) {
-        errors.username = "Field is required";
-    } else if (values.username.length > 30) {
-        errors.username = "Length is limited to 30 characters";
-    }
-    if (!values.password) {
-        errors.password = "Field is required";
-    }
-    if (values.password !== values.password2) {
-        errors.password2 = "The two passwords do not match";
-    }
-    if (values.firstName && values.firstName.length > 30) {
-        errors.firstName = "Length is limited to 30 characters";
-    }
-    if (values.lastName && values.lastName.length > 30) {
-        errors.lastName = "Length is limited to 30 characters";
-    }
-    return errors;
-};
-
-
-export default reduxForm({ form: "newuser", validate })(CreateUserDialog);
+export default CreateUserDialog;

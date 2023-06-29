@@ -1,68 +1,124 @@
-import * as React from "react";
-import {FormProps, reduxForm} from "redux-form";
+import React from 'react';
+import {useForm, Controller} from 'react-hook-form';
 
-import ActionDialog from "../common/ActionDialog";
-import {FormField, TextFormField} from "../common/Form";
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import TextField from '@mui/material/TextField';
+
+import Dialog from '../common/ActionDialog';
+
+import {getLogin, doLogin} from '../../api/login';
+import {useSelector, useDispatch} from '../../redux';
+import {setMessage} from '../../redux/message';
+import {closeLoginDialog} from '../../redux/login';
+import type {FieldErrors} from 'react-hook-form';
 
 
-class LoginDialog extends React.Component<IProps & FormProps<IFields, {}, {}>, {}> {
-    constructor(props) {
-        super(props);
-        this.doAuthenticate = this.doAuthenticate.bind(this);
-    }
+const LoginDialog: React.FC<Props> = (props) => {
+    const dispatch = useDispatch();
+    const open = useSelector((state) => state.login.showLoginDialog);
+    const {control, handleSubmit, reset} = useForm<FormData>();
 
-    public render() {
-        return (
-            <ActionDialog
-                title="Connect as"
-                open={this.props.open}
-                modal={false}
-                cancel={{label: "Stay Anonymous", action: this.props.onRequestClose}}
-                actions={[{label: "Authenticate", action: this.doAuthenticate}]}
-            >
-                <form onSubmit={this.doAuthenticate}>
-                    <div><FormField name="username" component={TextFormField} fullWidth={true} text="Username" /></div>
-                    <div><FormField name="password" component={TextFormField} fullWidth={true} text="Password" type="password" /></div>
-                    <div style={{display: "none"}}><button type="submit" /></div>
-                </form>
-            </ActionDialog>
-        );
-    }
+    const dismissDialog = React.useCallback(() => {
+        dispatch(closeLoginDialog());
+    }, [dispatch]);
 
-    private doAuthenticate(event?) {
-        if (event) { event.preventDefault(); }
-        const onSubmit = this.props.onLoginRequired;
-        this.props.handleSubmit(onSubmit)(null);
-        if (this.props.valid) {
-            this.props.reset();
-            this.props.onRequestClose();
+    const onSubmit = React.useCallback((data: FormData) => {
+        dispatch(doLogin({login: data.username, password: data.password}));
+    }, [dispatch]);
+
+    const onError = React.useCallback((error: FieldErrors<FormData>) => {
+        const usernameError = error?.username?.message;
+        if (usernameError) {
+            dispatch(setMessage(usernameError));
+            return;
         }
-    }
-};
-
-
-interface IProps {
-    open: boolean;
-    onRequestClose: () => void;
-    onLoginRequired: () => void;
-};
-
-
-interface IFields {
-    username?: string;
-    password?: string;
-};
-
-
-const validate = (values): IFields => {
-    const errors: IFields = {};
-    ["username", "password"].forEach((key: string) => {
-        if (!values[key]) {
-            errors[key] = "Field is required";
+        const passwordError = error?.password?.message;
+        if (passwordError) {
+            dispatch(setMessage(passwordError));
+            return;
         }
-    });
-    return errors;
+    }, [dispatch]);
+
+    React.useEffect(() => {
+        const promise = dispatch(getLogin());
+        return () => {
+            promise.abort();
+        };
+    }, [dispatch]);
+
+    React.useEffect(() => {
+        if (!open) {reset();}
+    }, [open, reset]);
+
+    return (
+        <Dialog
+            title="Connect As"
+            open={open}
+            modal
+            onSubmit={handleSubmit(onSubmit, onError)}
+            cancel={{label: "Stay Anonymous", action: dismissDialog}}
+            actions={[{label: "Authenticate", action: "submit"}]}
+        >
+            <DialogContent>
+                <DialogContentText>
+                    Please Log In to browse your Projects
+                </DialogContentText>
+                <Controller
+                    name="username"
+                    control={control}
+                    rules={{required: true}}
+                    defaultValue=""
+                    render={({field: {onChange, onBlur, value, ref}}) => (
+                        <TextField
+                            autoFocus
+                            required
+                            margin="dense"
+                            variant="standard"
+                            label="Username"
+                            onChange={onChange}
+                            onBlur={onBlur}
+                            value={value}
+                            inputRef={ref}
+                            autoComplete={open ? undefined : "off"}
+                            fullWidth
+                        />
+                    )}
+                />
+                <Controller
+                    name="password"
+                    control={control}
+                    rules={{required: true}}
+                    defaultValue=""
+                    render={({field: {onChange, onBlur, value, ref}}) => (
+                        <TextField
+                            required
+                            margin="dense"
+                            variant="standard"
+                            label="Password"
+                            type="password"
+                            onChange={onChange}
+                            onBlur={onBlur}
+                            value={value}
+                            inputRef={ref}
+                            fullWidth
+                        />
+                    )}
+                />
+            </DialogContent>
+        </Dialog>
+    );
 };
 
 
-export default reduxForm({ form: "login", validate })(LoginDialog);
+interface Props {
+}
+
+
+interface FormData {
+    username: string;
+    password: string;
+}
+
+
+export default LoginDialog;

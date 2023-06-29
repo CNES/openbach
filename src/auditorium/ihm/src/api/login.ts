@@ -1,51 +1,132 @@
-import {ILoginCredentials, ILoginForm, IProfileForm, IProfilePermissions} from "../interfaces/login.interface";
-import {doApiCall} from "./common";
+import {doFetch, asyncThunk} from './base';
+import {setMessage} from '../redux/message';
+
+import type {ICredentials, IProfilePermissions} from '../utils/interfaces';
 
 
-export function getUser(): Promise<ILoginCredentials> {
-    return doApiCall("/login").then((response: Response) => response.json<ILoginCredentials>());
-};
+interface LoginForm {
+    login: string;
+    password?: string;
+}
 
 
-export function createUser(profile: IProfileForm): Promise<ILoginCredentials> {
-    const {login, password, email, first_name, last_name} = profile;
-    const loginForm: ILoginForm = { login, password };
-    const request = {action: "create", login, password, email, first_name, last_name};
-    return doApiCall("/login", "POST", request)
-        .then((response: Response) => new Promise<ILoginCredentials>(
-          (resolve) => resolve(authenticateUser(loginForm)),
-        ));
-};
+interface UserForm {
+    email?: string;
+    first_name?: string;
+    last_name?: string;
+}
 
 
-export function authenticateUser(credentials: ILoginForm): Promise<ILoginCredentials> {
-    return doApiCall("/login", "POST", credentials)
-        .then((response: Response) => response.json<ILoginCredentials>());
-};
+declare type CreateForm = UserForm & Required<LoginForm>;
+declare type UpdateForm = UserForm & LoginForm;
 
 
-export function updateUser(settings: IProfileForm): Promise<ILoginCredentials> {
-    return doApiCall("/login", "PUT", settings)
-        .then((response: Response) => response.json<ILoginCredentials>());
-};
+export const getLogin = asyncThunk<ICredentials>(
+    'login/getLogin',
+    async (_, {dispatch}) => {
+        return await doFetch<ICredentials>(
+            "/login",
+            dispatch,
+        );
+    },
+);
 
 
-export function deAuthenticateUser(): Promise<{}> {
-    return doApiCall("/login", "DELETE", {});
-};
+export const doLogin = asyncThunk<ICredentials, Required<LoginForm>>(
+    'login/doLogin',
+    async ({login, password}, {dispatch}) => {
+        return await doFetch<ICredentials>(
+            "/login",
+            dispatch,
+            "POST",
+            {login, password},
+        );
+    },
+);
 
 
-export function listUsers(): Promise<ILoginCredentials[]> {
-    return doApiCall("/login/users")
-        .then((response: Response) => response.json<ILoginCredentials[]>());
-};
+export const doLogout = asyncThunk<void>(
+    'login/doLogout',
+    async (_, {dispatch}) => {
+        await doFetch<{}>(
+            "/login",
+            dispatch,
+            "DELETE",
+        );
+        dispatch(setMessage("Disconnected"));
+    },
+);
 
 
-export function deleteUsers(usernames: string[]): Promise<{}> {
-    return doApiCall("/login/users", "DELETE", {usernames});
-};
+export const getUsers = asyncThunk<ICredentials[]>(
+    'login/getUsers',
+    async (_, {dispatch}) => {
+        return await doFetch<ICredentials[]>(
+            "/login/users",
+            dispatch,
+        );
+    },
+);
 
 
-export function updateUsers(permissions: IProfilePermissions[]): Promise<{}> {
-    return doApiCall("/login/users", "PUT", {permissions});
-};
+export const createUser = asyncThunk<void, CreateForm>(
+    'login/createUser',
+    async ({login, password, ...form}, {dispatch}) => {
+        const request = {
+            action: "create",
+            login,
+            password,
+            ...form,
+        };
+        await doFetch<{}>(
+            "/login",
+            dispatch,
+            "POST",
+            request,
+        );
+        dispatch(doLogin({login, password}));
+    },
+);
+
+
+export const updateUser = asyncThunk<ICredentials, UpdateForm>(
+    'login/updateUser',
+    async (form, {dispatch}) => {
+        return await doFetch<ICredentials>(
+            "/login",
+            dispatch,
+            "PUT",
+            form,
+        );
+    },
+);
+
+
+export const deleteUsers = asyncThunk<string[], {usernames: string[]}>(
+    'login/deleteUsers',
+    async (body, {dispatch}) => {
+        await doFetch<{}>(
+            "/login/users",
+            dispatch,
+            "DELETE",
+            body,
+        );
+        dispatch(setMessage("Users removed successfully"));
+        return body.usernames;
+    },
+);
+
+
+export const updateUsers = asyncThunk<IProfilePermissions[], {permissions: IProfilePermissions[]}>(
+    'login/updateUsers',
+    async (body, {dispatch}) => {
+        await doFetch<{}>(
+            "/login/users",
+            dispatch,
+            "PUT",
+            body,
+        );
+        dispatch(setMessage("Users changed successfully"));
+        return body.permissions;
+    },
+);
