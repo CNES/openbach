@@ -1,6 +1,7 @@
 import React from 'react';
 import {useParams} from 'react-router';
 
+import AppBar from '@mui/material/AppBar';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
 
@@ -14,6 +15,7 @@ import {getProject} from '../../api/projects';
 import {useDispatch} from '../../redux';
 import {selectNewScenario} from '../../redux/project';
 import {setTitle} from '../../redux/message';
+import {breakOutOfMainBody} from '../../utils/theme';
 
 
 const TabPanel: React.FC<React.PropsWithChildren<TabProps>> = (props) => {
@@ -62,12 +64,21 @@ const Project: React.FC<React.PropsWithChildren<Props>> = (props) => {
 
     return (
         <React.Fragment>
-            <Tabs value={selectedTab} onChange={handleTabChange} centered variant="fullWidth">
-                <Tab label="Project" value="project" />
-                <Tab label="Scenarios" value="scenarios" />
-                <Tab label="Instances" value="instances" />
-                <Tab label={scenarioId || "No Scenario Selected"} value="selected" disabled={!scenarioId} />
-            </Tabs>
+            <AppBar color="primary" sx={{position: "static", ...breakOutOfMainBody}}>
+                <Tabs
+                    value={selectedTab}
+                    onChange={handleTabChange}
+                    centered
+                    variant="fullWidth"
+                    textColor="inherit"
+                    indicatorColor="secondary"
+                >
+                    <Tab label="Project" value="project" />
+                    <Tab label="Scenarios" value="scenarios" />
+                    <Tab label="Instances" value="instances" />
+                    <Tab label={scenarioId || "No Scenario Selected"} value="selected" disabled={!scenarioId} />
+                </Tabs>
+            </AppBar>
             <TabPanel value="project" selected={selectedTab}>
                 <ProjectDetails />
             </TabPanel>

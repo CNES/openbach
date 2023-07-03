@@ -9,8 +9,6 @@ import BaseToolbar from '@mui/material/Toolbar';
 import MenuItem from '@mui/material/MenuItem';
 import Typography from '@mui/material/Typography';
 
-import {styled} from '@mui/material/styles';
-
 import LogsBadge from './LogsBadge';
 import UserMenu from './UserMenu';
 import MenuButton from '../common/MenuButton';
@@ -18,12 +16,7 @@ import TextLink from '../common/TextLink';
 
 import {useDispatch, useSelector} from '../../redux';
 import {getVersion} from '../../api/global';
-
-
-const ToolbarFiller = styled('div')(({ theme }) => ({
-    ...theme.mixins.toolbar,
-    marginBottom: theme.spacing(2)
-}));
+import {breakOutOfMainBody} from '../../utils/theme';
 
 
 const logo = process.env.PUBLIC_URL + "/openbach.png"
@@ -41,8 +34,8 @@ const Toolbar: React.FC<Props> = (props) => {
 
     return (
         <React.Fragment>
-            <AppBar color="default">
-                <BaseToolbar disableGutters sx={{pl: "5%", pr: "5%"}}>
+            <AppBar color="mainTitle" sx={{position: "sticky", ...breakOutOfMainBody}}>
+                <BaseToolbar disableGutters sx={{position: "static"}}>
                     <Button component={Link} to="/app" sx={{height: 56, width: 56}}>
                         <Box component="img" height="100%" width="100%" src={logo} />
                     </Button>
@@ -83,7 +76,6 @@ const Toolbar: React.FC<Props> = (props) => {
                     </Box>
                 </BaseToolbar>
             </AppBar>
-            <ToolbarFiller />
         </React.Fragment>
     );
 };

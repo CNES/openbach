@@ -21,22 +21,6 @@ const StartJobInstanceSubcommand: React.FC<Props> = (props) => {
     const {id, index, job, groups, others, arguments: args} = props;
     const {watch} = useFormContext<Form>();
 
-/*
-    const handleChange = React.useCallback((parameter: string) => (values: TStartJobParameterValue[][]) => {
-        const parameters = groups.map(({selected}) => selected);
-        parameters.push(parameter);
-        dispatch(changeOpenbachFunctionParameter({name, index, job, parameters, values}));
-    }, [name, index, job, groups, dispatch]);
-
-    const handleSubcommandChange = React.useCallback((group: string) => (event: SelectChangeEvent<string>) => {
-        const {value} = event.target;
-        const selected = value ? value : undefined;
-        const commands = groups.map(({name}) => name);
-        commands.push(group);
-        dispatch(changeOpenbachFunctionSubcommand({name, index, job, groups: commands, selected}));
-    }, [name, index, job, groups, dispatch]);
-*/
-
     const transform = React.useCallback((argument: IJobArgument) => {
         const path = groups.map(({selected}) => selected);
         path.push(argument.name);

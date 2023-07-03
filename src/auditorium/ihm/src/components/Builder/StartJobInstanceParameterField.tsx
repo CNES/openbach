@@ -22,31 +22,8 @@ import type {IJobArgument, TStartJobParameterValue, Form, FunctionForm} from '..
 import type {UseControllerProps} from 'react-hook-form';
 
 
-/*
-const emptyRow = (row: TStartJobParameterValue[]): boolean => {
-    return row.reduce(
-        (total: number, value) => value == null || (value.hasOwnProperty('length') && !(value as string | number[]).length) ? total : total + 1,
-        0) === 0;
-};
-*/
-
-
 const StringField: React.FC<PasswordField> = (props) => {
     const {label, password, required: _, ...controllerProps} = props;
-/*
-    const [internal, storeInternal] = React.useState<TStartJobParameterValue>(value == null ? "" : value);
-
-    const handleChange = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-        storeInternal(event.target.value);
-    }, []);
-
-    React.useEffect(() => {
-        if (internal !== value) {
-            const timeout = setTimeout(() => onChange(internal), 750);
-            return () => {clearTimeout(timeout);};
-        }
-    }, [internal, value, onChange]);
-*/
 
     return (
         <Controller
@@ -72,19 +49,6 @@ const StringField: React.FC<PasswordField> = (props) => {
 const NumericField: React.FC<NumericalField> = (props) => {
     const {label, step, required: _, ...controllerProps} = props;
 
-/*
-    const [internal, storeInternal] = React.useState<number | string>(
-        value == null ? "" : typeof value === 'number' ? value : String(value)
-    );
-
-    React.useEffect(() => {
-        if (internal !== value) {
-            const timeout = setTimeout(() => onChange(internal), 750);
-            return () => {clearTimeout(timeout);};
-        }
-    }, [internal, value, onChange]);
-*/
-
     return (
         <NumberField
             variant="standard"
@@ -100,20 +64,6 @@ const NumericField: React.FC<NumericalField> = (props) => {
 
 const BooleanField: React.FC<Field> = (props) => {
     const {label, onChange: handleChange, required: _, ...controllerProps} = props;
-/*
-    const [internal, storeInternal] = React.useState<boolean>(Boolean(value));
-
-    const handleChange = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-        storeInternal(event.target.checked);
-    }, []);
-
-    React.useEffect(() => {
-        if (internal !== value) {
-            const timeout = setTimeout(() => onChange(internal), 500);
-            return () => {clearTimeout(timeout);};
-        }
-    }, [internal, value, onChange]);
-*/
 
     return (
         <FormGroup sx={{flexGrow: 1}}>
@@ -133,20 +83,6 @@ const BooleanField: React.FC<Field> = (props) => {
 
 const ChoiceField: React.FC<SelectField> = (props) => {
     const {label, choices, required: _, ...controllerProps} = props;
-/*
-    const [internal, storeInternal] = React.useState<TStartJobParameterValue>(value == null ? "" : value);
-
-    const handleChange = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-        storeInternal(event.target.value);
-    }, []);
-
-    React.useEffect(() => {
-        if (internal !== value) {
-            const timeout = setTimeout(() => onChange(internal), 750);
-            return () => {clearTimeout(timeout);};
-        }
-    }, [internal, value, onChange]);
-*/
 
     return (
         <Controller
@@ -181,28 +117,6 @@ const IdField: React.FC<OpenbachFunctionField> = (props) => {
             ({id, label}: FunctionForm) => ({id, label})
         );
     }, [others, type]);
-
-/*
-    const [internal, storeInternal] = React.useState<number[]>(value == null ? [] : value as number[]);
-
-    const choices = React.useMemo(() => {
-        return others.filter((openbachFunction: FunctionForm) => openbachFunction.kind === type).map(
-            ({id, label}: FunctionForm) => ({id, label})
-        );
-    }, [others, type]);
-
-    const handleChange = React.useCallback((event: SelectChangeEvent<typeof internal>) => {
-        const {value} = event.target;
-        storeInternal(typeof value === 'string' ? [] : value);
-    }, []);
-
-    React.useEffect(() => {
-        if (internal !== value) {
-            const timeout = setTimeout(() => onChange(internal), 750);
-            return () => {clearTimeout(timeout);};
-        }
-    }, [internal, value, onChange]);
-*/
 
     return (
         <FormControl size="small" sx={{flexGrow: 1}}>
@@ -420,35 +334,6 @@ const StartJobInstanceParameterField: React.FC<Props> = (props) => {
             addNewRow();
         }
     }, [getValues, formName, addNewRow]);
-
-/*
-    const values = React.useMemo((): TStartJobParameterValue[][] => {
-        if (!initial || !initial.length) {
-            return [Array.from({length: Math.max(countLower, 1)}, () => sensibleDefault)];
-        }
-
-        const needsExtra = repeatable && initial[initial.length - 1].reduce(
-            (total: number, value) => value == null || (value.hasOwnProperty('length') && !(value as string | number[]).length) ? total : total + 1,
-            0) !== 0;
-        return Array.from({length: initial.length + (needsExtra ? 1 : 0)}, (_, line: number) => {
-            const row = initial[line] || [];
-            const length = Math.max(1, row.length, countLower);
-            const value = row[length - 1];
-            const create = value != null
-                        && (!value.hasOwnProperty('length') || (value as string | number[]).length)
-                        && (countUpper == null || length < countUpper);
-            return Array.from({length: length + (create ? 1 : 0)}, (_, column: number) => row[column] == null ? sensibleDefault : row[column]);
-        });
-    }, [initial, repeatable, countLower, countUpper, sensibleDefault]);
-
-    const handleChange = React.useCallback((row: number, column: number) => (
-        (updated: TStartJobParameterValue) => {
-            onChange(values.map((line: TStartJobParameterValue[], i: number) => i !== row ? line : line.map(
-                (value: TStartJobParameterValue, j: number) => j !== column ? value : updated
-            )));
-        }
-    ), [values, onChange]);
-*/
 
     return (
         <React.Fragment>

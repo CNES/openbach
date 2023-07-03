@@ -28,7 +28,7 @@ const NumberField: React.FC<Props & UseControllerProps<Form>> = (props) => {
 
     const minus = (
         <Tooltip
-            title={/*typeof value === 'number' ? "Decrement" : "Reinitialize to 0"*/"Decrement"}
+            title="Decrement"
             placement="top"
         >
             <IconButton
@@ -42,7 +42,7 @@ const NumberField: React.FC<Props & UseControllerProps<Form>> = (props) => {
 
     const plus = (
         <Tooltip
-            title={/*typeof value === 'number' ? "Increment" : "Reinitialize to 0"*/"Increment"}
+            title="Increment"
             placement="top"
         >
             <IconButton
@@ -90,16 +90,6 @@ interface Props {
     step?: number;
     color?: "primary" | "secondary";
 };
-
-
-/*
-declare type ExpectedKeys = `functions.${number}.on_fail.retry`
-                          | `functions.${number}.on_fail.delay`
-                          | `functions.${number}.wait.time`
-                          | `functions.${number}.offset`
-                          | `functions.${number}.interval`
-                          | `functions.${number}.parameters.${string}.${string}.${number}.${number}`;
-*/
 
 
 export default NumberField;
