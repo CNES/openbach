@@ -8,7 +8,7 @@ export const getJobs = asyncThunk<IJob[]>(
     'jobs/getJobs',
     async (_, {dispatch}) => {
         return await doFetch<IJob[]>(
-            "/job",
+            "/openbach/job",
             dispatch,
         );
     },
@@ -23,7 +23,7 @@ export const addJob = asyncThunk<IJob, {job: string; file: File;}>(
         data.append('file', file);
 
         const response = await doFetch<IJob>(
-            "/job",
+            "/openbach/job",
             dispatch,
             "POST",
             data,
@@ -38,7 +38,7 @@ export const stateJob = asyncThunk<IJobState, {jobName: string; agent: string;}>
     'jobs/stateJob',
     async ({jobName, agent}, {dispatch}) => {
         return await doFetch<IJobState>(
-            `/job/${jobName}/state?address=${agent}`,
+            `/openbach/job/${jobName}/state?address=${agent}`,
             dispatch,
         );
     },
@@ -49,7 +49,7 @@ export const listAgents = asyncThunk<IJobAgentsList, {jobName: string;}>(
     'jobs/listAgents',
     async ({jobName}, {dispatch}) => {
         return await doFetch<IJobAgentsList>(
-            `/job/${jobName}/?type=agents`,
+            `/openbach/job/${jobName}/?type=agents`,
             dispatch,
         );
     },
@@ -60,7 +60,7 @@ export const externalJobs = asyncThunk<IExternalJobInfos[]>(
     'jobs/externalJobs',
     async (_, {dispatch}) => {
         return await doFetch<IExternalJobInfos[]>(
-            "/job?external=true",
+            "/openbach/job?external=true",
             dispatch,
         );
     },
@@ -71,7 +71,7 @@ export const addExternalJob = asyncThunk<IJob, {name: string;}>(
     'jobs/addExternalJob',
     async (job, {dispatch}) => {
         const response = await doFetch<IJob>(
-            "/job",
+            "/openbach/job",
             dispatch,
             "POST",
             job,
@@ -86,7 +86,7 @@ export const internalJobs = asyncThunk<IExternalJobInfos[]>(
     'jobs/internalJobs',
     async (_, {dispatch}) => {
         return await doFetch<IExternalJobInfos[]>(
-            "/job?external=true&repository=openbach",
+            "/openbach/job?external=true&repository=openbach",
             dispatch,
         );
     },
@@ -97,7 +97,7 @@ export const addInternalJob = asyncThunk<IJob, {name: string;}>(
     'jobs/addInternalJob',
     async ({name}, {dispatch}) => {
         const response = await doFetch<IJob>(
-            "/job",
+            "/openbach/job",
             dispatch,
             "POST",
             {name, repository: "openbach"},
@@ -112,7 +112,7 @@ export const installOnAgents = asyncThunk<void, {jobNames: string[]; agents: str
     'jobs/installOnAgents',
     async ({jobNames, agents}, {dispatch}) => {
         await doFetch<{}>(
-            "/job",
+            "/openbach/job",
             dispatch,
             "POST",
             {action: "install", names: jobNames, addresses: agents},
@@ -125,7 +125,7 @@ export const uninstallOnAgents = asyncThunk<void, {jobNames: string[]; agents: s
     'jobs/uninstallOnAgents',
     async ({jobNames, agents}, {dispatch}) => {
         await doFetch<{}>(
-            "/job",
+            "/openbach/job",
             dispatch,
             "POST",
             {action: "uninstall", names: jobNames, addresses: agents},

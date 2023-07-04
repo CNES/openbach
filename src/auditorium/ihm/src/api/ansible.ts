@@ -22,9 +22,9 @@ export const storeVaultPassword = asyncThunk<void, {password: string;}>(
         // so it is stored in the backend session
         try {
             await doFetch<{}>(
-                '/version',
+                '/openbach/version',
                 dispatch,
-                "GET",
+                "POST",
                 {vault_password: password},
             );
         } catch (err) {

@@ -48,7 +48,7 @@ export const getAgents = asyncThunk<IAgent[], {services: boolean;}>(
     'agents/getAgents',
     async ({services}, {dispatch}) => {
         return await doFetch<IAgent[]> (
-            "/agent" + (services ? "?services" : ""),
+            "/openbach/agent" + (services ? "?services" : ""),
             dispatch,
         );
     },
@@ -69,7 +69,7 @@ export const addAgent = asyncThunk<IAgent, NewAgent>(
         }
 
         await doFetch<{}> (
-            "/agent" + (reattach ?  "?reattach" : ""),
+            "/openbach/agent" + (reattach ?  "?reattach" : ""),
             dispatch,
             "POST",
             hasPassword ? agent : data,
@@ -84,7 +84,7 @@ export const removeAgent = asyncThunk<void, {address: string; detach: boolean;}>
     'agents/removeAgent',
     async ({address, detach}, {dispatch}) => {
         await doFetch<{}> (
-            "/agent/" + address + (detach ? "?detach_only" : ""),
+            "/openbach/agent/" + address + (detach ? "?detach_only" : ""),
             dispatch,
             "DELETE",
         );
@@ -97,7 +97,7 @@ export const updateAgent = asyncThunk<IAgent, {address: string; agent: AgentUpda
     'agents/updateAgent',
     async ({address, agent}, {dispatch}) => {
         const response = await doFetch<IAgent> (
-            "/agent/" + address,
+            "/openbach/agent/" + address,
             dispatch,
             "PUT",
             agent,
@@ -112,7 +112,7 @@ export const getAgentState = asyncThunk<IAgentState, {address: string;}>(
     'agents/getAgentState',
     async ({address}, {dispatch}) => {
         return await doFetch<IAgentState> (
-            "/agent/" + address + "/state",
+            "/openbach/agent/" + address + "/state",
             dispatch,
         );
     },
@@ -123,7 +123,7 @@ export const getCollectors = asyncThunk<ICollector[]>(
     'agents/getCollectors',
     async (_, {dispatch}) => {
         return await doFetch<ICollector[]> (
-            "/collector",
+            "/openbach/collector",
             dispatch,
         );
     },
@@ -135,7 +135,7 @@ export const reserveProject = asyncThunk<void, {address: string; projectName: st
     async ({address, projectName}, {dispatch}) => {
         const project = projectName ? projectName : null;
         await doFetch<any> (
-            "/agent/" + address,
+            "/openbach/agent/" + address,
             dispatch,
             "POST",
             {action: "reserve_project", project},
@@ -150,7 +150,7 @@ export const getJobs = asyncThunk<string[], {address: string;}>(
     'agents/getJobs',
     async ({address}, {dispatch}) => {
         const response = await doFetch<InstalledJobs>(
-            "/job?address=" + address,
+            "/openbach/job?address=" + address,
             dispatch
         );
         return response.installed_jobs.map((j: {name: string;}) => j.name);

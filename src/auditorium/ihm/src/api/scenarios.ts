@@ -38,7 +38,7 @@ export const deleteScenario = asyncThunk<void, ScenarioId>(
     'scenarios/deleteScenario',
     async ({project, scenario}, {dispatch}) => {
         await doFetch<{}>(
-            "/project/" + project + "/scenario/" + scenario,
+            "/openbach/project/" + project + "/scenario/" + scenario,
             dispatch,
             "DELETE",
         );
@@ -58,7 +58,7 @@ export const addScenario = asyncThunk<IScenario, ScenarioId>(
             openbach_functions: [],
         };
         const response = await doFetch<IScenario>(
-            "/project/" + project + "/scenario",
+            "/openbach/project/" + project + "/scenario",
             dispatch,
             "POST",
             body,
@@ -73,7 +73,7 @@ export const importScenario = asyncThunk<IScenario, {project: string; scenario: 
     'scenarios/importScenario',
     async ({project, scenario}, {dispatch}) => {
         const response = await doFetch<IScenario>(
-            "/project/" + project + "/scenario",
+            "/openbach/project/" + project + "/scenario",
             dispatch,
             "POST",
             scenario,
@@ -88,7 +88,7 @@ export const updateScenario = asyncThunk<IScenario, {project: string; scenario: 
     'scenarios/updateScenario',
     async ({project, scenario}, {dispatch}) => {
         const response = await doFetch<IScenario>(
-            "/project/" + project + "/scenario/" + scenario.name,
+            "/openbach/project/" + project + "/scenario/" + scenario.name,
             dispatch,
             "PUT",
             scenario,
@@ -160,7 +160,7 @@ export const saveScenario = asyncThunk<IScenario, {project: string; name: string
             }),
         };
         const response = await doFetch<IScenario>(
-            "/project/" + project + "/scenario/" + name,
+            "/openbach/project/" + project + "/scenario/" + name,
             dispatch,
             "PUT",
             scenario,
@@ -176,7 +176,7 @@ export const favoriteScenario = asyncThunk<ICredentials, ScenarioFavorite>(
     async ({project, scenario, favorite}, {dispatch}) => {
         dispatch(setMessage("Saving your preferences..."));
         const response = await doFetch<ICredentials>(
-            "/project/" + project + "/scenario/" + scenario,
+            "/openbach/project/" + project + "/scenario/" + scenario,
             dispatch,
             "POST",
             {action: "favorite", favorite},
@@ -193,7 +193,7 @@ export const launchScenario = asyncThunk<IScenarioInstance, ScenarioRun>(
     'scenarios/launchScenario',
     async ({project, scenario, args}, {dispatch}) => {
         const response = await doFetch<IScenarioInstance>(
-            "/project/" + project + "/scenario/" + scenario + "/scenario_instance",
+            "/openbach/project/" + project + "/scenario/" + scenario + "/scenario_instance",
             dispatch,
             "POST",
             {arguments: args},
@@ -209,7 +209,7 @@ export const getScenariosInstances = asyncThunk<IScenarioInstance[], {project: s
     async ({project}, {getState, dispatch}) => {
         const offset = getState().project.scenarioInstances.length;
         return await doFetch<IScenarioInstance[]>(
-            "/project/" + project + "/scenario_instance?quiet&offset=" + offset + "&limit=15",
+            "/openbach/project/" + project + "/scenario_instance?quiet&offset=" + offset + "&limit=15",
             dispatch,
         );
     },
@@ -221,7 +221,7 @@ export const getScenarioInstances = asyncThunk<IScenarioInstance[], ScenarioId>(
     async ({project, scenario}, {getState, dispatch}) => {
         const offset = getState().project.currentScenarioInstances.length;
         return await doFetch<IScenarioInstance[]>(
-            "/project/" + project + "/scenario/" + scenario + "/scenario_instance?quiet&offset=" + offset + "&limit=15",
+            "/openbach/project/" + project + "/scenario/" + scenario + "/scenario_instance?quiet&offset=" + offset + "&limit=15",
             dispatch,
         );
     },
@@ -232,7 +232,7 @@ export const getScenarioInstance = asyncThunk<IScenarioInstance, {instance: numb
     'scenarios/getScenarioInstance',
     async ({instance, verbose}, {dispatch}) => {
         return await doFetch<IScenarioInstance>(
-            "/scenario_instance/" + instance + (verbose ? "" : "?quiet"),
+            "/openbach/scenario_instance/" + instance + (verbose ? "" : "?quiet"),
             dispatch,
         );
     },
@@ -243,7 +243,7 @@ export const stopScenarioInstance = asyncThunk<void, {instance: number;}>(
     'scenarios/stopScenarioInstance',
     async ({instance}, {dispatch}) => {
         await doFetch<{}>(
-            "/scenario_instance/" + instance,
+            "/openbach/scenario_instance/" + instance,
             dispatch,
             "POST",
             {},
@@ -257,7 +257,7 @@ export const deleteScenarioInstance = asyncThunk<void, {instance: number;}>(
     'scenarios/deleteScenarioInstance',
     async ({instance}, {dispatch}) => {
         await doFetch<{}>(
-            "/scenario_instance/" + instance,
+            "/openbach/scenario_instance/" + instance,
             dispatch,
             "DELETE",
             {},
@@ -270,7 +270,7 @@ export const getScenarioInstanceFilesCount = asyncThunk<IFilesCount, {instance: 
     'scenarios/getScenarioInstanceFilesCount',
     async ({instance}, {dispatch}) => {
         return await doFetch<IFilesCount>(
-            "/scenario_instance/" + instance + "?files_count",
+            "/openbach/scenario_instance/" + instance + "?files_count",
             dispatch,
         );
     },

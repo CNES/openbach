@@ -1,6 +1,5 @@
 import moment from 'moment';
 import {doFetch, asyncThunk} from './base';
-//import {setMessage} from '../redux/message';
 
 import type {IScenarioInstance, IChronografStatistic} from '../utils/interfaces';
 
@@ -53,7 +52,7 @@ export const getStatisticsNames = asyncThunk<InfluxNames, {project: string;}>(
     'influx/getStatisticsNames',
     async ({project}, {dispatch}) => {
         return await doFetch<InfluxNames> (
-            "/statistic/" + project,
+            "/openbach/statistic/" + project,
             dispatch,
         );
     },
@@ -64,7 +63,7 @@ export const getStatisticsNamesAndSuffixes = asyncThunk<InfluxNamesAndSuffixes, 
     'influx/getStatisticsNamesAndSuffixes',
     async ({jobId}, {dispatch}) => {
         return await doFetch<InfluxNamesAndSuffixes> (
-            "/statistic/" + jobId,
+            "/openbach/statistic/" + jobId,
             dispatch,
         );
     },

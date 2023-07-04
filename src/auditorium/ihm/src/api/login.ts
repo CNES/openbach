@@ -25,7 +25,7 @@ export const getLogin = asyncThunk<ICredentials>(
     'login/getLogin',
     async (_, {dispatch}) => {
         return await doFetch<ICredentials>(
-            "/login",
+            "/openbach/login",
             dispatch,
         );
     },
@@ -36,7 +36,7 @@ export const doLogin = asyncThunk<ICredentials, Required<LoginForm>>(
     'login/doLogin',
     async ({login, password}, {dispatch}) => {
         return await doFetch<ICredentials>(
-            "/login",
+            "/openbach/login",
             dispatch,
             "POST",
             {login, password},
@@ -49,7 +49,7 @@ export const doLogout = asyncThunk<void>(
     'login/doLogout',
     async (_, {dispatch}) => {
         await doFetch<{}>(
-            "/login",
+            "/openbach/login",
             dispatch,
             "DELETE",
         );
@@ -62,7 +62,7 @@ export const getUsers = asyncThunk<ICredentials[]>(
     'login/getUsers',
     async (_, {dispatch}) => {
         return await doFetch<ICredentials[]>(
-            "/login/users",
+            "/openbach/login/users",
             dispatch,
         );
     },
@@ -79,7 +79,7 @@ export const createUser = asyncThunk<void, CreateForm>(
             ...form,
         };
         await doFetch<{}>(
-            "/login",
+            "/openbach/login",
             dispatch,
             "POST",
             request,
@@ -93,7 +93,7 @@ export const updateUser = asyncThunk<ICredentials, UpdateForm>(
     'login/updateUser',
     async (form, {dispatch}) => {
         return await doFetch<ICredentials>(
-            "/login",
+            "/openbach/login",
             dispatch,
             "PUT",
             form,
@@ -106,7 +106,7 @@ export const deleteUsers = asyncThunk<string[], {usernames: string[]}>(
     'login/deleteUsers',
     async (body, {dispatch}) => {
         await doFetch<{}>(
-            "/login/users",
+            "/openbach/login/users",
             dispatch,
             "DELETE",
             body,
@@ -121,7 +121,7 @@ export const updateUsers = asyncThunk<IProfilePermissions[], {permissions: IProf
     'login/updateUsers',
     async (body, {dispatch}) => {
         await doFetch<{}>(
-            "/login/users",
+            "/openbach/login/users",
             dispatch,
             "PUT",
             body,
