@@ -84,7 +84,7 @@ class GenericView(base.View):
                         status=400,
                         data={'error': 'API error: data should be sent as JSON in the request body'})
         if 'vault_password' in request.JSON:
-            request.session['vault_password'] = request.JSON.pop('vault_password')  
+            request.session['vault_password'] = request.JSON.pop('vault_password')
         try:
             response = super().dispatch(request, *args, **kwargs)
         except Exception:
@@ -309,25 +309,30 @@ class AgentsView(BaseAgentView):
             if 'private_file' in request.FILES and 'public_file' in request.FILES:
                 private_file=request.FILES['private_file']
                 public_file=request.FILES['public_file']
-                
-                with tempfile.NamedTemporaryFile('wb',prefix='ansible-ssh-key-' ,delete=False) as private_key:
-                    for chunk in private_file.chunks() :
-                        private_key.write(chunk)
-                    private_storage=private_key.name
-                
-                public_storage = Path(private_storage+'.pub')                
-                with public_storage.open('wb') as public_key:
-                    for chunk in public_file.chunks():
-                        public_key.write(chunk)
-                public_storage.chmod(mode=0o600)
 
-                parameters['private_key_file']=private_storage
-                return self.conductor_execute(**parameters)
+                with tempfile.NamedTemporaryFile('wb', prefix='ansible-ssh-key-', delete=False) as private_key:
+                    private_storage = Path(private_key.name)
+                    public_storage = Path(private_key.name + '.pub')
 
+                try:
+                    with private_storage.open('wb') as private_key:
+                        for chunk in private_file.chunks() :
+                            private_key.write(chunk)
+
+                    with public_storage.open('wb') as public_key:
+                        for chunk in public_file.chunks():
+                            public_key.write(chunk)
+                    public_storage.chmod(mode=0o600)
+
+                    parameters['private_key_file'] = private_storage.as_posix()
+                    return self.conductor_execute(**parameters)
+                finally:
+                    private_storage.unlink(missing_ok=True)
+                    public_storage.unlink(missing_ok=True)
             else:
                 return self.conductor_execute(**parameters)
         except KeyError as e:
-            return {'msg': 'Missing parameter {}'.format(e)}, 400     
+            return {'msg': 'Missing parameter {}'.format(e)}, 400
 
 
 class AgentView(BaseAgentView):
@@ -595,7 +600,7 @@ class JobView(BaseJobView):
 
         return self.conductor_execute(
                 command='set_statistics_policy_job',
-                name=name, address=address, 
+                name=name, address=address,
                 config_file=self.request.JSON.get('config_file'),
                 stat_name=self.request.JSON.get('stat_name'),
                 path=self.request.JSON.get('path'),
@@ -863,7 +868,7 @@ class ProjectView(GenericView):
         """remove a project from the database"""
         return self.conductor_execute(
                 command='delete_project', name=project_name)
-    
+
     def post(self, request, project_name):
         """refresh a project's network topology"""
         if request.JSON:
@@ -1123,6 +1128,10 @@ class VersionView(GenericView):
             return {'msg': 'Cannot fetch version: {}'.format(e)}, 500
         return {'openbach_version': openbach_infos['version']}, 200
 
+    post = get
+    put = get
+    patch = get
+
 
 class Reboot(GenericView):
     """Manage actions to reboot an agent"""
@@ -1251,7 +1260,7 @@ class DatabasesView(GenericView):
                 influxdb=influxdb,
                 elasticsearch=elasticsearch,
                 credentials=credentials)
- 
+
 
 def mock_generic_view(request, command, **kwargs):
     """Mock using a class-based view to contact the conductor"""
