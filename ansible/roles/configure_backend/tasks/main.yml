@@ -51,6 +51,7 @@
     - check_connection.yml
     - enable_logs.yml
     - fetch_files.yml
+    - find_proxies.yml
     - install_a_job.yml
     - push_files.yml
     - pull_files.yml

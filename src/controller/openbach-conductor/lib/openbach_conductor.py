@@ -996,6 +996,25 @@ class JobAction(ConductorAction):
                     'The requested Job is not in the database',
                     job_name=self.name)
 
+    def _read_proxies(self):
+        with open('/opt/openbach/controller/ansible/group_vars/all', encoding='utf-8') as openbach_variables:
+            variables = yaml.safe_load(openbach_variables)
+
+        try:
+            controller = variables['openbach_controller']
+        except KeyError:
+            return None
+
+        proxies = {}
+        proxy_configuration = start_playbook('proxies', controller, self.vault_password)
+        for protocol in ('http', 'https'):
+            try:
+                proxies[protocol] = proxy_configuration['{}_proxy'.format(protocol)]
+            except KeyError:
+                pass
+
+        return proxies
+
 
 class AddJob(JobAction):
     """Action responsible to add a Job whose files are on the
@@ -1226,7 +1245,7 @@ class AddExternalJob(JobAction):
 
     @require_connected_user(admin=True)
     def _action(self):
-        path = external_jobs.add_job(self.name, self.repository)
+        path = external_jobs.add_job(self.name, self.repository, proxies=self._read_proxies())
         if path is None:
             raise errors.NotFoundError(
                     'Unable to find the provided external job',
@@ -1297,7 +1316,7 @@ class ListExternalJobs(JobAction):
         super().__init__(repository=repository)
 
     def _action(self):
-        return external_jobs.list_jobs_properties(self.repository), 200
+        return external_jobs.list_jobs_properties(self.repository, proxies=self._read_proxies()), 200
 
 
 class GetKeywordsJob(JobAction):
@@ -1456,7 +1475,8 @@ class InstallJob(ThreadedAction, InstalledJobAction):
                             'uninstall_job',
                             agent.address,
                             agent.collector.address,
-                            job.name, job.path, self.vault_password)
+                            job.name, job.path,
+                            self.vault_password)
 
             # Physically install the job on the agent
             start_playbook(
@@ -1464,7 +1484,8 @@ class InstallJob(ThreadedAction, InstalledJobAction):
                     agent.address,
                     agent.collector.address,
                     agent.collector.logs_port,
-                    job.name, job.path, self.vault_password,
+                    job.name, job.path,
+                    self.vault_password,
                     cookie=self.cookie)
             OpenBachBaton(agent.address, agent.port).add_job(self.name)
 
@@ -1553,7 +1574,8 @@ class UninstallJob(ThreadedAction, InstalledJobAction):
                 'uninstall_job',
                 agent.address,
                 agent.collector.address,
-                job.name, job.path, self.vault_password)
+                job.name, job.path,
+                self.vault_password)
         installed_job.delete()
 
 
@@ -1672,8 +1694,7 @@ class SetLogSeverityJob(ThreadedAction, InstalledJobAction):
                 self.vault_password,
                 job=self.name,
                 severity=syslogseverity,
-                local_severity=syslogseverity_local,)
-
+                local_severity=syslogseverity_local)
         installed_job.severity = self.severity
         installed_job.local_severity = local_severity
         installed_job.save()
@@ -2627,7 +2648,8 @@ class ExportScenarioInstance(RecursiveScenarioInstanceAction):
                                 'fetch_file',
                                  start_job_instance.agent.address,
                                  normalized_job_name + '_'.join(stat_name.split()),
-                                 collect_directory, self.vault_password,
+                                 collect_directory,
+                                 self.vault_password,
                                  files_to_fetch)
 
     def _action(self):
