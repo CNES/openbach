@@ -46,6 +46,7 @@ from collections import defaultdict
 from ansible.cli import CLI
 from ansible.executor.playbook_executor import PlaybookExecutor
 from ansible.plugins.callback import CallbackBase
+from ansible.errors import AnsibleParserError
 
 from . import errors
 
@@ -111,6 +112,14 @@ class PlayResult(CallbackBase):
         self._store_failure(result)
 
 
+class ProxyResult(PlayResult):
+    def v2_runner_on_ok(self, result):
+        if result._task_fields['action'] == 'debug':
+            self.proxies = result._result.get('openbach_proxy_env', '')
+            if isinstance(self.proxies, str):
+                self.proxies = {}
+
+
 class SetupResult(PlayResult):
     def v2_runner_on_ok(self, result):
         if result._task_fields['action'] in ('setup', 'gather_facts'):
@@ -140,7 +149,7 @@ class ServicesResult(SilentResult):
 class PlaybookBuilder():
     """Easy Playbook configuration and launching"""
 
-    def __init__(self, agent_address, group_name='agent', username=None, password=None):
+    def __init__(self, agent_address, group_name='agent', username=None, password=None, vault_password_file=None):
         self.inventory_filename = None
         with tempfile.NamedTemporaryFile('w', delete=False) as inventory:
             print('[{}]'.format(group_name), file=inventory)
@@ -196,6 +205,9 @@ class PlaybookBuilder():
                 vault_password_files=[],
                 verbosity=0,
         )
+        if vault_password_file is not None:
+            self.options.vault_password_files.append(vault_password_file)
+
         if username is None:
             self.options.remote_user = 'openbach'
             self.options.private_key_file = '/home/openbach/.ssh/id_rsa'
@@ -212,6 +224,9 @@ class PlaybookBuilder():
         """Remove the Inventory file when this object is garbage collected"""
         if self.inventory_filename is not None:
             os.remove(self.inventory_filename)
+        if hasattr(self, 'private_key_file'):
+            os.remove(self.private_key_file)
+            os.remove(self.private_key_file + '.pub')
 
     def add_variables(self, **kwargs):
         """Add extra_vars for the current playbook execution.
@@ -232,7 +247,7 @@ class PlaybookBuilder():
         Check that the configuration is valid before doing so
         and raise a ConductorError if not.
         """
-        playbook = '/opt/openbach/controller/ansible/{}.yml'.format(play_name)
+        playbook = '/opt/openbach/controller/ansible/{}.yml'.format(play_name)  
         if session_cookie is not None:
             self.add_variables(session_cookie=session_cookie)
         if playbook_results is None:
@@ -245,6 +260,7 @@ class PlaybookBuilder():
                 loader=self.loader,
                 passwords=self.passwords,
         )
+        
         if context is None:
             tasks_parameters.update(options=self.options)
         tasks = PlaybookExecutor(**tasks_parameters)
@@ -253,201 +269,275 @@ class PlaybookBuilder():
         playbook_results.raise_for_error()
 
     @classmethod
-    def install_collector(cls, collector, name, username=None, password=None, cookie=None):
-        self = cls(collector['address'], 'collector', username, password)
-        self.add_variables(
-                openbach_name=name,
-                openbach_rstats_port=1111,
-                openbach_agent_port=1112,
-                openbach_collector=collector['address'],
-                logstash_logs_port=collector['logs_port'],
-                logstash_stats_port=collector['stats_port'],
-                logstash_stats_mode=collector['stats_mode'],
-                elasticsearch_port=collector['logs_query_port'],
-                elasticsearch_cluster_name=collector['logs_database_name'],
-                influxdb_port=collector['stats_query_port'],
-                influxdb_database_name=collector['stats_database_name'],
-                influxdb_database_precision=collector['stats_database_precision'],
-                auditorium_broadcast_mode=collector['logstash_broadcast_mode'],
-                auditorium_broadcast_port=collector['logstash_broadcast_port'])
-        self.launch_playbook('install', session_cookie=cookie)
-
-    @classmethod
-    def uninstall_collector(cls, collector, cookie=None):
-        self = cls(collector['address'], group_name='collector')
-        self.add_variables(
-                openbach_collector=collector['address'],
-                openbach_rstats_port=1111,
-                openbach_agent_port=1112,
-                logstash_logs_port=collector['logs_port'],
-                logstash_stats_port=collector['stats_port'],
-                logstash_stats_mode=collector['stats_mode'],
-                elasticsearch_port=collector['logs_query_port'],
-                elasticsearch_cluster_name=collector['logs_database_name'],
-                influxdb_port=collector['stats_query_port'],
-                influxdb_database_name=collector['stats_database_name'],
-                influxdb_database_precision=collector['stats_database_precision'],
-                auditorium_broadcast_mode=collector['logstash_broadcast_mode'],
-                auditorium_broadcast_port=collector['logstash_broadcast_port'])
-        self.launch_playbook('uninstall', session_cookie=cookie)
-
-    @classmethod
-    def install_agent(cls, address, name, port, rstats_port, collector, username=None, password=None, cookie=None):
-        self = cls(address, username=username, password=password)
-        self.add_variables(
-                openbach_name=name,
-                openbach_rstats_port=rstats_port,
-                openbach_agent_port=port,
-                openbach_collector=collector['address'],
-                logstash_logs_port=collector['logs_port'],
-                logstash_stats_port=collector['stats_port'],
-                logstash_stats_mode=collector['stats_mode'],
-                elasticsearch_port=collector['logs_query_port'],
-                elasticsearch_cluster_name=collector['logs_database_name'],
-                influxdb_port=collector['stats_query_port'],
-                influxdb_database_name=collector['stats_database_name'],
-                influxdb_database_precision=collector['stats_database_precision'],
-                auditorium_broadcast_mode=collector['logstash_broadcast_mode'],
-                auditorium_broadcast_port=collector['logstash_broadcast_mode'])
-        self.launch_playbook('install', session_cookie=cookie)
-
-    @classmethod
-    def uninstall_agent(cls, address, collector, jobs=None, cookie=None):
-        self = cls(address)
-        if jobs is not None:
-            self.add_variables(jobs=jobs)
-        self.add_variables(
-                openbach_collector=collector['address'],
-                logstash_logs_port=collector['logs_port'],
-                logstash_stats_port=collector['stats_port'],
-                logstash_stats_mode=collector['stats_mode'],
-                elasticsearch_port=collector['logs_query_port'],
-                elasticsearch_cluster_name=collector['logs_database_name'],
-                influxdb_port=collector['stats_query_port'],
-                influxdb_database_name=collector['stats_database_name'],
-                influxdb_database_precision=collector['stats_database_precision'],
-                auditorium_broadcast_mode=collector['logstash_broadcast_mode'])
-        self.launch_playbook('uninstall', session_cookie=cookie)
-
-    @classmethod
-    def check_connection(cls, address, port=1111, restart=False, cookie=None):
-        self = cls(address)
-        self.add_variables(
-                openbach_restart=restart,
-                openbach_agent_port=port)
-        self.launch_playbook('check_connection', session_cookie=cookie)
-
-    @classmethod
-    def check_connections(cls, *addresses, cookie=None):
-        self = cls('\n'.join(addresses))
-        self.options.forks = len(addresses)
-        self.add_variables(collect_metrics=True)
-        playbook_results = ServicesResult()
-        self.launch_playbook('check_connection', playbook_results, session_cookie=cookie)
-        return playbook_results.failure, playbook_results.services
-
-    @classmethod
-    def assign_collector(cls, address, port, collector, cookie=None):
-        self = cls(address)
-        self.add_variables(
-                collector_ip=collector['address'],
-                logstash_logs_port=collector['logs_port'],
-                elasticsearch_port=collector['logs_query_port'],
-                logstash_stats_port=collector['stats_port'],
-                logstash_stats_mode=collector['stats_mode'],
-                openbach_agent_port=port,
-                influxdb_port=collector['stats_query_port'],
-                influxdb_database_name=collector['stats_database_name'],
-                influxdb_database_precision=collector['stats_database_precision'])
-        self.launch_playbook('assign_collector', session_cookie=cookie)
-
-    @classmethod
-    def install_job(cls, address, collector_ip, logs_port, job_name, job_path, cookie=None):
-        self = cls(address)
-        self.add_variables(
-                openbach_collector=collector_ip,
-                logstash_logs_port=logs_port,
-                jobs=[{'name': job_name, 'path': job_path}])
-        self.launch_playbook('install_a_job', session_cookie=cookie)
-
-    @classmethod
-    def uninstall_job(cls, address, collector_ip, job_name, job_path, cookie=None):
-        self = cls(address)
-        self.add_variables(
-                openbach_collector=collector_ip,
-                jobs=[{'name': job_name, 'path': job_path}])
-        self.launch_playbook('uninstall_a_job', session_cookie=cookie)
-
-    @classmethod
-    def enable_logs(cls, address, collector, job, severity=None, local_severity=None, cookie=None):
-        self = cls(address)
-        self.add_variables(job=job)
-        if severity is not None:
+    def install_collector(cls, collector, name, vault_password, username=None, password=None, cookie=None):
+        with tempfile.NamedTemporaryFile('w', prefix='openbach-ansible-vault-') as vault_file:
+            vault_file_name = vault_file.name
+            print(vault_password, file=vault_file, flush=True)
+            self = cls(collector['address'], 'collector', username, password, vault_password_file=vault_file_name)
             self.add_variables(
-                    syslogseverity=severity,
+                    openbach_name=name,
+                    openbach_rstats_port=1111,
+                    openbach_agent_port=1112,
+                    openbach_collector=collector['address'],
+                    logstash_logs_port=collector['logs_port'],
+                    logstash_stats_port=collector['stats_port'],
+                    logstash_stats_mode=collector['stats_mode'],
+                    elasticsearch_port=collector['logs_query_port'],
+                    elasticsearch_cluster_name=collector['logs_database_name'],
+                    influxdb_port=collector['stats_query_port'],
+                    influxdb_database_name=collector['stats_database_name'],
+                    influxdb_database_precision=collector['stats_database_precision'],
+                    auditorium_broadcast_mode=collector['logstash_broadcast_mode'],
+                    auditorium_broadcast_port=collector['logstash_broadcast_port'])
+            self.launch_playbook('install', session_cookie=cookie)
+
+    @classmethod
+    def uninstall_collector(cls, vault_password, collector, cookie=None):
+        with tempfile.NamedTemporaryFile('w', prefix='openbach-ansible-vault-') as vault_file:
+            vault_file_name = vault_file.name
+            print(vault_password, file=vault_file, flush=True)
+            self = cls(collector['address'], group_name='collector', vault_password_file=vault_file_name)
+            self.add_variables(
+                    openbach_collector=collector['address'],
+                    openbach_rstats_port=1111,
+                    openbach_agent_port=1112,
+                    logstash_logs_port=collector['logs_port'],
+                    logstash_stats_port=collector['stats_port'],
+                    logstash_stats_mode=collector['stats_mode'],
+                    elasticsearch_port=collector['logs_query_port'],
+                    elasticsearch_cluster_name=collector['logs_database_name'],
+                    influxdb_port=collector['stats_query_port'],
+                    influxdb_database_name=collector['stats_database_name'],
+                    influxdb_database_precision=collector['stats_database_precision'],
+                    auditorium_broadcast_mode=collector['logstash_broadcast_mode'],
+                    auditorium_broadcast_port=collector['logstash_broadcast_port'])
+            self.launch_playbook('uninstall', session_cookie=cookie)
+
+    @classmethod
+    def install_agent(cls, address, name, port, rstats_port, collector, username=None, password=None, vault_password=None, private_key_file=None, http_proxy=None, https_proxy=None, cookie=None):
+        with tempfile.NamedTemporaryFile('w', prefix='openbach-ansible-vault-') as vault_file:
+            vault_file_name = vault_file.name
+            print(vault_password, file=vault_file, flush=True)
+            if private_key_file is not None:
+                address=f'{address} ansible_ssh_private_key_file={private_key_file}'
+            self = cls(address, username=username, password=password, vault_password_file=vault_file_name)
+            self.private_key_file=private_key_file
+            self.add_variables(
+                    openbach_name=name,
+                    openbach_rstats_port=rstats_port,
+                    openbach_agent_port=port,
+                    openbach_collector=collector['address'],
+                    logstash_logs_port=collector['logs_port'],
+                    logstash_stats_port=collector['stats_port'],
+                    logstash_stats_mode=collector['stats_mode'],
+                    elasticsearch_port=collector['logs_query_port'],
+                    elasticsearch_cluster_name=collector['logs_database_name'],
+                    influxdb_port=collector['stats_query_port'],
+                    influxdb_database_name=collector['stats_database_name'],
+                    influxdb_database_precision=collector['stats_database_precision'],
+                    auditorium_broadcast_mode=collector['logstash_broadcast_mode'],
+                    auditorium_broadcast_port=collector['logstash_broadcast_mode'])
+            if http_proxy is not None:
+                self.add_variables(
+                    openbach_http_proxy=http_proxy)
+            if https_proxy is not None:
+                self.add_variables(
+                    openbach_https_proxy=https_proxy)
+            self.launch_playbook('install', session_cookie=cookie)
+
+    @classmethod
+    def uninstall_agent(cls, address, collector, vault_password, jobs=None, cookie=None):
+        with tempfile.NamedTemporaryFile('w', prefix='openbach-ansible-vault-') as vault_file:
+            vault_file_name = vault_file.name
+            print(vault_password, file=vault_file, flush=True)
+            self = cls(address, vault_password_file=vault_file_name)
+            if jobs is not None:
+                self.add_variables(jobs=jobs)
+            self.add_variables(
+                    openbach_collector=collector['address'],
+                    logstash_logs_port=collector['logs_port'],
+                    logstash_stats_port=collector['stats_port'],
+                    logstash_stats_mode=collector['stats_mode'],
+                    elasticsearch_port=collector['logs_query_port'],
+                    elasticsearch_cluster_name=collector['logs_database_name'],
+                    influxdb_port=collector['stats_query_port'],
+                    influxdb_database_name=collector['stats_database_name'],
+                    influxdb_database_precision=collector['stats_database_precision'],
+                    auditorium_broadcast_mode=collector['logstash_broadcast_mode'])
+            self.launch_playbook('uninstall', session_cookie=cookie)
+
+    @classmethod
+    def check_connection(cls, vault_password, address, port=1111, restart=False, cookie=None):
+        with tempfile.NamedTemporaryFile('w', prefix='openbach-ansible-vault-') as vault_file:
+            vault_file_name = vault_file.name
+            print(vault_password, file=vault_file, flush=True)
+            self = cls(address, vault_password_file=vault_file_name)
+            self.add_variables(
+                    openbach_restart=restart,
+                    openbach_agent_port=port)
+            self.launch_playbook('check_connection', session_cookie=cookie)
+
+    @classmethod
+    def check_connections(cls, vault_password, *addresses, cookie=None):
+        with tempfile.NamedTemporaryFile('w', prefix='openbach-ansible-vault-') as vault_file:
+            vault_file_name = vault_file.name
+            print(vault_password, file=vault_file, flush=True)
+            self = cls('\n'.join(addresses), vault_password_file=vault_file_name)
+            self.options.forks = len(addresses)
+            self.add_variables(collect_metrics=True)
+            playbook_results = ServicesResult()
+            self.launch_playbook('check_connection', playbook_results, session_cookie=cookie)
+            return playbook_results.failure, playbook_results.services
+
+    @classmethod
+    def assign_collector(cls, vault_password, address, port, collector, cookie=None):
+        with tempfile.NamedTemporaryFile('w', prefix='openbach-ansible-vault-') as vault_file:
+            vault_file_name = vault_file.name
+            print(vault_password, file=vault_file, flush=True)
+            self = cls(address, vault_password_file=vault_file_name)
+            self.add_variables(
                     collector_ip=collector['address'],
-                    logstash_logs_port=collector['logs_port'])
-        if local_severity is not None:
-            self.add_variables(syslogseverity_local=local_severity)
-        self.launch_playbook('enable_logs', session_cookie=cookie)
+                    logstash_logs_port=collector['logs_port'],
+                    elasticsearch_port=collector['logs_query_port'],
+                    logstash_stats_port=collector['stats_port'],
+                    logstash_stats_mode=collector['stats_mode'],
+                    openbach_agent_port=port,
+                    influxdb_port=collector['stats_query_port'],
+                    influxdb_database_name=collector['stats_database_name'],
+                    influxdb_database_precision=collector['stats_database_precision'])
+            self.launch_playbook('assign_collector', session_cookie=cookie)
 
     @classmethod
-    def push_file(cls, address, parameters, restart_services=False, cookie=None):
-        self = cls(address)
-        self.add_variables(
-                copy_parameters=parameters,
-                restart_services=restart_services)
-        self.launch_playbook('push_files', session_cookie=cookie)
+    def install_job(cls, address, collector_ip, logs_port, job_name, job_path, vault_password, cookie=None):
+        with tempfile.NamedTemporaryFile('w', prefix='openbach-ansible-vault-') as vault_file:
+            vault_file_name = vault_file.name
+            print(vault_password, file=vault_file, flush=True)
+            self = cls(address, vault_password_file=vault_file_name)
+            self.add_variables(
+                    openbach_collector=collector_ip,
+                    logstash_logs_port=logs_port,
+                    jobs=[{'name': job_name, 'path': job_path}])
+            self.launch_playbook('install_a_job', session_cookie=cookie)
 
     @classmethod
-    def pull_file(cls, address, parameters, restart_services=False, cookie=None):
-        self = cls(address)
-        self.add_variables(
-                copy_parameters=parameters,
-                restart_services=restart_services)
-        self.launch_playbook('pull_files', session_cookie=cookie)
+    def uninstall_job(cls, address, collector_ip, job_name, job_path, vault_password, cookie=None):
+        with tempfile.NamedTemporaryFile('w', prefix='openbach-ansible-vault-') as vault_file:
+            vault_file_name = vault_file.name
+            print(vault_password, file=vault_file, flush=True)
+            self = cls(address, vault_password_file=vault_file_name)
+            self.add_variables(
+                    openbach_collector=collector_ip,
+                    jobs=[{'name': job_name, 'path': job_path}])
+            self.launch_playbook('uninstall_a_job', session_cookie=cookie)
 
     @classmethod
-    def fetch_file(cls, address, archive_prefix, local_path, remote_paths, cookie=None):
-        self = cls(address)
-        self.add_variables(
-                local_path=local_path,
-                remote_paths=remote_paths,
-                archive_prefix=archive_prefix)
-        self.launch_playbook('fetch_files', session_cookie=cookie)
+    def enable_logs(cls, address, collector, vault_password, job, severity=None, local_severity=None, cookie=None):
+        with tempfile.NamedTemporaryFile('w', prefix='openbach-ansible-vault-') as vault_file:
+            vault_file_name = vault_file.name
+            print(vault_password, file=vault_file, flush=True)
+            self = cls(address, vault_password_file=vault_file_name)
+            self.add_variables(job=job)
+            if severity is not None:
+                self.add_variables(
+                        syslogseverity=severity,
+                        collector_ip=collector['address'],
+                        logstash_logs_port=collector['logs_port'])
+            if local_severity is not None:
+                self.add_variables(syslogseverity_local=local_severity)
+            self.launch_playbook('enable_logs', session_cookie=cookie)
 
     @classmethod
-    def gather_facts(cls, address, cookie=None):
-        self = cls(address)
-        playbook_results = SetupResult()
-        self.launch_playbook('check_connection', playbook_results, session_cookie=cookie)
-        return playbook_results.ansible_facts
+    def push_file(cls, address, vault_password, parameters, restart_services=False, cookie=None):
+        with tempfile.NamedTemporaryFile('w', prefix='openbach-ansible-vault-') as vault_file:
+            vault_file_name = vault_file.name
+            print(vault_password, file=vault_file, flush=True)
+            self = cls(address, vault_password_file=vault_file_name)
+            self.add_variables(
+                    copy_parameters=parameters,
+                    restart_services=restart_services)
+            self.launch_playbook('push_files', session_cookie=cookie)
 
     @classmethod
-    def enable_controller_access(cls, address, username=None, password=None, cookie=None):
-        self = cls(address, username=username, password=password)
-        self.add_variables(openbach_controller_key_state='present')
-        self.launch_playbook('controller_access', session_cookie=cookie)
+    def pull_file(cls, address, vault_password, parameters, restart_services=False, cookie=None):
+        with tempfile.NamedTemporaryFile('w', prefix='openbach-ansible-vault-') as vault_file:
+            vault_file_name = vault_file.name
+            print(vault_password, file=vault_file, flush=True)
+            self = cls(address, vault_password_file=vault_file_name)
+            self.add_variables(
+                    copy_parameters=parameters,
+                    restart_services=restart_services)
+            self.launch_playbook('pull_files', session_cookie=cookie)
 
     @classmethod
-    def disable_controller_access(cls, address, cookie=None):
-        self = cls(address)
-        self.add_variables(openbach_controller_key_state='absent')
-        self.launch_playbook('controller_access', session_cookie=cookie)
+    def fetch_file(cls, address, archive_prefix, local_path, remote_paths, vault_password, cookie=None):
+        with tempfile.NamedTemporaryFile('w', prefix='openbach-ansible-vault-') as vault_file:
+            vault_file_name = vault_file.name
+            print(vault_password, file=vault_file, flush=True)
+            self = cls(address, vault_password_file=vault_file_name)
+            self.add_variables(
+                    local_path=local_path,
+                    remote_paths=remote_paths,
+                    archive_prefix=archive_prefix)
+            self.launch_playbook('fetch_files', session_cookie=cookie)
 
     @classmethod
-    def reboot(cls, address, kernel=None, cookie=None):
-        self = cls(address)
-        if kernel is not None:
-            self.add_variables(kernel=kernel)
-        self.launch_playbook('reboot', session_cookie=cookie)
+    def gather_facts(cls, address, vault_password, cookie=None):
+        with tempfile.NamedTemporaryFile('w', prefix='openbach-ansible-vault-') as vault_file:
+            print(vault_password, file=vault_file, flush=True)
+            vault_file_name = vault_file.name
+            self = cls(address, vault_password_file=vault_file_name)
+            playbook_results = SetupResult()
+            self.launch_playbook('check_connection', playbook_results, session_cookie=cookie)
+            return playbook_results.ansible_facts
 
     @classmethod
-    def manage_retention_policies(cls, address, openbach_influx_database, influxdb_port, cookie=None):
-        self = cls(address)
-        self.add_variables(openbach_influx_database=openbach_influx_database)
-        self.add_variables(influxdb_port=influxdb_port)
-        self.launch_playbook('manage_retention_policies', session_cookie=cookie)
+    def enable_controller_access(cls, address, vault_password, username=None, password=None, cookie=None):
+        with tempfile.NamedTemporaryFile('w', prefix='openbach-ansible-vault-') as vault_file:
+            vault_file_name = vault_file.name
+            print(vault_password, file=vault_file, flush=True)
+            self = cls(address, username=username, password=password, vault_password_file=vault_file_name)
+            self.add_variables(openbach_controller_key_state='present')
+            self.launch_playbook('controller_access', session_cookie=cookie)
+
+    @classmethod
+    def disable_controller_access(cls, address, vault_password, cookie=None):
+        with tempfile.NamedTemporaryFile('w', prefix='openbach-ansible-vault-') as vault_file:
+            vault_file_name = vault_file.name
+            print(vault_password, file=vault_file, flush=True)
+            self = cls(address, vault_password_file=vault_file_name)
+            self.add_variables(openbach_controller_key_state='absent')
+            self.launch_playbook('controller_access', session_cookie=cookie)
+
+    @classmethod
+    def reboot(cls, address, kernel=None, vault_password=None, cookie=None):
+        with tempfile.NamedTemporaryFile('w', prefix='openbach-ansible-vault-') as vault_file:
+            vault_file_name = vault_file.name
+            print(vault_password, file=vault_file, flush=True)
+            self = cls(address, vault_password_file=vault_file_name)
+            if kernel is not None:
+                self.add_variables(kernel=kernel)
+            self.launch_playbook('reboot', session_cookie=cookie)
+
+    @classmethod
+    def manage_retention_policies(cls, address, vault_password, openbach_influx_database, influxdb_port, cookie=None):
+        with tempfile.NamedTemporaryFile('w', prefix='openbach-ansible-vault-') as vault_file:
+            vault_file_name = vault_file.name
+            print(vault_password, file=vault_file, flush=True)    
+            self = cls(address, vault_password_file=vault_file_name)
+            self.add_variables(openbach_influx_database=openbach_influx_database)
+            self.add_variables(influxdb_port=influxdb_port)
+            self.launch_playbook('manage_retention_policies', session_cookie=cookie)
+
+    @classmethod
+    def proxies(cls, address, vault_password, cookie=None):
+        with tempfile.NamedTemporaryFile('w', prefix='openbach-ansible-vault-') as vault_file:
+            print(vault_password, file=vault_file, flush=True)
+            vault_file_name = vault_file.name
+            self = cls(address, vault_password_file=vault_file_name)
+            playbook_results = ProxyResult()
+            self.launch_playbook('find_proxies', playbook_results, session_cookie=cookie)
+            return playbook_results.proxies
+
 
 def _run_playbook(queue):
     running_playbooks = set()
@@ -505,6 +595,11 @@ def _clean_finished_playbooks(playbooks):
 def _execute_playbook(method, pipe, args, kwargs):
     try:
         result = method(*args, **kwargs)
+    except AnsibleParserError as e:
+        vault_error=errors.AnsibleVaultError(str(e))
+        import traceback
+        vault_error.error['traceback'] = traceback.format_exc()
+        _terminate_playbook(pipe, vault_error.json)  
     except errors.ConductorError as e:
         _terminate_playbook(pipe, e.json)
     except Exception as e:

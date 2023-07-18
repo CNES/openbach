@@ -806,7 +806,13 @@ class StartJobInstanceArgument(models.Model):
         value = checker.validate_openbach_value(self.value, parameters)
         if scenario_instance is None:
             return value
-
+        
+        if self.type == ValuesType.DATE.value:
+            return  int(value.timestamp()*1000)
+                
+        if self.type == ValuesType.RATIO.value:
+            return value.value
+        
         if self.type in (ValuesType.JOB_INSTANCE_ID.value, ValuesType.SCENARIO_INSTANCE_ID.value):
             for current in value[:-1]:
                 queryset = OpenbachFunctionInstance.objects.select_related('started_scenario')

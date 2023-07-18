@@ -1,41 +1,43 @@
-import * as React from "react";
+import React from 'react';
 
-import RaisedButton from "material-ui/RaisedButton";
+import Button from '@mui/material/Button';
 
-import {openURL} from "../../api/common";
+import DownloadIcon from './DownloadIcon';
+
+import {downloadURL} from '../../api/base';
+import type {Theme} from '@mui/material/styles';
+import type {SxProps} from '@mui/system';
 
 
-export default class Component extends React.Component<IProps, {}> {
-    constructor(props) {
-        super(props);
-        this.doDownload = this.doDownload.bind(this);
-    }
+const DownloadButton: React.FC<Props> = (props) => {
+    const {route, filename, label, disabled, sx} = props;
 
-    public render() {
-        const title = this.props.type ? "Download " + this.props.type : "Download";
+    const handleClick = React.useCallback(() => {
+        downloadURL(route, filename);
+    }, [route, filename])
 
-        return (
-            <RaisedButton
-                label={title}
-                style={this.props.style}
-                secondary={true}
-                onTouchTap={this.doDownload}
-                disabled={this.props.disabled}
-            />
-        );
-    }
-
-    private doDownload(event) {
-        event.stopPropagation();
-        openURL("/openbach" + this.props.route, this.props.filename);
-    }
+    return (
+        <Button
+            variant="contained"
+            color="secondary"
+            disabled={disabled}
+            onClick={handleClick}
+            startIcon={<DownloadIcon />}
+            sx={sx}
+        >
+            Download {label}
+        </Button>
+    );
 };
 
 
-interface IProps {
+interface Props {
     route: string;
     filename: string;
-    type?: string;
-    style?: React.CSSProperties;
+    label?: string;
     disabled?: boolean;
-};
+    sx?: SxProps<Theme>;
+}
+
+
+export default DownloadButton;

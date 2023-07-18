@@ -68,6 +68,11 @@ class ConductorError(Exception):
         return self
 
 
+class AnsibleVaultError(ConductorError):
+    """Error dedicated to ansible vault secret error"""
+    ERROR_CODE = 460
+
+
 class ForbiddenError(ConductorError):
     """Error dedicated to actions requiring privileges that the user doesn't have"""
     ERROR_CODE = 403

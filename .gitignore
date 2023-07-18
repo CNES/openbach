@@ -2,11 +2,8 @@
 .editorconfig
 .ansible_venv
 dist
-node_modules
-typings
-npm-debug.log
 *.pyc
-openbach_frontend/
 *.tar.gz
 junit.xml
 ansible/inventory/
+openbach_frontend/

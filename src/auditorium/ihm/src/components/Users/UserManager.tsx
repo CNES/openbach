@@ -1,67 +1,89 @@
-import * as React from "react";
+import React from 'react';
 
-import Checkbox from "material-ui/Checkbox";
-import {ListItem} from "material-ui/List";
+import Checkbox from '@mui/material/Checkbox';
+import FormGroup from '@mui/material/FormGroup';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import ListItem from '@mui/material/ListItem';
+import ListItemButton from '@mui/material/ListItemButton';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import ListItemText from '@mui/material/ListItemText';
 
-import {IProfilePermissions} from "../../interfaces/login.interface";
+import type {ICredentials} from '../../utils/interfaces';
 
 
-export default class UserManager extends React.Component<IProps, {}> {
-    constructor(props) {
-        super(props);
-        this.onActiveCheck = this.onActiveCheck.bind(this);
-        this.onAdminCheck = this.onAdminCheck.bind(this);
-        this.deleteSelected = this.deleteSelected.bind(this);
-    }
+const UserManager: React.FC<Props> = (props) => {
+    const {user, onToggleDelete, onUserChange} = props;
+    const {username, is_user, is_admin} = user;
+    const [pendingDelete, storePendingDelete] = React.useState<boolean>(false);
+    const [activeUser, storeActiveUser] = React.useState<boolean>(is_user);
+    const [adminUser, storeAdminUser] = React.useState<boolean>(is_admin);
 
-    public render() {
-        const deleteCheckbox = <Checkbox defaultChecked={false} onCheck={this.deleteSelected} />;
+    const togglePendingDelete = React.useCallback(() => {
+        onToggleDelete();
+        storePendingDelete((pending: boolean) => !pending);
+    }, [onToggleDelete]);
 
-        const {login, active, admin} = this.props.permissions;
-        const displayArea = (
-            <div style={{position: "absolute", left: "50%", width: "300px"}}>
-                <Checkbox
-                    label="Active"
-                    checked={active}
-                    disabled={admin}
-                    onCheck={this.onActiveCheck}
-                    style={{display: "inline-block", width: "50%"}}
-                />
-                <Checkbox
-                    label="Admin"
-                    checked={admin}
-                    onCheck={this.onAdminCheck}
-                    style={{display: "inline-block", width: "50%"}}
-                />
-            </div>
-        );
+    const handlePendingDeleteChanged = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+        onToggleDelete();
+        storePendingDelete(event.target.checked);
+    }, [onToggleDelete]);
 
-        return (
-            <ListItem
-                primaryText={login}
-                leftCheckbox={deleteCheckbox}
-                rightToggle={displayArea}
-            />
-        );
-    }
+    const handleActiveUserChanged = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+        const active = event.target.checked;
+        onUserChange(active, adminUser);
+        storeActiveUser(active);
+    }, [onUserChange, adminUser]);
 
-    private onActiveCheck(event, checked: boolean) {
-        this.props.onUserActiveChange(checked);
-    }
+    const handleAdminUserChanged = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+        const admin = event.target.checked;
+        const active = admin || activeUser;
+        onUserChange(active, admin);
+        storeActiveUser(active);
+        storeAdminUser(admin);
+    }, [onUserChange, activeUser]);
 
-    private onAdminCheck(event, checked: boolean) {
-        this.props.onUserAdminChange(checked);
-    }
+    const labelId = `checkbox-list-label-${username}`;
 
-    private deleteSelected(event, checked: boolean) {
-        this.props.onDeleteSelected(this.props.permissions.login, checked);
-    }
+    return (
+        <ListItem
+            secondaryAction={
+                <FormGroup sx={{display: "flex", flexDirection: "row"}}>
+                    <FormControlLabel
+                        disabled={adminUser}
+                        control={<Checkbox disableRipple checked={activeUser} onChange={handleActiveUserChanged} />}
+                        label="Active"
+                        sx={{mr: 10}}
+                    />
+                    <FormControlLabel
+                        control={<Checkbox disableRipple checked={adminUser} onChange={handleAdminUserChanged} />}
+                        label="Admin"
+                        sx={{mr: 10}}
+                    />
+                </FormGroup>
+            }
+        >
+            <ListItemButton role={undefined} onClick={togglePendingDelete}>
+                <ListItemIcon>
+                    <Checkbox
+                        edge="start"
+                        checked={pendingDelete}
+                        disableRipple
+                        inputProps={{'aria-labelledby': labelId}}
+                        onChange={handlePendingDeleteChanged}
+                    />
+                </ListItemIcon>
+                <ListItemText id={labelId} primary={username} />
+            </ListItemButton>
+        </ListItem>
+    );
 };
 
 
-interface IProps {
-    permissions: IProfilePermissions;
-    onUserActiveChange: (checked: boolean) => void;
-    onUserAdminChange: (checked: boolean) => void;
-    onDeleteSelected: (name: string, checked: boolean) => void;
-};
+interface Props {
+    user: ICredentials;
+    onToggleDelete: () => void;
+    onUserChange: (active: boolean, admin: boolean) => void;
+}
+
+
+export default UserManager;

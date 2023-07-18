@@ -1,173 +1,168 @@
-import * as D3 from "d3";
-import {cloneDeep} from "lodash";
-import * as React from "react";
+import React from 'react';
+import * as D3 from 'd3';
 
 
 const assets = {
-      entity: require("../../assets/images/server.svg"),
-      network: require("../../assets/images/cloud.svg"),
-      project: require("../../assets/images/project.svg"),
+    entity: process.env.PUBLIC_URL + '/assets/server.svg',
+    network: process.env.PUBLIC_URL + '/assets/cloud.svg',
+    project: process.env.PUBLIC_URL + '/assets/project.svg',
 };
 
 
-export class Topology extends React.Component<ITopologyData, {}> {
-    private chart: HTMLDivElement;
-    private __force;
+// Custom Hook
+const useWindowSize = () => {
+    const [windowSize, storeWindowSize] = React.useState<Partial<WindowSize>>({
+        width: undefined,
+        height: undefined,
+    });
 
-    constructor(props) {
-        super(props);
-        this.changeDimensions = this.changeDimensions.bind(this);
-        this.setChartDOMNode = this.setChartDOMNode.bind(this);
-    }
+    React.useEffect(() => {
+        const handleResize = () => {storeWindowSize({
+            width: window.innerWidth,
+            height: window.innerHeight,
+        });};
+        window.addEventListener('resize', handleResize);
 
-    public render() {
-        const style = {height: "100%", ...this.props.style};
-        return <div style={style} ref={this.setChartDOMNode} />;
-    }
+        // Store initial size right away
+        handleResize();
 
-    public componentDidMount() {
-        this.redraw(cloneDeep(this.props));
-        this.changeDimensions();
-        window.addEventListener("resize", this.changeDimensions, false);
-    }
+        return () => window.removeEventListener('resize', handleResize);
+    }, [/* Run only once */]);
 
-    public componentWillUnmount() {
-        window.removeEventListener("resize", this.changeDimensions);
-    }
-
-    public componentWillReceiveProps(nextProps: ITopologyData) {
-        if ((nextProps.nodes && nextProps.nodes !== this.props.nodes) || (nextProps.links && nextProps.links !== this.props.links)) {
-            this.redraw(cloneDeep(nextProps));
-        }
-    }
-
-    private setChartDOMNode(chart: HTMLDivElement) {
-        this.chart = chart;
-    }
-
-    private changeDimensions() {
-        if (this.chart && this.chart.children.length > 0) {
-            const svg = this.chart.children[0];
-            const {offsetWidth, offsetHeight} = this.chart;
-            svg.setAttribute("width", String(offsetWidth));
-            svg.setAttribute("height", String(offsetHeight));
-            this.__force.size([offsetWidth, offsetHeight]).start();
-        }
-    }
-
-    private redraw(topologyData: ITopologyData) {
-        while (this.chart.children.length > 0) {
-            this.chart.children[0].remove();
-        }
-
-        const height = this.chart.clientHeight;
-        const width = this.chart.clientWidth;
-
-        const svg = D3.select(this.chart).append("svg").attr({ height, width });
-        const rect = svg.append("rect").attr({
-            fill: "white",
-            height,
-            width,
-            x: 0,
-            y: 0,
-        });
-
-        this.__force = D3.layout.force()
-            .linkDistance(100)
-            .charge(-400)
-            .size([width, height]);
-
-        function dblclick(d) {
-            D3.select(this).classed("fixed", d.fixed = false);
-        }
-
-        function dragstart(d) {
-            D3.select(this).classed("fixed", d.fixed = true);
-        }
-
-        this.__force
-            .nodes(topologyData.nodes)
-            .links(topologyData.links)
-            .start();
-        this.__force.drag().on("dragstart", dragstart);
-
-        const link = svg.selectAll(".link")
-            .data(topologyData.links)
-            .enter().append("line")
-            .attr({
-                "stroke": "#AAA",
-                "stroke-width": (d) => Math.sqrt(d.weight),
-            });
-
-        const node = svg.selectAll(".node")
-            .data(topologyData.nodes)
-            .enter().append("g")
-            .on("dblclick", dblclick)
-            .call(this.__force.drag);
-
-        const server = node.append("svg:image");
-        server.attr({
-            "height": "30",
-            "width": "30",
-            "x": "-15",
-            "xlink:href": (d: ITopologyNode) => assets[d.type],
-            "y": "-15",
-        });
-
-        const text = node.append("text");
-        text.text((d: ITopologyNode) => d.name)
-            .attr({
-                cursor: "pointer",
-                dx: "12",
-                dy: ".35em",
-                fill: (d: ITopologyNode) => (
-                    d.color ? d.color : (d.type === "network" ? "#757575" : "black")
-                ),
-            });
-
-        if (topologyData.selectedNode) {
-            text.on("click", topologyData.selectedNode);
-            server.on("click", topologyData.selectedNode);
-        }
-
-        if (topologyData.unselectNode) {
-            rect.on("click", topologyData.unselectNode);
-        }
-
-        this.__force.on("tick", () => {
-            link.attr({
-                x1: (d) => d.source.x,
-                x2: (d) => d.target.x,
-                y1: (d) => d.source.y,
-                y2: (d) => d.target.y,
-            });
-
-            node.attr("transform", (d) => `translate(${d.x},${d.y})`);
-        });
-    }
+    return windowSize;
 };
 
 
-interface ITopologyData {
-    nodes: ITopologyNode[];
-    links: Array<ITopologyLink<ITopologyNode>>;
-    selectedNode?: (node: ITopologyNode) => void;
+const Topology: React.FC<Props> = (props) => {
+    const {height, nodes, links, selectedNode, unselectNode} = props;
+    const windowSize = useWindowSize();
+    const svgRef = React.useRef<SVGSVGElement>(null);
+
+    React.useEffect(() => {
+        if (!svgRef.current) {
+            return;
+        }
+
+        while (svgRef.current.children.length > 0) {
+            svgRef.current.children[0].remove();
+        }
+
+        const height = svgRef.current.clientHeight;
+        const width = svgRef.current.clientWidth;
+
+        const simulation = D3.forceSimulation<TopologyNode>(nodes)
+            .force("link", D3.forceLink<TopologyNode, TopologyLink>(links).id((d: TopologyNode) => d.id).strength((d: TopologyLink) => d.weight))
+            .force("collide", D3.forceCollide<TopologyNode>(30))
+            .force("center-x", D3.forceX<TopologyNode>(0))
+            .force("center-y", D3.forceY<TopologyNode>(0))
+            .on("tick", () => {
+                link.attr("x1", (d: TopologyLink) => (d.source as TopologyNode).x as number)
+                    .attr("y1", (d: TopologyLink) => (d.source as TopologyNode).y as number)
+                    .attr("x2", (d: TopologyLink) => (d.target as TopologyNode).x as number)
+                    .attr("y2", (d: TopologyLink) => (d.target as TopologyNode).y as number);
+                node.attr("transform", (d: TopologyNode) => `translate(${d.x}, ${d.y})`);
+            });
+
+        const svg = D3.select(svgRef.current)
+            .attr("viewBox", [-width / 2, -height / 2, width, height])
+            .attr("style", "max-width: 100%; height: auto; height: intrinsic;");
+
+        const rect = svg.append("rect")
+            .attr("fill", "white")
+            .attr("height", height)
+            .attr("width", width)
+            .attr("x", -width / 2)
+            .attr("y", -height / 2);
+
+        const link = svg.append("g")
+            .attr("class", "links")
+            .selectAll(".link")
+            .data<TopologyLink>(links)
+            .enter()
+            .append("line")
+            .attr("stroke", "#AAA")
+            .attr("stroke-width", (d: TopologyLink) => Math.sqrt(d.weight));
+
+        const node = svg.append("g")
+            .attr("class", "nodes")
+            .selectAll(".node")
+            .data<TopologyNode>(nodes)
+            .enter()
+            .append<SVGGElement>("g")
+            .on("dblclick", (event, d: TopologyNode) => {d.fx = null; d.fy = null;})
+            .call(D3.drag<SVGGElement, TopologyNode>()
+                .on("start", (event) => {
+                    if (!event.active) {
+                        simulation.alphaTarget(0.3).restart();
+                    }
+                    event.subject.fx = event.subject.x;
+                    event.subject.fy = event.subject.y;
+                })
+                .on("drag", (event) => {
+                    event.subject.fx = event.x;
+                    event.subject.fy = event.y;
+                })
+                .on("end", (event) => {
+                    if (!event.active) {
+                        simulation.alphaTarget(0);
+                    }
+                }));
+
+        node.append("svg:image")
+            .attr("height", 30)
+            .attr("width", 30)
+            .attr("x", -15)
+            .attr("y", -15)
+            .attr("xlink:href", (d: TopologyNode) => assets[d.type]);
+
+        node.append("text")
+            .text((d: TopologyNode) => d.name)
+            .attr("cursor", "pointer")
+            .attr("dx", 12)
+            .attr("dy", ".35em")
+            .style("fill", (d: TopologyNode) => d.color ? d.color : (d.type === "network" ? "#757575" : "black"));
+
+        if (selectedNode) {
+            node.on("click", (event, d: TopologyNode) => selectedNode(d));
+        }
+
+        if (unselectNode) {
+            rect.on("click", unselectNode);
+        }
+
+        return () => {simulation.stop();};
+    }, [nodes, links, selectedNode, unselectNode, windowSize]);
+
+    return <svg ref={svgRef} height={height} width="100%" />;
+};
+
+
+interface Props {
+    height: number | string;
+    nodes: TopologyNode[];
+    links: TopologyLink[];
+    selectedNode?: (node: TopologyNode) => void;
     unselectNode?: () => void;
-    style?: React.CSSProperties;
-};
+}
 
 
-export interface ITopologyNode extends D3.layout.force.Node {
+interface WindowSize {
+    width: number;
+    height: number;
+}
+
+
+export interface TopologyNode extends D3.SimulationNodeDatum {
     name: string;
-    nodeID: string;
+    id: string;
     type: "entity" | "network" | "project";
     color?: string;
-};
+}
 
 
-export interface ITopologyLink<T extends D3.layout.force.Node> extends D3.layout.force.Link<T> {
+export interface TopologyLink extends D3.SimulationLinkDatum<TopologyNode> {
     weight: number;
-};
+}
 
 
 export default Topology;

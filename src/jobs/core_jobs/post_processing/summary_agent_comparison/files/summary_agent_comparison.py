@@ -61,29 +61,6 @@ FUNCTIONS = {
         'min': 'Minimum',
         'max': 'Maximum',
 }
-UNIT_OPTION = {'s', 'ms' ,'bits/s', 'Kbits/s', 'Mbits/s','Gbits/s','Bytes' ,'KBytes', 'MBytes', 'GBytes'}
-
-
-def multiplier(base, unit):
-        if unit == base:
-                return 1
-        if unit.startswith('GBytes'):
-                return 1024 * 1024 * 1024
-        if unit.startswith('MBytes'):
-                return 1024 * 1024
-        if unit.startswith('KBytes'):
-                return 1024
-        if unit.startswith('m'):
-                return 0.001
-        if unit.startswith('s'):
-                return 1000
-        if unit.startswith('Gbits'):
-                return 1000 * 1000 * 1000
-        if unit.startswith('Mbits'):
-                return 1000 * 1000
-        if unit.startswith('Kbits'):
-                return 1000
-        return 1
 
 
 # Text wrapping within axes boundaries copied from
@@ -215,7 +192,7 @@ def plot_summary_agent_comparison(axis, function_result, reference, agent, num_b
 def main(
         agents_name, job_name, statistic_name, timestamp_boundaries,
         function, reference, num_bars, start_day, start_evening, start_night,
-        stat_unit, table_unit, agents_title, stat_title,
+        display_ratio,unit, agents_title, stat_title,
         figure_title, stats_with_suffixes, filled_box):
     statistics = Statistics.from_default_collector()
     statistics.origin = 0
@@ -223,8 +200,7 @@ def main(
         if not timestamp_boundaries:
             timestamps = None
         else:
-            begin_date, end_date = map(parse, timestamp_boundaries)
-            timestamps = [int(begin_date.timestamp() * 1000), int(end_date.timestamp() * 1000)]
+            timestamps=timestamp_boundaries
 
         if function not in FUNCTIONS:
             collect_agent.send_log(
@@ -232,7 +208,6 @@ def main(
                     '\'{}\' is not available as function of statistics: using mean instead'.format(function))
             function = 'mean'
 
-        scale_factor = 1 if stat_unit is None else multiplier(stat_unit, table_unit or stat_unit)
 
         row_num = len(agents_name) + 1  # Account for header + 1 line per agent
         col_num = 4  # [Agent name, day, evening, night]
@@ -243,7 +218,7 @@ def main(
             ax.tick_params(which='both', bottom=False, left=False, top=False, labelleft=False, labelbottom=False)
 
         headers = [
-                f'{FUNCTIONS[function]}\n{stat_title or statistic_name}\n{table_unit or ""}',
+                f'{FUNCTIONS[function]}\n{stat_title or statistic_name}\n{unit or ""}',
                 f'Journée\n({start_day}h − {start_evening}h)',
                 f'Soirée\n({start_evening}h − {start_night}h)',
                 f'Nuit\n({start_night}h − {start_day}h)',
@@ -261,7 +236,7 @@ def main(
                     fields=[statistic_name], timestamps=timestamps)
 
             result = data_collection.compute_function(
-                    function, scale_factor,
+                    function, display_ratio,
                     start_day, start_evening, start_night)
 
             plot_summary_agent_comparison(axes, result, reference, name or agent, num_bars, filled_box)
@@ -286,7 +261,7 @@ if __name__ == '__main__':
                 'statistic', metavar='STAT_NAME',
                 help='Statistic name to be analysed')
         parser.add_argument(
-                '-d', '--timestamp-boundaries',
+                '-d', '--timestamp-boundaries',type=int,
                 metavar=('BEGIN_DATE', 'END_DATE'), nargs=2,
                 help='Start and End date in format YYYY:MM:DD hh:mm:ss')
         parser.add_argument(
@@ -312,11 +287,12 @@ if __name__ == '__main__':
                 metavar='START_NIGHT', type=int, default=0,
                 help='starting time of the night')
         parser.add_argument(
-                '-u', '--stat-unit', metavar='UNIT', choices=UNIT_OPTION,
-                help='Unit of the statistic')
+                '-u', '--unit',metavar='UNIT',
+                help='Stats Unit to display on the table')
         parser.add_argument(
-                '-U', '--table-unit', metavar='UNIT', choices=UNIT_OPTION,
-                help='Desired unit to show on the figure')
+                '-R', '--display-ratio',type=float,
+                metavar='DISPLAY-RATIO', 
+                help='Prefix of displayed unit')
         parser.add_argument(
                 '-a', '--agents-title',
                 metavar='AGENT_TITLE ', nargs='+', default=[],
@@ -341,5 +317,5 @@ if __name__ == '__main__':
             args.agents, args.job, args.statistic, args.timestamp_boundaries,
             args.function, args.reference, args.num_bars,
             args.start_day, args.start_evening, args.start_night,
-            args.stat_unit, args.table_unit, args.agents_title,
+            args.display_ratio,args.unit, args.agents_title,
             args.stat_title, args.figure_title, stats_with_suffixes, args.filled_box)

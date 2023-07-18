@@ -1,63 +1,77 @@
-import * as React from "react";
+import React from 'react';
 
-import Dialog from "material-ui/Dialog";
-import RaisedButton from "material-ui/RaisedButton";
-
-
-const style: React.CSSProperties = {
-    margin: "8px",
-};
+import Button from '@mui/material/Button';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogTitle from '@mui/material/DialogTitle';
 
 
-export default class ActionDialog extends React.Component<IProps, {}> {
-    public render() {
-        const actions = this.props.actions.map((action: IActionForDialog, idx: number) => (
-            <RaisedButton
-                key={idx}
-                label={action.label}
-                secondary={true}
-                onTouchTap={action.action}
-                style={style}
-            />
-        ));
-        actions.push((
-            <RaisedButton
-                key={actions.length}
-                label={this.props.cancel.label}
-                primary={true}
-                keyboardFocused={true}
-                onTouchTap={this.props.cancel.action}
-                style={style}
-            />
-        ));
+const ActionDialog: React.FC<React.PropsWithChildren<Props>> = (props) => {
+    const {title, open, modal, cancel, actions, onSubmit, children} = props;
 
+    const handleClose = React.useCallback((event: React.FormEvent, reason: string) => {
+        if (!modal || (reason !== "escapeKeyDown" && reason !== "backdropClick")) {
+            cancel.action();
+        }
+    }, [modal, cancel]);
+
+    const buttons = actions.map((action: ActionButton, index: number) => action.action === "submit" ? (
+        <Button key={index} type="submit" color="primary">
+            {action.label}
+        </Button>
+    ) : (
+        <Button key={index} onClick={action.action} color="primary">
+            {action.label}
+        </Button>
+    ));
+    buttons.push((
+        <Button key={actions.length} onClick={cancel.action} color="secondary">
+            {cancel.label}
+        </Button>
+    ));
+
+    if (onSubmit) {
         return (
-            <Dialog
-                open={this.props.open}
-                onRequestClose={this.props.cancel.action}
-                title={this.props.title}
-                modal={this.props.modal}
-                actions={actions}
-                autoScrollBodyContent={this.props.auto}
-            >
-                {this.props.children}
+            <Dialog open={open} onClose={handleClose}>
+                <DialogTitle>{title}</DialogTitle>
+                <form onSubmit={onSubmit}>
+                    {children}
+                    <DialogActions>{buttons}</DialogActions>
+                </form>
             </Dialog>
         );
     }
+
+    return (
+        <Dialog open={open} onClose={handleClose}>
+            <DialogTitle>{title}</DialogTitle>
+            {children}
+            <DialogActions>{buttons}</DialogActions>
+        </Dialog>
+    );
 };
 
 
-export interface IActionForDialog {
+interface CancelButton {
     label: string;
     action: () => void;
-};
+}
 
 
-interface IProps {
+interface ActionButton {
+    label: string;
+    action: "submit" | (() => void);
+}
+
+
+interface Props {
     title: string;
     open: boolean;
-    modal: boolean;
-    cancel: IActionForDialog;
-    actions: IActionForDialog[];
-    auto?: boolean;
-};
+    modal?: boolean;
+    onSubmit?: (event: React.FormEvent) => void;
+    cancel: CancelButton;
+    actions: ActionButton[];
+}
+
+
+export default ActionDialog;

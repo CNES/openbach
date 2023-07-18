@@ -1,47 +1,68 @@
-import * as React from "react";
-import {IndexRoute, Redirect, Route, Router} from "react-router";
-import {ReactRouterReduxHistory} from "react-router-redux";
+import React from 'react';
+import {BrowserRouter, Routes, Route, Navigate} from 'react-router-dom';
 
-import Agents from "../components/Agents/AgentsDisplay";
-import App from "../components/App/App";
-import Empty from "../components/common/EmptyComponent";
-import Glossary from "../components/Help/Glossary";
-import ScenarioIcons from "../components/Help/ScenarioIcons";
-import Jobs from "../components/Jobs/JobsDisplay";
-import ProjectContainer from "../components/Project/ProjectContainer";
-import Scenario from "../components/Project/ProjectSelectedScenario";
-import Projects from "../components/Projects/ProjectsListContainer";
-import Manage from "../components/Users/Manage";
-import Settings from "../components/Users/SettingsWrapper";
+import Glossary from '../components/Layout/Glossary';
+import HomePage from '../components/Layout/HomePage';
+import ScenarioIcons from '../components/Layout/ScenarioIcons';
+import Projects from '../components/Projects/Projects';
+const Agents = React.lazy(() => import('../components/Admin/Agents'));
+const Jobs = React.lazy(() => import('../components/Admin/Jobs'));
+const Project = React.lazy(() => import('../components/Projects/Project'));
+const Scenario = React.lazy(() => import('../components/Scenarios/SelectedScenario'));
+const Settings = React.lazy(() => import('../components/Users/Settings'));
+const Users = React.lazy(() => import('../components/Users/Manage'));
 
 
-export default class Routes extends React.Component<IProps, {}> {
-    public render() {
-        return (
-            <Router history={this.props.history}>
-                <Route path="/app" component={App}>
-                    <IndexRoute component={Projects} />
-                    <Route path="project" component={Projects} />
-                    <Route path="project/:projectId" component={ProjectContainer}>
-                        <Route path="scenario/:scenarioId" component={Scenario} />
-                    </Route>
-                    <Route path="admin" component={Empty}>
-                        <IndexRoute component={Agents} />
-                        <Route path="agents" component={Agents} />
-                        <Route path="jobs" component={Jobs} />
-                        <Route path="users" component={Manage} />
-                    </Route>
-                    <Route path="glossary" component={Glossary} />
-                    <Route path="icons" component={ScenarioIcons} />
-                    <Route path="settings" component={Settings} />
-                </Route>
-                <Redirect from="*" to="/app"/>
-            </Router>
-        );
-    }
-};
+const AdminRouter = () => (
+    <Routes>
+        <Route path="agents" element={<React.Suspense><Agents /></React.Suspense>} />
+        <Route path="jobs" element={<React.Suspense><Jobs /></React.Suspense>} />
+        <Route path="users" element={<React.Suspense><Users /></React.Suspense>} />
+        <Route path="*" element={<Navigate to="/app" replace />} />
+    </Routes>
+);
 
 
-interface IProps {
-    history: ReactRouterReduxHistory;
-};
+const ProjectRouter = () => (
+    <Routes>
+        <Route path="scenario/:scenarioId" element={<React.Suspense><Project><Scenario /></Project></React.Suspense>} />
+        <Route path="/" element={<React.Suspense><Project /></React.Suspense>} />
+        <Route path="*" element={<Navigate to="." replace />} />
+    </Routes>
+);
+
+
+const ProjectsRouter = () => (
+    <Routes>
+        <Route path="/" element={<Projects />} />
+        <Route path=":projectId/*" element={<ProjectRouter />} />
+    </Routes>
+);
+
+
+const AppRouter = () => (
+    <HomePage>
+        <Routes>
+            <Route path="admin/*" element={<AdminRouter />} />
+            <Route path="settings" element={<React.Suspense><Settings /></React.Suspense>} />
+            <Route path="glossary" element={<Glossary />} />
+            <Route path="icons" element={<ScenarioIcons />} />
+            <Route path="project/*" element={<ProjectsRouter />} />
+            <Route path="/" element={<Projects />} />
+            <Route path="*" element={<Navigate to="/app" replace />} />
+        </Routes>
+    </HomePage>
+);
+
+
+const Router = () => (
+    <BrowserRouter>
+        <Routes>
+            <Route path="/app/*" element={<AppRouter />} />
+            <Route path="*" element={<Navigate to="/app" replace />} />
+        </Routes>
+    </BrowserRouter>
+);
+
+
+export default Router;

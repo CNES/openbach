@@ -154,6 +154,7 @@
   when: openbach_keep_ntp_server_configuration is not defined or not openbach_keep_ntp_server_configuration
   tags:
     - configure_ntp_server
+    - questions
 
 - name: Create OpenBACH's log folder
   file:

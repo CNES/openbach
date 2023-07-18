@@ -60,7 +60,7 @@ COLORMAP_OPTION = {
         'blue2green': 'brg',
         'paired': 'Paired',
 }
-UNIT_OPTION = {'s', 'ms' ,'bits/s', 'Kbits/s', 'Mbits/s','Gbits/s','Bytes' ,'KBytes', 'MBytes', 'GBytes'}
+
 
 SET_AXIS_PARAMETERS = {'axis': 1}
 if version(pd.__version__) < version('1.5.0'):
@@ -69,33 +69,12 @@ else:
     SET_AXIS_PARAMETERS['copy'] = True
 
 
-def multiplier(base, unit):
-        if unit == base:
-                return 1
-        if unit.startswith('GBytes'):
-                return 1024 * 1024 * 1024
-        if unit.startswith('MBytes'):
-                return 1024 * 1024
-        if unit.startswith('KBytes'):
-                return 1024
-        if unit.startswith('m'):
-                return 0.001
-        if unit.startswith('s'):
-                return 1000
-        if unit.startswith('Gbits'):
-                return 1000 * 1000 * 1000
-        if unit.startswith('Mbits'):
-                return 1000 * 1000
-        if unit.startswith('Kbits'):
-                return 1000
-
-        return 1
 
 
 def main(
         job_instance_ids, statistics_names, aggregations_periods,
         bins_sizes, offset, maximum, stats_with_suffixes, axis_labels,
-        figures_titles, legends_titles, stat_units, legend_units,
+        figures_titles, legends_titles,  display_ratios,units,
         use_legend, add_global, pickle, colormap):
     file_ext = 'pickle' if pickle else 'png'
     statistics = Statistics.from_default_collector()
@@ -104,8 +83,8 @@ def main(
         metadatas = itertools.zip_longest(
                 job_instance_ids, statistics_names, aggregations_periods,
                 bins_sizes, axis_labels, figures_titles, legends_titles,
-                stat_units, legend_units, colormap, fillvalue=[])
-        for job, fields, aggregations, bin_sizes, labels, titles, legend_titles, stat_units, legend_units, cms in metadatas:
+                 display_ratios,units, colormap, fillvalue=[])
+        for job, fields, aggregations, bin_sizes, labels, titles, legend_titles,  display_ratios,units, cms in metadatas:
             data_collection = statistics.fetch(
                     job_instances=job,
                     suffix = None if stats_with_suffixes else '',
@@ -130,12 +109,11 @@ def main(
 
             metadata = itertools.zip_longest(
                     fields, labels, bin_sizes, aggregations,
-                    legend_titles, stat_units, legend_units, titles, cms)
+                    legend_titles, display_ratios,units, titles, cms)
 
-            for field, label, bin_size, aggregation, legend, stat_unit, legend_unit, title, cm in metadata:
-                scale_factor = 1 if stat_unit is None else multiplier(stat_unit, legend_unit or stat_unit)
+            for field, label, bin_size, aggregation, legend, display_ratio,unit, title, cm in metadata:
                 cmap = COLORMAP_OPTION[cm or 'red2green']
-
+                
                 if field not in df.columns.get_level_values('statistic'):
                     collect_agent.send_log(
                             syslog.LOG_WARNING,
@@ -176,7 +154,7 @@ def main(
                 axis = plot.plot_temporal_binning_histogram(
                         axis, label, field, None, bin_size, offset,
                         maximum, aggregation, add_global, use_legend,
-                        legend, legend_unit, cmap, scale_factor)
+                        legend, unit, cmap, display_ratio)
 
                 if title is not None:
                     axis.set_title(title)
@@ -227,13 +205,12 @@ if __name__ == '__main__':
                 metavar='LEGEND_TITLE', action='append', default=[],
                 help='Title of the legend')
         parser.add_argument(
-                '-u', '--stat-unit', dest='stat_units', nargs='+',choices=UNIT_OPTION,
-                metavar='STAT_UNIT', action='append', default=[],
-                help='Unit of the statistic')
+                '-u', '--unit',metavar='UNIT',default=[],nargs='+', action='append',
+                help='Stats Unit to display on the table')
         parser.add_argument(
-                '-U', '--legend-unit', dest='legend_units', nargs='+',choices=UNIT_OPTION,
-                metavar='LEGEND_UNIT', action='append', default=[],
-                help='Unit of the legend')
+                '-R', '--display-ratio',type=float,nargs='+', action='append', default=[],
+                metavar='DISPLAY-RATIO', 
+                help='Prefix of displayed unit')
         parser.add_argument(
                 '-g', '--global', '--global-bin', dest='add_global', action='store_true',
                 help='Add bin of global measurements')
@@ -256,4 +233,4 @@ if __name__ == '__main__':
         main(
             args.jobs, args.statistics, args.aggregations, args.bin_sizes, args.offset,
             args.maximum, stats_with_suffixes, args.ylabel, args.title, args.legend_titles,
-            args.stat_units, args.legend_units, use_legend, args.add_global, args.pickle, args.colormap)
+            args.display_ratio,args.unit,use_legend, args.add_global, args.pickle, args.colormap)

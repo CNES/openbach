@@ -1,0 +1,67 @@
+#   OpenBACH is a generic testbed able to control/configure multiple
+#   network/physical entities (under test) and collect data from them. It is
+#   composed of an Auditorium (HMIs), a Controller, a Collector and multiple
+#   Agents (one for each network entity that wants to be tested).
+#   
+#   
+#   Copyright © 2016-2023 CNES
+#   
+#   
+#   This file is part of the OpenBACH testbed.
+#   
+#   
+#   OpenBACH is a free software : you can redistribute it and/or modify it under
+#   the terms of the GNU General Public License as published by the Free Software
+#   Foundation, either version 3 of the License, or (at your option) any later
+#   version.
+#   
+#   This program is distributed in the hope that it will be useful, but WITHOUT
+#   ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS
+#   FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+#   details.
+#   
+#   You should have received a copy of the GNU General Public License along with
+#   this program. If not, see http://www.gnu.org/licenses/.
+
+---
+
+- name: Configure HTTP Proxies for Agents
+  template: src=host_vars.j2 dest=/opt/openbach/controller/ansible/host_vars/{{ item }}
+  with_items: "{{ groups.agent | default([]) }}"
+  delegate_to: "{{openbach_controller}}"
+  remote_user: openbach
+
+- name: Set openbach Vault password variable 
+  set_fact:
+    openbach_vault_pass: "{{hostvars[openbach_controller].vault_pass.user_input }}"
+  when: 
+    - openbach_vault_pass is undefined
+    - hostvars[openbach_controller].vault_pass is defined
+
+- name: Create temporary file to store vault password
+  tempfile:
+    state: file
+  register: vault_pass_file
+  delegate_to: "{{openbach_controller}}"
+  remote_user: openbach
+  when: openbach_vault_pass is defined and openbach_vault_pass != ''
+
+- name: Create vault_pass file
+  template: src=vault_pass.j2 dest="{{vault_pass_file.path}}"
+  delegate_to: "{{openbach_controller}}"
+  remote_user: openbach
+  when: openbach_vault_pass is defined and openbach_vault_pass != ''
+
+- name: Encrypt agent sensitive data
+  shell: ansible-vault encrypt /opt/openbach/controller/ansible/host_vars/{{ inventory_hostname }} --vault-password-file "{{vault_pass_file.path}}"
+  delegate_to: "{{openbach_controller}}"
+  remote_user: openbach
+  when: openbach_vault_pass is defined and openbach_vault_pass != ''
+
+- name: Remove vault password file
+  file:
+     path: "{{vault_pass_file.path}}"
+     state: absent
+  remote_user: openbach
+  delegate_to: "{{openbach_controller}}"
+  when: vault_pass_file is not skipped

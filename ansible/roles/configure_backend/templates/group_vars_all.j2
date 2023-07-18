@@ -3,6 +3,4 @@
 database_max_cache: {{ database_max_cache }}
 openbach_controller: {{ inventory_hostname }}
 django_port: {{ django_port }}
-openbach_proxy_env:
-{{ openbach_proxy_env | to_nice_yaml | indent(2, True) }}
 is_run_from_conductor: true

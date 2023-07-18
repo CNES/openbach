@@ -253,7 +253,6 @@
         openbach_backend_admin_password: "{{ openbach_backend_admin_password | default('openbach') }}"
       tags:
         - consider_safe_network
-
     - name: Manage Superusers in the Backend's Database
       openbach_superuser:
         manager: /opt/openbach/controller/backend/manage.py

@@ -51,6 +51,7 @@
     - check_connection.yml
     - enable_logs.yml
     - fetch_files.yml
+    - find_proxies.yml
     - install_a_job.yml
     - push_files.yml
     - pull_files.yml
@@ -60,11 +61,6 @@
     - manage_retention_policies.yml
     - rsyslog_job.j2
     - rsyslog_job_local.j2
-  remote_user: openbach
-
-- name: Configure HTTP Proxies for Agents
-  template: src=host_vars.j2 dest=/opt/openbach/controller/ansible/host_vars/{{ item }}
-  with_items: "{{ groups.agent | default([]) }}"
   remote_user: openbach
 
 - name: Restart OpenBACH Services
@@ -110,7 +106,7 @@
       with_items:
         - "{{ openbach_jobs_metadata_core.openbach_jobs }}"
         - "{{ openbach_jobs_metadata_extra.openbach_jobs }}"
-
+        
   when: openbach_restore_host is not defined
         
 - name: Add Collectors into the Backend Database
@@ -156,6 +152,7 @@
       address: "{{ item }}"
       name: "{{ hostvars[item].openbach_name }}"
       collector_ip: "{{ hostvars[item].openbach_collector }}"
+      controller: "{{hostvars[item].openbach_controller}}"
       skip_playbook: true
     headers:
       Cookie: "sessionid={{ openbach_backend_login.cookies.sessionid }}"
