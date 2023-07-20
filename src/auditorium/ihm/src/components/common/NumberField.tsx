@@ -12,9 +12,16 @@ import type {UseControllerProps} from 'react-hook-form';
 
 
 const NumberField: React.FC<Props & UseControllerProps<Form>> = (props) => {
-    const {variant, type, label, sx, fullWidth, step=1, color, ...controllerProps} = props;
+    const {variant, type, label, sx, fullWidth, step=1, color, onChange, ...controllerProps} = props;
     const {getValues, setValue} = useFormContext<Form>();
     const {name} = controllerProps;
+
+    const handleChange = React.useCallback((onFieldChange: (e: unknown) => void) => (e: unknown) => {
+        onFieldChange(e);
+        if (onChange) {
+            onChange();
+        }
+    }, [onChange]);
 
     const handleIncrement = React.useCallback(() => {
         const value = Number(getValues(name));
@@ -65,7 +72,7 @@ const NumberField: React.FC<Props & UseControllerProps<Form>> = (props) => {
                     fullWidth={fullWidth}
                     type={type}
                     label={label}
-                    onChange={onChange}
+                    onChange={handleChange(onChange)}
                     onBlur={onBlur}
                     value={value}
                     inputRef={ref}
@@ -89,6 +96,7 @@ interface Props {
     fullWidth?: boolean;
     step?: number;
     color?: "primary" | "secondary";
+    onChange?: () => void;
 };
 
 

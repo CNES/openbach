@@ -4,6 +4,7 @@ import {useFormContext, useFieldArray, Controller} from 'react-hook-form';
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
 import Checkbox from '@mui/material/Checkbox';
+import Fab from '@mui/material/Fab';
 import FormGroup from '@mui/material/FormGroup';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import FormControl from '@mui/material/FormControl';
@@ -15,6 +16,7 @@ import TextField from '@mui/material/TextField';
 import Tooltip from '@mui/material/Tooltip';
 
 import InfoIcon from '@mui/icons-material/Info';
+import AddIcon from '@mui/icons-material/PlaylistAddRounded';
 
 import NumberField from '../common/NumberField';
 
@@ -23,7 +25,14 @@ import type {UseControllerProps} from 'react-hook-form';
 
 
 const StringField: React.FC<PasswordField> = (props) => {
-    const {label, password, required: _, ...controllerProps} = props;
+    const {label, password, onChange, required: _, ...controllerProps} = props;
+
+    const handleChange = React.useCallback((onFieldChange: (e: unknown) => void) => (e: unknown) => {
+        onFieldChange(e);
+        if (onChange) {
+            onChange();
+        }
+    }, [onChange]);
 
     return (
         <Controller
@@ -34,7 +43,7 @@ const StringField: React.FC<PasswordField> = (props) => {
                     variant="standard"
                     type={password ? "password" : undefined}
                     label={label}
-                    onChange={onChange}
+                    onChange={handleChange(onChange)}
                     onBlur={onBlur}
                     value={value}
                     inputRef={ref}
@@ -63,7 +72,14 @@ const NumericField: React.FC<NumericalField> = (props) => {
 
 
 const BooleanField: React.FC<Field> = (props) => {
-    const {label, onChange: handleChange, required: _, ...controllerProps} = props;
+    const {label, onChange, required: _, ...controllerProps} = props;
+
+    const handleChange = React.useCallback((onFieldChange: (e: unknown) => void) => (e: unknown) => {
+        onFieldChange(e);
+        if (onChange) {
+            onChange();
+        }
+    }, [onChange]);
 
     return (
         <FormGroup sx={{flexGrow: 1}}>
@@ -71,7 +87,7 @@ const BooleanField: React.FC<Field> = (props) => {
                 control={<Controller
                     {...controllerProps}
                     render={({field: {onChange, onBlur, value, ref}}) => (
-                        <Checkbox checked={value} onChange={handleChange ? (e) => {onChange(e); handleChange();} : onChange} onBlur={onBlur} inputRef={ref} />
+                        <Checkbox checked={value} onChange={handleChange(onChange)} onBlur={onBlur} inputRef={ref} />
                     )}
                 />}
                 label={label}
@@ -82,7 +98,14 @@ const BooleanField: React.FC<Field> = (props) => {
 
 
 const ChoiceField: React.FC<SelectField> = (props) => {
-    const {label, choices, required: _, ...controllerProps} = props;
+    const {label, choices, onChange, required: _, ...controllerProps} = props;
+
+    const handleChange = React.useCallback((onFieldChange: (e: unknown) => void) => (e: unknown) => {
+        onFieldChange(e);
+        if (onChange) {
+            onChange();
+        }
+    }, [onChange]);
 
     return (
         <Controller
@@ -93,7 +116,7 @@ const ChoiceField: React.FC<SelectField> = (props) => {
                     variant="standard"
                     select
                     label={label}
-                    onChange={onChange}
+                    onChange={handleChange(onChange)}
                     onBlur={onBlur}
                     value={value}
                     inputRef={ref}
@@ -110,7 +133,14 @@ const ChoiceField: React.FC<SelectField> = (props) => {
 
 
 const IdField: React.FC<OpenbachFunctionField> = (props) => {
-    const {label, type, others, required: _, ...controllerProps} = props;
+    const {label, type, others, onChange, required: _, ...controllerProps} = props;
+
+    const handleChange = React.useCallback((onFieldChange: (e: unknown) => void) => (e: unknown) => {
+        onFieldChange(e);
+        if (onChange) {
+            onChange();
+        }
+    }, [onChange]);
 
     const choices = React.useMemo(() => {
         return others.filter((openbachFunction: FunctionForm) => openbachFunction.kind === type).map(
@@ -127,7 +157,7 @@ const IdField: React.FC<OpenbachFunctionField> = (props) => {
                     <Select
                         label={label}
                         variant="standard"
-                        onChange={onChange}
+                        onChange={handleChange(onChange)}
                         onBlur={onBlur}
                         value={value}
                         inputRef={ref}
@@ -151,16 +181,13 @@ const IdField: React.FC<OpenbachFunctionField> = (props) => {
 
 
 const StartJobInstanceParameterRow: React.FC<RowProps> = (props) => {
-    const {name, label, defaultValue, minLength, maxLength, type, password, choices, others, onChange} = props;
+    const {name, label, defaultValue, minLength, maxLength, type, password, choices, others} = props;
     const {fields, append} = useFieldArray({name, shouldUnregister: false, rules: {minLength, maxLength}});
     const {getValues, setValue} = useFormContext<Form>();
 
     const addNewField = React.useCallback(() => {
         append(defaultValue);
-        if (onChange) {
-            onChange();
-        }
-    }, [append, defaultValue, onChange]);
+    }, [append, defaultValue]);
 
     React.useEffect(() => {
         const values = getValues(name);
@@ -172,8 +199,8 @@ const StartJobInstanceParameterRow: React.FC<RowProps> = (props) => {
     return (
         <React.Fragment>
             {fields.map((field, index: number) => {
-                // const canAddNew = (maxLength == null || index < maxLength - 1) && index === fields.length - 1;
-                const canAddNew = index === fields.length - 1;
+                const {length} = fields;
+                const canAddNew = (index === length - 1) && (maxLength == null || length < maxLength);
                 switch(type) {
                     case "None":
                         return (
@@ -184,7 +211,7 @@ const StartJobInstanceParameterRow: React.FC<RowProps> = (props) => {
                                 name={`${name}.${index}`}
                                 rules={{required: false}}
                                 defaultValue={defaultValue as unknown as undefined}
-                                onChange={canAddNew ? addNewField : onChange}
+                                onChange={canAddNew ? addNewField : undefined}
                             />
                         );
                     case "int":
@@ -197,7 +224,7 @@ const StartJobInstanceParameterRow: React.FC<RowProps> = (props) => {
                                 name={`${name}.${index}`}
                                 rules={{required: false}}
                                 defaultValue={defaultValue as unknown as undefined}
-                                onChange={canAddNew ? addNewField : onChange}
+                                onChange={canAddNew ? addNewField : undefined}
                             />
                         );
                     case "float":
@@ -210,7 +237,7 @@ const StartJobInstanceParameterRow: React.FC<RowProps> = (props) => {
                                 name={`${name}.${index}`}
                                 rules={{required: false}}
                                 defaultValue={defaultValue as unknown as undefined}
-                                onChange={canAddNew ? addNewField : onChange}
+                                onChange={canAddNew ? addNewField : undefined}
                             />
                         );
                     case "job":
@@ -224,7 +251,7 @@ const StartJobInstanceParameterRow: React.FC<RowProps> = (props) => {
                                 name={`${name}.${index}`}
                                 rules={{required: false}}
                                 defaultValue={defaultValue as unknown as undefined}
-                                onChange={canAddNew ? addNewField : onChange}
+                                onChange={canAddNew ? addNewField : undefined}
                             />
                         );
                     case "scenario":
@@ -238,7 +265,7 @@ const StartJobInstanceParameterRow: React.FC<RowProps> = (props) => {
                                 name={`${name}.${index}`}
                                 rules={{required: false}}
                                 defaultValue={defaultValue as unknown as undefined}
-                                onChange={canAddNew ? addNewField : onChange}
+                                onChange={canAddNew ? addNewField : undefined}
                             />
                         );
                     default:
@@ -252,7 +279,7 @@ const StartJobInstanceParameterRow: React.FC<RowProps> = (props) => {
                                     name={`${name}.${index}`}
                                     rules={{required: false}}
                                     defaultValue={defaultValue as unknown as undefined}
-                                    onChange={canAddNew ? addNewField : onChange}
+                                    onChange={canAddNew ? addNewField : undefined}
                                 />
                             );
                         }
@@ -265,7 +292,7 @@ const StartJobInstanceParameterRow: React.FC<RowProps> = (props) => {
                                 name={`${name}.${index}`}
                                 rules={{required: false}}
                                 defaultValue={defaultValue as unknown as undefined}
-                                onChange={canAddNew ? addNewField : onChange}
+                                onChange={canAddNew ? addNewField : undefined}
                             />
                         );
                 }
@@ -349,7 +376,6 @@ const StartJobInstanceParameterField: React.FC<Props> = (props) => {
                         password={password}
                         choices={choices}
                         others={others}
-                        onChange={repeatable && index === fields.length - 1 ? addNewRow : undefined}
                     />
                     <Tooltip title={description} placement="right">
                         <IconButton color="primary" component="span">
@@ -358,6 +384,13 @@ const StartJobInstanceParameterField: React.FC<Props> = (props) => {
                     </Tooltip>
                 </Box>
             ))}
+            {repeatable && (
+                <Tooltip title={`Add new ${name}`}>
+                    <Fab size="small" color="secondary" onClick={addNewRow}>
+                        <AddIcon />
+                    </Fab>
+                </Tooltip>
+            )}
         </React.Fragment>
     );
 };
@@ -382,7 +415,6 @@ interface RowProps {
     password: boolean;
     choices?: string[];
     others: FunctionForm[];
-    onChange?: () => void;
 }
 
 
