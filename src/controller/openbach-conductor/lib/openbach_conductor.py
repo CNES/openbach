@@ -1022,20 +1022,20 @@ class AddJob(JobAction):
     """
 
     def __init__(self, name, path):
-        super().__init__(name=name, path=path)
+        super().__init__(name=name, path=Path(path))
 
     @require_connected_user(admin=True)
     def _action(self):
-        config_prefix = os.path.join(self.path, 'files', self.name)
-        config_file = '{}.yml'.format(config_prefix)
-        config_help = '{}.help'.format(config_prefix)
+        config_prefix = self.path / 'files' / self.name
+        config_file = config_prefix.with_suffix('.yml')
+        config_help = config_prefix.with_suffix('.help')
         try:
-            stream = open(config_file, encoding='utf-8')
+            stream = config_file.open(encoding='utf-8')
         except FileNotFoundError:
             raise errors.BadRequestError(
                     'The configuration file of the Job is not present',
                     job_name=self.name,
-                    configuration_file=config_file)
+                    configuration_file=config_file.as_posix())
         with stream:
             try:
                 content = yaml.safe_load(stream)
@@ -1044,11 +1044,11 @@ class AddJob(JobAction):
                         'The configuration file of the Job does not '
                         'contain valid YAML data',
                         job_name=self.name, error_message=str(err),
-                        configuration_file=config_file)
+                        configuration_file=config_file.as_posix())
 
         # Load the help file
         try:
-            with open(config_help, encoding='utf-8') as stream:
+            with config_help.open(encoding='utf-8') as stream:
                 help_content = stream.read()
         except OSError:
             help_content = None
@@ -1060,19 +1060,19 @@ class AddJob(JobAction):
             raise errors.BadRequestError(
                     'The configuration file of the Job is missing an entry',
                     entry_name=str(err), job_name=self.name,
-                    configuration_file=config_file)
+                    configuration_file=config_file.as_posix())
         except (TypeError, db.utils.DataError) as err:
             raise errors.BadRequestError(
                     'The configuration file of the Job contains entries '
                     'whose values are not of the required type',
                     job_name=self.name, error_message=str(err),
-                    configuration_file=config_file)
+                    configuration_file=config_file.as_posix())
         except db.IntegrityError as err:
             raise errors.BadRequestError(
                     'The configuration file of the Job contains '
                     'duplicated entries',
                     job_name=self.name, error_message=str(err),
-                    configuration_file=config_file)
+                    configuration_file=config_file.as_posix())
 
         return InfosJob(self.name).action()
 
@@ -1226,29 +1226,25 @@ class AddTarJob(JobAction):
 
     @require_connected_user(admin=True)
     def _action(self):
-        path = '/opt/openbach/controller/src/jobs/private_jobs/{}'.format(self.name)
+        root = Path('/opt/openbach/controller/src/jobs/private_jobs/')
+        path = (root / self.name).resolve()
+        if not path.is_relative_to(root):
+            raise errors.UnprocessableError(
+                    'Attempted Path Traversal through Job Name',
+                    offending_name=self.name)
         try:
             with tarfile.open(self.path) as tar_file:
-                def is_within_directory(directory, target):
-                    
-                    abs_directory = os.path.abspath(directory)
-                    abs_target = os.path.abspath(target)
-                
-                    prefix = os.path.commonprefix([abs_directory, abs_target])
-                    
-                    return prefix == abs_directory
-                
-                def safe_extract(tar, path=".", members=None, *, numeric_owner=False):
-                
-                    for member in tar.getmembers():
-                        member_path = os.path.join(path, member.name)
-                        if not is_within_directory(path, member_path):
-                            raise Exception("Attempted Path Traversal in Tar File")
-                
-                    tar.extractall(path, members, numeric_owner=numeric_owner) 
-                    
-                
-                safe_extract(tar_file, path)
+                try:
+                    traversal_attack = next(
+                            member.name
+                            for member in tar_file.getmembers()
+                            if not (path / member.name).resolve().is_relative_to(path))
+                except StopIteration:
+                    tar_file.extractall(path)
+                else:
+                    raise errors.UnprocessableError(
+                            'Attempted Path Traversal in Tar File',
+                            offending_file=traversal_attack)
         except tarfile.ReadError as err:
             raise errors.ConductorError(
                     'Failed to uncompress the provided tar file',
@@ -3818,3 +3814,10 @@ class Reboot(ConductorAction):
         start_playbook('reboot', agent.address, self.kernel, self.vault_password)
 
         return None, 204
+
+
+def safe_tar_extract(tar, path='', members=None, *, numeric_owner=False):
+    """Ensure all members in a tarball will be extracted in the provided
+    directory before actually extracting them, to mitigate path traversal
+    attacks.
+    """
