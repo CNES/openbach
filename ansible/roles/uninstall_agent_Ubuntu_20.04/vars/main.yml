@@ -26,4 +26,4 @@
 ---
 
 openbach_repository:
-  - deb https://raw.githubusercontent.com/CNES/net4sat-packages/master/focal/ focal dev
+  - deb [signed-by=/etc/apt/keyrings/net4sat.gpg] https://raw.githubusercontent.com/CNES/net4sat-packages/master/focal/ focal dev
