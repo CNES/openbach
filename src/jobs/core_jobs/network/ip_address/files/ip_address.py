@@ -128,4 +128,4 @@ if __name__ == '__main__':
         # get args
         args = parser.parse_args()
         operation = Operations(args.operation)
-        main(args.operation, args.interface, args.address_mask if operation is Operation.FLUSH else None)
+        main(args.operation, args.interface, args.address_mask if operation is not Operations.FLUSH else None)
