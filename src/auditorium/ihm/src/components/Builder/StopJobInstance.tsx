@@ -13,7 +13,7 @@ import type {SelectChangeEvent} from '@mui/material/Select';
 
 
 const StopJobInstance: React.FC<Props> = (props) => {
-    const {id, index, others} = props;
+    const {id, index, others, refresh} = props;
     const {field: {onChange, onBlur, value, ref}} = useController({
         name: `functions.${index}.jobs`,
         rules: {required: false},
@@ -23,7 +23,8 @@ const StopJobInstance: React.FC<Props> = (props) => {
     const handleChange = React.useCallback((event: SelectChangeEvent<number[]>) => {
         const {value} = event.target;
         onChange(typeof value === 'string' ? [] : value);
-    }, [onChange]);
+        refresh();
+    }, [onChange, refresh]);
 
     return (
         <React.Fragment>
@@ -67,6 +68,7 @@ interface Props {
     id: string;
     index: number;
     others: FunctionForm[];
+    refresh: () => void;
 }
 
 

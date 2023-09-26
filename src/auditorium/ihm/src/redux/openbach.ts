@@ -26,15 +26,15 @@ const openbachSlice = createSlice({
     extraReducers: (builder) => {
         builder
             .addCase(getAgents.pending, (state, action) => {
-                const {projects, collectors, jobs} = state;
-                return {projects, collectors, jobs};
+                const {agents, ...rest} = state;
+                return rest;
             })
             .addCase(getAgents.fulfilled, (state, action) => {
                 return {...state, agents: action.payload};
             })
             .addCase(getProjects.pending, (state, action) => {
-                const {agents, collectors, jobs} = state;
-                return {agents, collectors, jobs};
+                const {projects, ...rest} = state;
+                return rest;
             })
             .addCase(getProjects.fulfilled, (state, action) => {
                 return {...state, projects: action.payload};
@@ -61,15 +61,15 @@ const openbachSlice = createSlice({
                 return {...state, agents};
             })
             .addCase(getCollectors.pending, (state, action) => {
-                const {agents, projects, jobs} = state;
-                return {agents, projects, jobs};
+                const {collectors, ...rest} = state;
+                return rest;
             })
             .addCase(getCollectors.fulfilled, (state, action) => {
                 return {...state, collectors: action.payload};
             })
             .addCase(getJobs.pending, (state, action) => {
-                const {agents, projects, collectors} = state;
-                return {agents, projects, collectors};
+                const {jobs, ...rest} = state;
+                return rest;
             })
             .addCase(getJobs.fulfilled, (state, action) => {
                 return {...state, jobs: action.payload};

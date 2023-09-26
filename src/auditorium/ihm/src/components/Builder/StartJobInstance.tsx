@@ -23,7 +23,7 @@ import type {IJob, IEntity, FunctionForm} from '../../utils/interfaces';
 
 
 const StartJobInstance: React.FC<Props> = (props) => {
-    const {id, index, others} = props;
+    const {id, index, others, refresh} = props;
     // const {entity, offset, interval, job, parameters, subcommands} = current;
     const dispatch = useDispatch();
     const jobs = useSelector((state) => state.openbach.jobs);
@@ -76,7 +76,7 @@ const StartJobInstance: React.FC<Props> = (props) => {
                         labelId={`${id}-entity-label`}
                         label="Entity Name"
                         variant="standard"
-                        onChange={entity.onChange}
+                        onChange={(e) => {entity.onChange(e); refresh();}}
                         onBlur={entity.onBlur}
                         value={entity.value}
                         inputRef={entity.ref}
@@ -96,7 +96,7 @@ const StartJobInstance: React.FC<Props> = (props) => {
                         labelId={`${id}-job-label`}
                         label="Job"
                         variant="standard"
-                        onChange={job.onChange}
+                        onChange={(e) => {job.onChange(e); refresh();}}
                         onBlur={job.onBlur}
                         value={job.value}
                         inputRef={job.ref}
@@ -166,6 +166,7 @@ interface Props {
     id: string;
     index: number;
     others: FunctionForm[];
+    refresh: () => void;
 }
 
 

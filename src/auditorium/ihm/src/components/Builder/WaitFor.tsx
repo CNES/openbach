@@ -13,7 +13,7 @@ import type {UseControllerProps} from 'react-hook-form';
 
 
 const WaitFor: React.FC<Props & UseControllerProps<Form, `functions.${number}.wait.${keyof Omit<IOpenbachFunctionWait, 'time'>}`>> = (props) => {
-    const {awaitables, label, ...controllerProps} = props;
+    const {awaitables, label, forceRefresh, ...controllerProps} = props;
     const {field: {onChange, onBlur, value, ref}} = useController(controllerProps);
 
     const handleChange = React.useCallback((event: SelectChangeEvent<number[]>) => {
@@ -25,7 +25,7 @@ const WaitFor: React.FC<Props & UseControllerProps<Form, `functions.${number}.wa
         <FormControl size="small" sx={{display: "flex", mx: 2, gap: 2, flexDirection: "row", alignItems: "center"}}>
             <Select
                 value={value}
-                onChange={handleChange}
+                onChange={(e) => {handleChange(e); forceRefresh();}}
                 onBlur={onBlur}
                 inputRef={ref}
                 fullWidth
@@ -52,6 +52,7 @@ const WaitFor: React.FC<Props & UseControllerProps<Form, `functions.${number}.wa
 interface Props {
     awaitables: FunctionForm[];
     label: string;
+    forceRefresh: () => void;
 }
 
 

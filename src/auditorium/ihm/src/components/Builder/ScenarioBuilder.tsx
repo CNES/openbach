@@ -50,8 +50,8 @@ const ScenarioBuilder: React.FC<Props> = (props) => {
     }, [project, name, dispatch]);
 
     const handleScenarioUpdate = React.useCallback((json: string) => {
-        const update = JSON.parse(json) as IScenario;
-        dispatch(updateScenario({project, scenario: update}));
+        const updated = JSON.parse(json) as IScenario;
+        dispatch(updateScenario({project, scenario: updated}));
     }, [project, dispatch]);
 
     const onSubmit = React.useCallback((data: Form) => {

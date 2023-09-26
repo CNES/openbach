@@ -1,6 +1,5 @@
 import {createSlice, PayloadAction} from '@reduxjs/toolkit';
 
-import {saveScenario} from '../api/scenarios';
 import type {
     IJob,
     IScenario,
@@ -122,24 +121,14 @@ const formSlice = createSlice({
     reducers: {
         initializeForm: (state, action: PayloadAction<{scenario: IScenario; jobs: IJob[];}>) => {
             const {scenario, jobs} = action.payload;
-            if (!state.hasOwnProperty(scenario.name)) {
-                return {
-                    ...state,
-                    [scenario.name]: {
-                        form: convertScenario(scenario, jobs),
-                        initial: scenario,
-                    },
-                };
-            }
+            return {
+                ...state,
+                [scenario.name]: {
+                    form: convertScenario(scenario, jobs),
+                    initial: scenario,
+                },
+            };
         },
-    },
-    extraReducers: (builder) => {
-        builder
-            .addCase(saveScenario.fulfilled, (state, action) => {
-                const initial = action.payload;
-                const {name, form} = action.meta.arg;
-                return {...state, [name]: {initial, form}};
-            });
     },
 });
 

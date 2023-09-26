@@ -11,7 +11,7 @@ import type {IScenario} from '../../utils/interfaces';
 
 
 const StartScenarioInstance: React.FC<Props> = (props) => {
-    const {id, index, scenarios} = props;
+    const {id, index, scenarios, refresh} = props;
     const {field: {onChange, onBlur, value, ref}} = useController({
         name: `functions.${index}.scenario`,
         rules: {required: false},
@@ -32,7 +32,7 @@ const StartScenarioInstance: React.FC<Props> = (props) => {
                     labelId={`${id}-scenario-label`}
                     label="Scenario"
                     variant="standard"
-                    onChange={onChange}
+                    onChange={(e) => {onChange(e); refresh();}}
                     onBlur={onBlur}
                     value={value}
                     inputRef={ref}
@@ -47,7 +47,7 @@ const StartScenarioInstance: React.FC<Props> = (props) => {
                 <Controller
                     name={`functions.${index}.scenarioArguments.${value}.${argument}`}
                     rules={{required: false}}
-                    defaultValue={"" as unknown as undefined}
+                    defaultValue=""
                     render={({field: {onChange, onBlur, value, ref}}) => (
                         <TextField
                             key={`${id}.scenarioArguments.${value}.${argument}`}
@@ -73,6 +73,7 @@ interface Props {
     id: string;
     index: number;
     scenarios: IScenario[];
+    refresh: () => void;
 }
 
 

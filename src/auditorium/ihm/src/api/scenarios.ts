@@ -1,5 +1,6 @@
 import {doFetch, asyncThunk} from './base';
 import {setMessage} from '../redux/message';
+import {initializeForm} from '../redux/form';
 
 import type {
     ICredentials, IFilesCount,
@@ -86,13 +87,17 @@ export const importScenario = asyncThunk<IScenario, {project: string; scenario: 
 
 export const updateScenario = asyncThunk<IScenario, {project: string; scenario: IScenario;}>(
     'scenarios/updateScenario',
-    async ({project, scenario}, {dispatch}) => {
+    async ({project, scenario}, {getState, dispatch}) => {
         const response = await doFetch<IScenario>(
             "/openbach/project/" + project + "/scenario/" + scenario.name,
             dispatch,
             "PUT",
             scenario,
         );
+        const jobs = getState().openbach.jobs;
+        if (jobs) {
+            dispatch(initializeForm({scenario: response, jobs}));
+        }
         dispatch(setMessage("Scenario saved"));
         return response;
     },
@@ -101,7 +106,7 @@ export const updateScenario = asyncThunk<IScenario, {project: string; scenario: 
 
 export const saveScenario = asyncThunk<IScenario, {project: string; name: string; form: Form;}>(
     'scenarios/saveScenario',
-    async ({project, name, form}, {dispatch}) => {
+    async ({project, name, form}, {getState, dispatch}) => {
         const scenario: IScenario = {
             name,
             description: form.description,
@@ -165,6 +170,10 @@ export const saveScenario = asyncThunk<IScenario, {project: string; name: string
             "PUT",
             scenario,
         );
+        const jobs = getState().openbach.jobs;
+        if (jobs) {
+            dispatch(initializeForm({scenario: response, jobs}));
+        }
         dispatch(setMessage("Scenario saved"));
         return response;
     },

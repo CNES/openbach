@@ -5,8 +5,8 @@ import {stateJob} from '../api/jobs';
 import {getProject, updateProject, refreshTopology} from '../api/projects';
 import {addEntity, removeEntity, updateEntityAgent} from '../api/entities';
 import {
-    addScenario, importScenario, updateScenario, deleteScenario,
-    launchScenario, deleteScenarioInstance,
+    addScenario, importScenario, updateScenario, saveScenario,
+    deleteScenario, launchScenario, deleteScenarioInstance,
     getScenariosInstances, getScenarioInstances, getScenarioInstance,
 } from '../api/scenarios';
 import type {IProject, IJobState, IScenario, IScenarioInstance} from '../utils/interfaces';
@@ -114,6 +114,15 @@ const projectSlice = createSlice({
                 }
             })
             .addCase(updateScenario.fulfilled, (state, action) => {
+                const project = state.current;
+                if (project) {
+                    const {name} = action.payload;
+                    const scenario = project.scenario.map((s: IScenario) => s.name === name ? action.payload : s);
+                    const current = {...project, scenario};
+                    return {...state, current};
+                }
+            })
+            .addCase(saveScenario.fulfilled, (state, action) => {
                 const project = state.current;
                 if (project) {
                     const {name} = action.payload;

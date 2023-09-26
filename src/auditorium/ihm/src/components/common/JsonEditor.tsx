@@ -23,7 +23,9 @@ const JsonEditor: React.FC<Props> = (props) => {
         storeOpen(false);
     }, [])
 
-    const handleSubmit = React.useCallback(() => {
+    const handleSubmit = React.useCallback((event: React.FormEvent) => {
+        event.preventDefault();
+        event.stopPropagation();
         onUpdate(data);
         handleClose();
     }, [data, onUpdate, handleClose]);

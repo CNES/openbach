@@ -32,10 +32,9 @@ import type {IScenario, Form, FunctionForm, OpenbachFunctionType} from '../../ut
 
 const mainLabel = (form: FunctionForm, others: FunctionForm[]): string => {
     const {
-        label, kind, jobs, scenarioId,
-        job="no job configured",
-        entity="unkonwn entity",
-        scenario="no scenario configured",
+        label, kind, jobs,
+        scenario, scenarioId,
+        job, entity,
     } = form;
     const labeled = label ? `[${label}] ` : "";
     switch (kind) {
@@ -43,7 +42,9 @@ const mainLabel = (form: FunctionForm, others: FunctionForm[]): string => {
         case "" as unknown as undefined:
             return labeled + "Not selected yet";
         case "start_job_instance":
-            return labeled + "Start Job Instance: " + job + " on " + entity;
+            const jobName = !job ? "no job configured" : job;
+            const entityName = !entity ? "unknown entity" : entity;
+            return labeled + "Start Job Instance: " + jobName + " on " + entityName;
         case "stop_job_instances":
             if (!jobs || !jobs.length) {
                 return labeled + "Stop Job Instance";
@@ -52,9 +53,10 @@ const mainLabel = (form: FunctionForm, others: FunctionForm[]): string => {
             const stopped = jobs.map((id: number) => idToLabel(id, others)).join(", ");
             return labeled + "Stop Job Instance" + ending + stopped;
         case "start_scenario_instance":
-            return labeled + "Start Scenario Instance: " + scenario;
+            const name = !scenario ? "no scenario configured" : scenario;
+            return labeled + "Start Scenario Instance: " + name;
         case "stop_scenario_instance":
-            const id = scenarioId == null ? "no scenario configured" : idToLabel(scenarioId, others);
+            const id = !scenarioId && scenarioId !== 0 ? "no scenario configured" : idToLabel(scenarioId, others);
             return labeled + "Stop Scenario Instance: " + id;
         default:
             return labeled + "Uneditable OpenBach Function: " + kind;
@@ -81,7 +83,6 @@ const dependenciesLabel = ({wait}: FunctionForm, others: FunctionForm[]): string
     };
 
     const {time, running_ids, ended_ids, launched_ids, finished_ids} = wait;
-    const timeString = time ? `${time} seconds` : "immediately";
     const schedules = [
         dependencyString("running", running_ids),
         dependencyString("ended", ended_ids),
@@ -91,11 +92,16 @@ const dependenciesLabel = ({wait}: FunctionForm, others: FunctionForm[]): string
 
     const l = schedules.length;
     if (!l) {
-        return `Started ${timeString} in`;
+        if (time) {
+            return `Started ${time} seconds in`;
+        } else {
+            return "Started immediately";
+        }
     } else {
         if (l > 1) {
             schedules[l - 1] = "and " + schedules[l - 1];
         }
+        const timeString = time ? `${time} seconds` : "immediately";
         return "Started " + timeString + " after " + schedules.join(l > 2 ? ", " : " ");
     }
 };
@@ -117,7 +123,7 @@ const ScenarioFunctions: React.FC<Props> = (props) => {
     }, [scenario, project]);
 
     const handleFunctionAdd = React.useCallback(() => {
-        const id = parseInt("xxxxxxxx".replace(/[x]/g, (c) => {
+        const id = parseInt("xxxxxxx".replace(/[x]/g, (c) => {
             const r = (Math.random() * 16) | 0;
             const v = c === "x" ? r : ((r & 0x3) | 0x8);
             return v.toString(16);
@@ -140,7 +146,6 @@ const ScenarioFunctions: React.FC<Props> = (props) => {
             {functions?.length > 0 && fields.map((field, index: number) => {
                 const field_id = field.id;
                 const f = functions[index]
-                console.log(f);
                 const others = functions.filter((other: FunctionForm, i: number) => other.label && index !== i);
 
                 return (
@@ -162,7 +167,7 @@ const ScenarioFunctions: React.FC<Props> = (props) => {
                                                 margin="dense"
                                                 variant="standard"
                                                 label="Label"
-                                                onChange={onChange}
+                                                onChange={(e) => {onChange(e); refresh();}}
                                                 onBlur={onBlur}
                                                 value={value}
                                                 inputRef={ref}
@@ -269,6 +274,7 @@ const ScenarioFunctions: React.FC<Props> = (props) => {
                                     name={`functions.${index}.wait.running_ids`}
                                     rules={{required: false}}
                                     defaultValue={[]}
+                                    forceRefresh={refresh}
                                 />
                                 <WaitFor
                                     awaitables={others}
@@ -276,6 +282,7 @@ const ScenarioFunctions: React.FC<Props> = (props) => {
                                     name={`functions.${index}.wait.ended_ids`}
                                     rules={{required: false}}
                                     defaultValue={[]}
+                                    forceRefresh={refresh}
                                 />
                                 <WaitFor
                                     awaitables={others}
@@ -283,6 +290,7 @@ const ScenarioFunctions: React.FC<Props> = (props) => {
                                     name={`functions.${index}.wait.launched_ids`}
                                     rules={{required: false}}
                                     defaultValue={[]}
+                                    forceRefresh={refresh}
                                 />
                                 <WaitFor
                                     awaitables={others}
@@ -290,6 +298,7 @@ const ScenarioFunctions: React.FC<Props> = (props) => {
                                     name={`functions.${index}.wait.finished_ids`}
                                     rules={{required: false}}
                                     defaultValue={[]}
+                                    forceRefresh={refresh}
                                 />
                             </Box>
                             <Divider sx={{my: 1}} />
@@ -299,21 +308,25 @@ const ScenarioFunctions: React.FC<Props> = (props) => {
                                 id={field_id}
                                 index={index}
                                 others={others}
+                                refresh={refresh}
                             />}
                             {f.kind === "stop_job_instances" && <StopJobInstance
                                 id={field_id}
                                 index={index}
                                 others={others}
+                                refresh={refresh}
                             />}
                             {f.kind === "start_scenario_instance" && <StartScenarioInstance
                                 id={field_id}
                                 index={index}
                                 scenarios={otherScenarios}
+                                refresh={refresh}
                             />}
                             {f.kind === "stop_scenario_instance" && <StopScenarioInstance
                                 id={field_id}
                                 index={index}
                                 others={others}
+                                refresh={refresh}
                             />}
                         </Paper>}
                     />
