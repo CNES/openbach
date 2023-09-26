@@ -29,7 +29,11 @@
 import os
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible.parsing.yaml.objects import yaml
+try:
+    from ansible.module_utils.common.yaml import yaml_load
+except ImportError:
+    from ansible.parsing.yaml.objects import yaml
+    yaml_load = yaml.safe_load
 
 
 ANSIBLE_METADATA = {
@@ -153,7 +157,7 @@ def get_all_jobs_infos(folders, limit, substitute, include_platforms):
 
                 if include_platforms:
                     with open(configuration_file, encoding='utf-8') as config:
-                        conf = yaml.safe_load(config)
+                        conf = yaml_load(config) if yaml_load is not None else {}
                     informations['platforms'] = [
                             {key: c[key] for key in REQUIRED_KEYS}
                             for c in conf.get('platform_configuration', [])

@@ -127,8 +127,8 @@
     name:
       - apscheduler==3.7.0
       - psutil==5.8.0
-      - PyYAML==5.4.1
-      - requests==2.22.0
+      - PyYAML
+      - requests
       - pandas
       - matplotlib
     executable: pip3
@@ -191,16 +191,14 @@
 - block:
   - name: Configure Rsyslog
     template:
-      src: "{{ item }}.j2"
-      dest: /etc/rsyslog.d/{{ item }}.conf
+      src: ../configure_backend/files/rsyslog_job.j2
+      dest: /etc/rsyslog.d/60-openbach.conf
       mode: 0644
-    with_items:
-      - rstats
-      - rstats_local
-      - openbach_agent
-      - openbach_agent_local
     vars:
-      collector_ip: "{{ openbach_collector | default('127.0.0.1') }}"
+      collector_ip: "{{ openbach_collector | default(omit) }}"
+      agent_severity: 4
+      agent_local_severity: 4
+      jobs: []
     become: yes
     notify:
       - restart rsyslog

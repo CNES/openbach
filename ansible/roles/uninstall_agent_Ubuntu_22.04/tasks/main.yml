@@ -26,27 +26,38 @@
 ---
 
 - name: Remove OpenBACH repository
-  apt_repository: repo={{ item }} state=absent update_cache=yes
+  apt_repository:
+    repo: "{{ item }}"
+    state: absent
+    update_cache: yes
   with_items: "{{ openbach_repository }}"
   become: yes
   environment: "{{ openbach_proxy_env }}"
 
 - name: Stop Agent Services
-  systemd: name={{ item }} state=stopped enabled=no daemon_reload=yes
+  systemd:
+    name: "{{ item }}"
+    state: stopped
+    enabled: no
+    daemon_reload: yes
   with_items:
     - openbach_agent
     - rstats
   become: yes
 
 - name: Remove Agent Services Files
-  file: path=/etc/systemd/system/{{ item }}.service state=absent
+  file:
+    path: /etc/systemd/system/{{ item }}.service
+    state: absent
   with_items:
     - openbach_agent
     - rstats
   become: yes
 
 - name: Remove pip Mirror
-  file: path=/opt/openbach/pip_mirror state=absent
+  file:
+    path: /opt/openbach/pip_mirror
+    state: absent
   become: yes
 
 - name: List ntp Backup Files
@@ -71,16 +82,22 @@
     label: "{{ item.path }}"
 
 - name: Remove Log Folder
-  file: path=/var/log/openbach state=absent
+  file:
+    path: /var/log/openbach
+    state: absent
   become: yes
   when: openbach_clear_databases | default(False)
 
 - name: Remove logrotate Config File
-  file: path=/etc/logrotate.d/openbach_logrotate.conf state=absent
+  file:
+    path: /etc/logrotate.d/openbach_logrotate.conf
+    state: absent
   become: yes
 
 - name: Remove Rsyslog Config Files
-  file: path=/etc/rsyslog.d/{{ item }}.conf state=absent
+  file:
+    path: /etc/rsyslog.d/60-openbach.conf
+    state: absent
   with_items:
     - rstats
     - rstats_local
@@ -89,22 +106,33 @@
   become: yes
 
 - name: Remove Stats Folder
-  file: path=/var/openbach_stats state=absent
+  file:
+    path: /var/openbach_stats
+    state: absent
   become: yes
   when: openbach_clear_databases | default(False)
 
 - name: Remove Openbach API Modules
-  pip: executable=pip3 name=openbach_api state=absent
+  pip:
+    executable: pip3
+    name: openbach_api
+    state: absent
   become: yes
 
 - name: Remove Agent Repository
-  file: path=/opt/openbach/agent state=absent
+  file:
+    path: /opt/openbach/agent
+    state: absent
   become: yes
 
 - name: Uninstall collect-agent package
-  apt: name=collect-agent state=absent
+  apt:
+    name: collect-agent
+    state: absent
   become: yes
 
 - name: Remove SUDO Rights for openbach User
-  file: path=/etc/sudoers.d/passwordless_openbach state=absent
+  file:
+    path: /etc/sudoers.d/passwordless_openbach
+    state: absent
   become: yes

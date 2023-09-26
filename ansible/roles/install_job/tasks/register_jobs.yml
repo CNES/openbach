@@ -52,3 +52,13 @@
   retries: 360
   delay: 10
   with_items: "{{ job_names }}"
+
+- name: Refresh the RSyslog Configuration File
+  uri:
+    url: "{{ controller_api_url }}/agent/{{ address }}/"
+    method: POST
+    body_format: json
+    body:
+      action: log_refresh
+    headers:
+      Cookie: "sessionid={{ session_id }}"

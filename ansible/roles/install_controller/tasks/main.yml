@@ -67,37 +67,6 @@
   become: yes
   when: openbach_check_ansible_version.stdout == "False"
 
-- name: Configure Rsyslog (remote)
-  template:
-    src: roles/configure_backend/files/rsyslog_job.j2
-    dest: /etc/rsyslog.d/{{ item }}.conf
-    mode: "0644"
-  with_items:
-    - openbach_backend
-    - openbach_conductor
-    - openbach_director
-  vars:
-    job: "{{ item }}"
-    collector_ip: "{{ openbach_collector }}"
-    syslogseverity: 4
-  become: yes
-  notify: restart rsyslog
-
-- name: Configure Rsyslog (local)
-  template:
-    src: roles/configure_backend/files/rsyslog_job_local.j2
-    dest: /etc/rsyslog.d/{{ item }}_local.conf
-    mode: "0644"
-  with_items:
-    - openbach_backend
-    - openbach_conductor
-    - openbach_director
-  vars:
-    job: "{{ item }}"
-    syslogseverity_local: 4
-  become: yes
-  notify: restart rsyslog
-
 - name: Create OpenBACH repository
   file: path=/opt/openbach/controller/{{ item }} state=directory
   with_items:

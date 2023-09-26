@@ -585,6 +585,49 @@ class AgentAction(ConductorAction):
         self._assert_user_in(owners)
 
 
+class RegenerateSyslogConfiguration(AgentAction):
+    """Action responsible for the regeneration of syslog config files on agents"""
+
+    def __init__(self, address):
+        super().__init__(address=address)
+
+    @require_connected_user()
+    def _action(self):
+        agent = self.get_agent_or_not_found_error()
+
+        # Configure the playbook
+        collector = {} if agent.collector is None else agent.collector.json
+        jobs = [
+            {
+                'name': ijob.job.name,
+                'severity': convert_severity(ijob.severity),
+                'local_severity': convert_severity(ijob.local_severity),
+            }
+            for ijob in agent.installed_jobs.all()
+        ]
+
+        # Launch the playbook and the associated job
+        start_playbook(
+                'enable_logs',
+                self.address,
+                collector,
+                self.vault_password,
+                installed_jobs=jobs,
+                severity=convert_severity(agent.severity),
+                local_severity=convert_severity(agent.local_severity))
+
+        infos = {
+                'agent': {
+                    'address': self.address,
+                    'severity': agent.severity,
+                    'local_severity': agent.local_severity,
+                },
+                'jobs': jobs,
+        }
+
+        return infos, 200
+
+
 class InstallAgent(ThreadedAction, AgentAction):
     """Action responsible for the installation of an Agent"""
 
@@ -947,10 +990,15 @@ class SetLogSeverityAgent(ThreadedAction, AgentAction):
 
     @require_connected_user(admin=True)
     def _action(self):
-        self.get_agent_or_not_found_error()
-        rsyslog_modifier = SetLogSeverityJob(self.address, 'openbach_agent', None)
-        self.share_user(rsyslog_modifier)
-        rsyslog_modifier._physical_set_severity(self.severity, self.local_severity)
+        agent = self.get_agent_or_not_found_error()
+        agent.severity = self.severity
+        if self.local_severity is not None:
+            agent.local_severity = self.local_severity
+        agent.save()
+
+        syslog = RegenerateSyslogConfiguration(agent.address)
+        self.share_user(syslog)
+        return syslog.action()
 
 
 class ReserveProject(AgentAction):
@@ -1514,11 +1562,9 @@ class InstallJob(ThreadedAction, InstalledJobAction):
 
         if not self.skip_playbook:
             with suppress(errors.ConductorError):
-                severity_setter = SetLogSeverityJob(
-                        self.address, self.name,
-                        self.severity, self.local_severity)
-                self.share_user(severity_setter)
-                severity_setter._threaded_action(severity_setter._action)
+                syslog = RegenerateSyslogConfiguration(self.address)
+                self.share_user(syslog)
+                syslog.action()
 
         if not created:
             raise errors.ConductorWarning(
@@ -1546,6 +1592,7 @@ class InstallJobs(InstalledJobAction):
                     self.cookie)
             self.share_user(installer)
             installer.action()
+
         return {}, 202
 
 
@@ -1693,26 +1740,14 @@ class SetLogSeverityJob(ThreadedAction, InstalledJobAction):
     @require_connected_user()
     def _action(self):
         installed_job = self.get_installed_job_or_not_found_error()
-
-        # Configure the playbook
-        local_severity = self.local_severity
-        if self.local_severity is None:
-            local_severity = installed_job.local_severity
-        syslogseverity = convert_severity(int(self.severity))
-        syslogseverity_local = convert_severity(int(local_severity))
-
-        # Launch the playbook and the associated job
-        start_playbook(
-                'enable_logs',
-                installed_job.agent.address,
-                installed_job.agent.collector.json,
-                self.vault_password,
-                job=self.name,
-                severity=syslogseverity,
-                local_severity=syslogseverity_local)
         installed_job.severity = self.severity
-        installed_job.local_severity = local_severity
+        if self.local_severity is not None:
+            installed_job.local_severity = self.local_severity
         installed_job.save()
+
+        syslog = RegenerateSyslogConfiguration(self.address)
+        self.share_user(syslog)
+        return syslog.action()
 
 
 class SetStatisticsPolicyJob(ThreadedAction, InstalledJobAction):

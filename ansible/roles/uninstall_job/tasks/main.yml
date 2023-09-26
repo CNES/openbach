@@ -26,12 +26,17 @@
 ---
 
 - name: Gather Jobs Metadata
-  local_action: jobs_metadata folders={{ ['../src/jobs/'] + (openbach_jobs_folders | default([])) }} limit={{ (default_jobs + default_collector_jobs) if 'collector' in group_names or ('controller' in group_names and ('collector' not in groups or not groups.collector)) else default_jobs }} platforms=yes
+  local_action:
+    module: jobs_metadata
+    folders: "{{ ['../src/jobs/'] + (openbach_jobs_folders | default([])) }}"
+    limit: "{{ (default_jobs + default_collector_jobs) if 'collector' in group_names or ('controller' in group_names and ('collector' not in groups or not groups.collector)) else default_jobs }}"
+    platforms: yes
   register: openbach_uninstall_default_jobs
   when: jobs is not defined
 
 - name: Setup default Jobs
-  set_fact: jobs={{ openbach_uninstall_default_jobs.openbach_jobs }}
+  set_fact:
+    jobs: "{{ openbach_uninstall_default_jobs.openbach_jobs }}"
   when: jobs is not defined
 
 - block:
@@ -46,21 +51,15 @@
   remote_user: openbach
 
 - name: Remove the Job stats Folder
-  file: path=/var/openbach_stats/{{ item.name }} state=absent
-  become: yes
-  with_items: "{{ jobs }}"
-
-- name: Remove Default Logs Severity
-  file: path=/etc/rsyslog.d/{{ item.name }}.conf state=absent
-  become: yes
-  with_items: "{{ jobs }}"
-
-- name: Remove Default Logs Local Severity
-  file: path=/etc/rsyslog.d/{{ item.name }}_local.conf state=absent
+  file:
+    path: /var/openbach_stats/{{ item.name }}
+    state: absent
   become: yes
   with_items: "{{ jobs }}"
 
 - name: Inform Agent that a Job is Uninstalled
-  file: path=/opt/openbach/agent/jobs/{{ item.name }}.yml state=absent
+  file:
+    path: /opt/openbach/agent/jobs/{{ item.name }}.yml
+    state: absent
   remote_user: openbach
   with_items: "{{ jobs }}"

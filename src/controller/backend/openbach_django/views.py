@@ -382,6 +382,13 @@ class AgentView(BaseAgentView):
                 address=address, severity=severity,
                 local_severity=local_severity)
 
+    def _action_log_refresh(self, request, address):
+        """regenerate rsyslog configuration file"""
+
+        return self.conductor_execute(
+                command='regenerate_syslog_configuration',
+                address=address)
+
     def _action_reserve_project(self, request, address):
         """reserve this agent for the given project"""
         return self.conductor_execute(

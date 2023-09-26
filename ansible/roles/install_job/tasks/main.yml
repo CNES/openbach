@@ -138,30 +138,6 @@
   become: yes
   with_items: "{{ jobs | default([]) }}"
 
-- name: Set Default Logs Severity
-  template:
-    src: roles/configure_backend/files/rsyslog_job.j2
-    dest: /etc/rsyslog.d/{{ item.name }}.conf
-  vars:
-    job: "{{ item.name }}"
-    syslogseverity: 4
-    collector_ip: "{{ openbach_collector }}"
-  become: yes
-  with_items: "{{ jobs | default([]) }}"
-  notify: restart rsyslog
-  when: openbach_collector is defined
-
-- name: Set Default Logs Local Severity
-  template:
-    src: roles/configure_backend/files/rsyslog_job_local.j2
-    dest: /etc/rsyslog.d/{{ item.name }}_local.conf
-  vars:
-    job: "{{ item.name }}"
-    syslogseverity_local: 4
-  become: yes
-  with_items: "{{ jobs | default([]) }}"
-  notify: restart rsyslog
-
 - name: Inform Agent that a new Job is Installed
   job_description:
     src: "{{ item.path }}/files/{{ item.name }}.yml"

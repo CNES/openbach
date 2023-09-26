@@ -1,2 +1,23 @@
-if $programname == '{{ job }}' and $syslogseverity <= '{{ syslogseverity }}' then \
-  @{{ collector_ip }}:{{ logstash_logs_port }}
+$template obachfmt,"{ \"pri\": \"%pri%\", \"timestamp\": \"%timestamp%\", \"hostname\": \"%hostname%\", \"programname\": \"%programname%\", \"procid\": \"%procid%\", \"msg\": \"%msg%\" }\n"
+$template OBachFileName,"/var/log/openbach/%programname%_%$now%T%$hour%0000.log"
+{% set default_jobs = ['rstats', 'openbach_agent', 'openbach_backend', 'openbach_conductor', 'openbach_director'] %}
+{% for item in default_jobs %}
+if $programname == '{{ item }}' then {
+{% if collector_ip is defined and logstash_logs_port is defined %}
+  if $syslogseverity <= '{{ agent_severity }}' then { action(type="omfwd" target="{{ collector_ip }}" port="{{ logstash_logs_port }}" protocol="udp") }
+{% endif %}
+  if $syslogseverity <= '{{ agent_local_severity }}' then { action(type="omfile" dynaFile="OBachFileName" template="obachfmt") }
+  stop
+}
+{% endfor %}
+{% for item in jobs %}
+if $programname == '{{ item.name }}' then {
+{% if item.severity is defined and collector_ip is defined and logstash_logs_port is defined %}
+  if $syslogseverity <= '{{ item.severity }}' then { action(type="omfwd" target="{{ collector_ip }}" port="{{ logstash_logs_port }}" protocol="udp") }
+{% endif %}
+{% if item.local_severity is defined %}
+  if $syslogseverity <= '{{ item.local_severity }}' then { action(type="omfile" dynaFile="OBachFileName" template="obachfmt") }
+{% endif %}
+  stop
+}
+{% endfor %}

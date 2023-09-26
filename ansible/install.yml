@@ -70,7 +70,7 @@
   any_errors_fatal: yes
   pre_tasks:
     - name: Configure Default OpenBACH Name
-      set_fact: openbach_name={{ openbach_name | default(ansible_hostname + ' ' + ansible_default_ipv4.address) }}
+      set_fact: openbach_name={{ openbach_name | default(ansible_hostname + ' ' + (ansible_all_ipv4_addresses | first | default('NOIP'))) }}
   roles:
     - install_agent
 

@@ -431,19 +431,21 @@ class PlaybookBuilder():
             self.launch_playbook('uninstall_a_job', session_cookie=cookie)
 
     @classmethod
-    def enable_logs(cls, address, collector, vault_password, job, severity=None, local_severity=None, cookie=None):
+    def enable_logs(cls, address, collector, vault_password, installed_jobs=None, severity=None, local_severity=None, cookie=None):
         with tempfile.NamedTemporaryFile('w', prefix='openbach-ansible-vault-') as vault_file:
             vault_file_name = vault_file.name
             print(vault_password, file=vault_file, flush=True)
             self = cls(address, vault_password_file=vault_file_name)
-            self.add_variables(job=job)
-            if severity is not None:
+            if collector:
                 self.add_variables(
-                        syslogseverity=severity,
                         collector_ip=collector['address'],
                         logstash_logs_port=collector['logs_port'])
+            if severity is not None:
+                self.add_variables(severity=severity)
             if local_severity is not None:
-                self.add_variables(syslogseverity_local=local_severity)
+                self.add_variables(local_severity=local_severity)
+            if installed_jobs:
+                self.add_variables(installed_jobs=installed_jobs)
             self.launch_playbook('enable_logs', session_cookie=cookie)
 
     @classmethod
