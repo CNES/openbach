@@ -30,6 +30,7 @@ const ScenarioConstants: React.FC<Props> = (props) => {
             label="Value"
             type="Constant"
             onDelete={handleEntryDelete(index)}
+            required
         />
     ));
 

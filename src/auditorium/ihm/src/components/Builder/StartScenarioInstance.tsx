@@ -12,13 +12,13 @@ import type {IScenario} from '../../utils/interfaces';
 
 const StartScenarioInstance: React.FC<Props> = (props) => {
     const {id, index, scenarios, refresh} = props;
-    const {field: {onChange, onBlur, value, ref}} = useController({
+    const {field: {onChange, onBlur, value: scenarioName, ref}} = useController({
         name: `functions.${index}.scenario`,
         rules: {required: false},
         defaultValue: "",
     });
 
-    const scenario = scenarios.find((s: IScenario) => s.name === value);
+    const scenario = scenarios.find((s: IScenario) => s.name === scenarioName);
 
     return (
         <React.Fragment>
@@ -34,7 +34,7 @@ const StartScenarioInstance: React.FC<Props> = (props) => {
                     variant="standard"
                     onChange={(e) => {onChange(e); refresh();}}
                     onBlur={onBlur}
-                    value={value}
+                    value={scenarioName}
                     inputRef={ref}
                     fullWidth
                 >
@@ -45,12 +45,12 @@ const StartScenarioInstance: React.FC<Props> = (props) => {
             </FormControl>
             {scenario && Object.entries(scenario.arguments || {}).map(([argument, description]) => (
                 <Controller
-                    name={`functions.${index}.scenarioArguments.${value}.${argument}`}
+                    name={`functions.${index}.scenarioArguments.${scenarioName}.${argument}`}
                     rules={{required: false}}
                     defaultValue=""
                     render={({field: {onChange, onBlur, value, ref}}) => (
                         <TextField
-                            key={`${id}.scenarioArguments.${value}.${argument}`}
+                            key={`${id}.scenarioArguments.${scenarioName}.${argument}`}
                             margin="dense"
                             variant="standard"
                             label={argument}

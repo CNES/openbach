@@ -10,7 +10,7 @@ import DeleteIcon from '../common/DeleteIcon';
 
 
 const ScenarioArgumentsItem: React.FC<Props> = (props) => {
-    const {type, label, name, onDelete} = props;
+    const {type, label, name, onDelete, required} = props;
 
     return (
         <ListItem>
@@ -37,7 +37,7 @@ const ScenarioArgumentsItem: React.FC<Props> = (props) => {
                 />
                 <Controller
                     name={`${name}.${label.toLowerCase()}` as 'arguments.0.description' | 'constants.0.value'}
-                    rules={{required: true}}
+                    rules={{required: Boolean(required)}}
                     defaultValue=""
                     render={({field: {onChange, onBlur, value, ref}}) => (
                         <TextField
@@ -63,6 +63,7 @@ interface Props {
     label: string;
     name: string;
     onDelete: () => void;
+    required?: boolean;
 }
 
 
