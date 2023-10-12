@@ -73,6 +73,7 @@
           body:
             login: "{{ hostvars[openbach_controller].openbach_backend_admin_name | mandatory }}"
             password: "{{ hostvars[openbach_controller].openbach_backend_admin_password | mandatory }}"
+            vault_password: "{{ openbach_vault_pass | default(omit) }}"
         register: openbach_backend_login
         when: session_cookie is not defined
 
