@@ -3,7 +3,8 @@ import {createSlice} from '@reduxjs/toolkit';
 import {getCollectors, getAgents, addAgent, removeAgent, updateAgent, reserveProject} from '../api/agents';
 import {getJobs, addJob, addExternalJob, addInternalJob} from '../api/jobs';
 import {getProjects, addProject, importProject, deleteProject} from '../api/projects';
-import type {IAgent, IJob, ICollector, IProject} from '../utils/interfaces';
+import {addEntity, removeEntity, updateEntityAgent} from '../api/entities';
+import type {IAgent, IEntity, IJob, ICollector, IProject} from '../utils/interfaces';
 
 
 interface OpenBachState {
@@ -104,6 +105,48 @@ const openbachSlice = createSlice({
             .addCase(importProject.fulfilled, (state, action) => {
                 const projects = state.projects ? [...state.projects, action.payload] : [action.payload];
                 return {...state, projects};
+            })
+            .addCase(addEntity.fulfilled, (state, action) => {
+                const {agent} = action.meta.arg;
+                if (agent) {
+                    const {address} = agent;
+                    const newEntity = action.payload.entity.find((e: IEntity) => e.agent && e.agent.address === address);
+                    const newAgent = newEntity?.agent
+                    if (newAgent && state.agents) {
+                        const agents = state.agents.map((a: IAgent) => a.address === address ? newAgent : a);
+                        return {...state, agents};
+                    }
+                }
+            })
+            .addCase(removeEntity.fulfilled, (state, action) => {
+                const {name, entity} = action.payload;
+                const oldAgents = state.agents?.filter((a: IAgent) => a.project === name);
+                if (oldAgents) {
+                    const newAgents = entity.filter((e: IEntity) => e.agent && e.agent.project === name).map((e: IEntity) => e.agent!.address);
+                    const removed = oldAgents.find((a: IAgent) => !newAgents.includes(a.address));
+                    if (removed) {
+                        const agents = state.agents!.map((a: IAgent) => a.address === removed.address ? {...a, project: undefined} : a);
+                        return {...state, agents};
+                    }
+                }
+            })
+            .addCase(updateEntityAgent.fulfilled, (state, action) => {
+                const {name, entity} = action.payload;
+                const oldAgents = state.agents?.filter((a: IAgent) => a.project === name).map((a: IAgent) => a.address);
+                if (oldAgents) {
+                    const newAgents = entity.filter((e: IEntity) => e.agent && e.agent.project === name).map((e: IEntity) => e.agent!.address);
+                    const removed = oldAgents.find((address: string) => !newAgents.includes(address));
+                    const added = newAgents.find((address: string) => !oldAgents.includes(address));
+                    const newAgent = entity.find((e: IEntity) => e.agent && e.agent.address === added)?.agent;
+                    const agents = state.agents!.map((a: IAgent) => (
+                        newAgent && newAgent.address === a.address
+                        ? newAgent
+                        : a.address === removed
+                        ? {...a, project: undefined}
+                        : a
+                    ));
+                    return {...state, agents};
+                }
             });
     },
 });
