@@ -157,7 +157,7 @@ const ScenarioBuilder: React.FC<Props> = (props) => {
             {launch && <ScenarioLaunchDialog
                 project={project}
                 scenario={name}
-                arguments={Object.keys(args)}
+                arguments={args.map((arg) => arg.name)}
                 onClose={handleClose}
             />}
         </React.Fragment>
