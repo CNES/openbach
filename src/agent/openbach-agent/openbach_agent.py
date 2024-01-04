@@ -795,6 +795,7 @@ def read_subcommand_configuration(subcommand):
             count = arg['count']
             if count == '+':
                 required_count += 1
+                optional_found = True
             else:
                 if not isinstance(count, int):
                     counts = count.split('-')

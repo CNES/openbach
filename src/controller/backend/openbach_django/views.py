@@ -314,23 +314,17 @@ class AgentsView(BaseAgentView):
                     private_storage = Path(private_key.name)
                     public_storage = Path(private_key.name + '.pub')
 
-                try:
-                    with private_storage.open('wb') as private_key:
-                        for chunk in private_file.chunks() :
-                            private_key.write(chunk)
+                with private_storage.open('wb') as private_key:
+                    for chunk in private_file.chunks() :
+                        private_key.write(chunk)
 
-                    with public_storage.open('wb') as public_key:
-                        for chunk in public_file.chunks():
-                            public_key.write(chunk)
-                    public_storage.chmod(mode=0o600)
+                with public_storage.open('wb') as public_key:
+                    for chunk in public_file.chunks():
+                        public_key.write(chunk)
+                public_storage.chmod(mode=0o600)
 
-                    parameters['private_key_file'] = private_storage.as_posix()
-                    return self.conductor_execute(**parameters)
-                finally:
-                    private_storage.unlink(missing_ok=True)
-                    public_storage.unlink(missing_ok=True)
-            else:
-                return self.conductor_execute(**parameters)
+                parameters['private_key_file'] = private_storage.as_posix()
+            return self.conductor_execute(**parameters)
         except KeyError as e:
             return {'msg': 'Missing parameter {}'.format(e)}, 400
 
