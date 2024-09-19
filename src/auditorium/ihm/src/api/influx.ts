@@ -105,7 +105,7 @@ export const createChronografDashboard = asyncThunk<ChronografDashboardResult, C
                     query: [
                         `SELECT "${statName}" FROM "openbach"."openbach"."${graph.jobName}"`,
                         `WHERE time > ${moment(instance.start_date).valueOf()}ms`,
-                        `AND time < ${instance.stop_date ? moment(instance.stop_date).add(1, "s").valueOf() + "ms" : "now"}`,
+                        `AND time < ${instance.stop_date ? moment(instance.stop_date).add(1, "s").valueOf() + "ms" : "now()"}`,
                         `AND "@job_instance_id"='${graph.jobId}' GROUP BY "@suffix" FILL(null)`,
                     ].join(" "),
                     source: "",
