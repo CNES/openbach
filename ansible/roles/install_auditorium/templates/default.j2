@@ -2,6 +2,7 @@ server {
     listen 80;
     server_name localhost;
     client_max_body_size 100m;
+    proxy_redirect off;
     # access_log /var/log/nginx/log/host.access.log main;
 
     location / {
@@ -23,7 +24,6 @@ server {
         set $upstream_base http://{{ auditorium_ip }}:{{ chronograf_port }}/chronograf/v1/;
         set $upstream $upstream_base$1$is_args$args;
 
-        proxy_redirect off;
         proxy_redirect $upstream_base /chronograf/api/;
         proxy_set_header Host $host;
 

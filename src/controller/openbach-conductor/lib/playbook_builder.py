@@ -43,18 +43,14 @@ import multiprocessing
 from contextlib import suppress
 from collections import defaultdict
 
+from ansible import context
 from ansible.cli import CLI
 from ansible.executor.playbook_executor import PlaybookExecutor
 from ansible.plugins.callback import CallbackBase
+from ansible.plugins.loader import init_plugin_loader
 from ansible.errors import AnsibleParserError
 
 from . import errors
-
-
-try:
-    from ansible import context
-except ImportError:
-    context = None
 
 
 class Options:
@@ -214,11 +210,8 @@ class PlaybookBuilder():
         else:
             self.options.remote_user = username
 
-        if context is None:
-            self.loader, self.inventory, self.variables = CLI._play_prereqs(self.options)
-        else:
-            context._init_global_context(self.options)
-            self.loader, self.inventory, self.variables = CLI._play_prereqs()
+        context._init_global_context(self.options)
+        self.loader, self.inventory, self.variables = CLI._play_prereqs()
 
     def __del__(self):
         """Remove the Inventory file when this object is garbage collected"""
@@ -234,12 +227,7 @@ class PlaybookBuilder():
         Equivalent to using multiple -e with key=value pairs
         on the Ansible command line.
         """
-        if context is None:
-            variables = self.variables.extra_vars
-            variables.update(kwargs)
-            self.variables.extra_vars = variables
-        else:
-            self.variables.extra_vars.update(kwargs)
+        self.variables.extra_vars.update(kwargs)
 
     def launch_playbook(self, play_name, playbook_results=None, session_cookie=None):
         """Actually run the configured Playbook.
@@ -261,8 +249,6 @@ class PlaybookBuilder():
                 passwords=self.passwords,
         )
         
-        if context is None:
-            tasks_parameters.update(options=self.options)
         tasks = PlaybookExecutor(**tasks_parameters)
         tasks._tqm._callback_plugins.append(playbook_results)
         tasks.run()
@@ -543,6 +529,7 @@ class PlaybookBuilder():
 
 def _run_playbook(queue):
     running_playbooks = set()
+    init_plugin_loader([])
 
     while True:
         check_error = None

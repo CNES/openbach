@@ -31,27 +31,20 @@
     - ansible
     - acl
     - sshpass
-    - postgresql-server-dev-14
+    - postgresql-server-dev-all
     - postgresql
     - pgbouncer
+    - python3-psycopg2
+    - python3-fuzzywuzzy
+    - python3-levenshtein
+    - python3-django
+    - uwsgi
+    - uwsgi-plugin-python3
     state: present
     update_cache: no
   become: yes
   environment: "{{ openbach_proxy_env }}"
   notify: restart postgresql
-
-- name: Install pip3 Dependencies
-  pip:
-    name:
-      - psycopg2==2.8.6
-      - fuzzywuzzy==0.18.0
-      - python-Levenshtein==0.12.2
-      - django==3.0
-      - uwsgi==2.0.20
-    executable: pip3
-    extra_args: '-U'
-  become: yes
-  environment: "{{ openbach_proxy_env }}"
 
 - name: Check the installed version of Ansible
   command: python3 -c "from pkg_resources import parse_version as version; from ansible import __version__; print(version(__version__) < version('2.9'))"

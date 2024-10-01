@@ -1,0 +1,6 @@
+{% if openbach_controller is defined and openbach_controller != inventory_hostname %}
+# Use the Controller's NTP server
+NTP={{ openbach_controller }}
+{% else %}
+NTP={{ openbach_ntp_server_address }}
+{% endif %}

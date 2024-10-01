@@ -34,84 +34,81 @@ __credits__ = '''Contributors:
 '''
 
 
-from django.conf.urls import url
+from django.urls import path
 
 from . import views
 
 app_name = 'openbach_django'
 urlpatterns = [
-    url(r'^login/?$', views.LoginView.as_view(), name='login_view'),
-    url(r'^login/users/?$', views.UsersView.as_view(), name='users_view'),
-    url(r'^logs/?$', views.LogsView.as_view(), name='logs_view'),
-    url(r'^version/?$', views.VersionView.as_view(), name='version_view'),
+    path('login/', views.LoginView.as_view(), name='login_view'),
+    path('login/users/', views.UsersView.as_view(), name='users_view'),
+    path('logs/', views.LogsView.as_view(), name='logs_view'),
+    path('version/', views.VersionView.as_view(), name='version_view'),
 
-    url(r'^statistic/(?P<job_instance_id>\d+)/?$',
+    path('statistic/<int:job_instance_id>/',
         views.StatisticView.as_view(),
         name='job_statistics'),
-    url(r'^statistic/(?P<project>[^/]+)/?$',
+    path('statistic/<str:project>/',
         views.StatisticsView.as_view(),
         name='project_statistics'),
 
-    url(r'^collector/(?P<address>[^/]+)/state/?$',
+    path('collector/<str:address>/state/',
         views.StateView.as_view(state_type='collector'),
         name='state_collector'),
-    url(r'^agent/(?P<address>[^/]+)/state/?$',
+    path('agent/<str:address>/state/',
         views.StateView.as_view(state_type='agent'),
         name='state_agent'),
-    url(r'^job/(?P<name>[^/]+)/state/?$',
+    path('job/<str:name>/state/',
         views.StateView.as_view(state_type='job'), name='state_job'),
-    url(r'^file/state/?$', views.StateView.as_view(state_type='file'),
+    path('file/state/', views.StateView.as_view(state_type='file'),
         name='state_file'),
-    url(r'^job_instance/(?P<id>\d+)/state/?$',
+    path('job_instance/<int:id>/state/',
         views.StateView.as_view(state_type='job_instance'),
         name='state_job_instance'),
 
-    url(r'^collector/?$', views.CollectorsView.as_view(),
+    path('collector/', views.CollectorsView.as_view(),
         name='collectors_view'),
-    url(r'^collector/(?P<address>[^/]+)/?$', views.CollectorView.as_view(),
+    path('collector/<str:address>/', views.CollectorView.as_view(),
         name='collector_view'),
 
-    url(r'^agent/?$', views.AgentsView.as_view(), name='agents_view'),
-    url(r'^agent/(?P<address>[^/]+)/?$', views.AgentView.as_view(),
+    path('agent/', views.AgentsView.as_view(), name='agents_view'),
+    path('agent/<str:address>/', views.AgentView.as_view(),
         name='agent_view'),
 
-    url(r'^job/?$', views.JobsView.as_view(), name='jobs_view'),
-    url(r'^job/(?P<name>[^/]+)/?$', views.JobView.as_view(), name='job_view'),
+    path('job/', views.JobsView.as_view(), name='jobs_view'),
+    path('job/<str:name>/', views.JobView.as_view(), name='job_view'),
 
-    url(r'^job_instance/?$', views.JobInstancesView.as_view(),
+    path('job_instance/', views.JobInstancesView.as_view(),
         name='job_instances_view'),
-    url(r'^job_instance/(?P<id>\d+)/?$', views.JobInstanceView.as_view(),
+    path('job_instance/<int:id>/', views.JobInstanceView.as_view(),
         name='job_instance_view'),
 
-    url(r'^file/?$', views.PushFile.as_view(), name='push_file'),
+    path('file/', views.PushFile.as_view(), name='push_file'),
 
-    url(r'^reboot/?$', views.Reboot.as_view(), name='reboot'),
+    path('reboot/', views.Reboot.as_view(), name='reboot'),
 
-    url(r'^scenario_instance/(?P<id>[^/]+)/?$',
+    path('scenario_instance/<int:id>/',
         views.ScenarioInstanceView.as_view(), name='scenario_instance_view'),
-    url(r'^scenario_instance/(?P<id>[^/]+)/csv/?$', views.download_csv, name='download_csv'),
-    url(r'^scenario_instance/(?P<id>[^/]+)/archive/?$', views.download_archive, name='download_archive'),
+    path('scenario_instance/<int:id>/csv/', views.download_csv, name='download_csv'),
+    path('scenario_instance/<int:id>/archive/', views.download_archive, name='download_archive'),
 
-    url(r'^project/?$', views.ProjectsView.as_view(),
-        name='projects_view'),
-    url(r'^project/(?P<project_name>[^/]+)/?$',
+    path('project/', views.ProjectsView.as_view(), name='projects_view'),
+    path('project/<str:project_name>/',
         views.ProjectView.as_view(), name='project_view'),
-    url(r'^project/(?P<project_name>[^/]+)/scenario/?$',
+    path('project/<str:project_name>/scenario/',
         views.ScenariosView.as_view(), name='project_scenarios_view'),
-    url(r'^project/(?P<project_name>[^/]+)/scenario/(?P<scenario_name>[^/]+)/?$',
+    path('project/<str:project_name>/scenario/<str:scenario_name>/',
         views.ScenarioView.as_view(), name='project_scenario_view'),
-    url(r'^project/(?P<project_name>[^/]+)/scenario_instance/?$',
+    path('project/<str:project_name>/scenario_instance/',
         views.ScenarioInstancesView.as_view(),
         name='project_scenario_instance_view'),
-    url(r'^project/(?P<project_name>[^/]+)/scenario/'
-        '(?P<scenario_name>[^/]+)/scenario_instance/?$',
+    path('project/<str:project_name>/scenario/<str:scenario_name>/scenario_instance/',
         views.ScenarioInstancesView.as_view(),
         name='project_scenario_instance_view_filtered'),
-    url(r'^project/(?P<project_name>[^/]+)/entity/?$',
+    path('project/<str:project_name>/entity/',
         views.EntitiesView.as_view(), name='entities_view'),
-    url(r'^project/(?P<project_name>[^/]+)/entity/(?P<entity_name>[^/]+)/?$',
+    path('project/<str:project_name>/entity/<str:entity_name>/',
         views.EntityView.as_view(), name='entity_view'),
 
-    url(r'^databases/?$',
-        views.DatabasesView.as_view(), name='database_view'),
+    path('databases/', views.DatabasesView.as_view(), name='database_view'),
 ]
