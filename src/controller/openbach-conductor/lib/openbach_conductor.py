@@ -840,6 +840,7 @@ class ListAgents(AgentAction):
             'chronograf',
             'nginx',
             'ntp',
+            'systemd-timesyncd',
     )
 
     def __init__(self, update=False, services=False):
@@ -915,7 +916,7 @@ class ListAgents(AgentAction):
             agent.set_status(Agent.Status.AGENT_UNREACHABLE)
         agent.save()
 
-        if statuses['ntp.service'] == 'running':
+        if statuses['ntp.service'] == 'running' or statuses['systemd-timesyncd.service'] == 'running':
             statuses['ntp.service'] = ntp_status
         content = agent.json
         content['errors'] = errors

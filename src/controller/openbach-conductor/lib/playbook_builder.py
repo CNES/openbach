@@ -138,8 +138,10 @@ class ServicesResult(SilentResult):
         action = result._task_fields['action']
         if action == 'service_facts':
             self.services[host]['services'] = result._result['ansible_facts']['services']
-        elif action in ('command', 'shell') and result._task_fields['args']['_raw_params'].startswith('ntp'):
-            self.services[host]['ntp'] = result._result['stdout']
+        elif action in ('command', 'shell'):
+            command = result._task_fields['args']['_raw_params']
+            if command.startswith('ntp') or command.startswith('timedatectl'):
+                self.services[host]['ntp'] = result._result['stdout']
 
 
 class PlaybookBuilder():
