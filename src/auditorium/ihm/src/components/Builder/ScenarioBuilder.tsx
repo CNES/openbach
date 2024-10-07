@@ -114,7 +114,7 @@ const ScenarioBuilder: React.FC<Props> = (props) => {
                                 onUpdate={handleScenarioUpdate}
                             />
                             <DownloadButton
-                                route={`/openbach/project/${project}/scenario/${name}`}
+                                route={`/openbach/project/${project}/scenario/${name}/`}
                                 filename={`${name}.json`}
                                 label="Scenario"
                                 disabled={isDirty}

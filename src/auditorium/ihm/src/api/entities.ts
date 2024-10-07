@@ -37,7 +37,7 @@ export const removeEntity = asyncThunk<IProject, EntityId>(
     async ({project, name}, {dispatch}) => {
         dispatch(setMessage("Rebuilding project topology. Please wait..."));
         const response = await doFetch<IProject>(
-            "/openbach/project/" + project + "/entity/" + name,
+            "/openbach/project/" + project + "/entity/" + name + "/",
             dispatch,
             "DELETE",
         );
@@ -52,7 +52,7 @@ export const updateEntityAgent = asyncThunk<IProject, EntityForm & {networks?: I
     async ({project, name, description, agent, networks}, {dispatch}) => {
         dispatch(setMessage("Rebuilding project topology. Please wait..."));
         const response = await doFetch<IProject>(
-            "/openbach/project/" + project + "/entity/" + name,
+            "/openbach/project/" + project + "/entity/" + name + "/",
             dispatch,
             "PUT",
             {name, description, agent, networks},

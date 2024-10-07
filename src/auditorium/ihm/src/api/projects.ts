@@ -8,7 +8,7 @@ export const getProjects = asyncThunk<IProject[]>(
     'projects/getProjects',
     async (_, {dispatch}) => {
         return await doFetch<IProject[]>(
-            "/openbach/project",
+            "/openbach/project/",
             dispatch,
         );
     },
@@ -19,7 +19,7 @@ export const getProject = asyncThunk<IProject, {name: string;}>(
     'projects/getProject',
     async ({name}, {dispatch}) => {
         return await doFetch<IProject>(
-            "/openbach/project/" + name,
+            "/openbach/project/" + name + "/",
             dispatch,
         );
     },
@@ -30,7 +30,7 @@ export const updateProject = asyncThunk<IProject, {name: string; project: IProje
     'projects/updateProject',
     async ({name, project}, {dispatch}) => {
         const response = await doFetch<IProject>(
-            "/openbach/project/" + name,
+            "/openbach/project/" + name + "/",
             dispatch,
             "PUT",
             project,
@@ -45,7 +45,7 @@ export const deleteProject = asyncThunk<void, {name: string;}>(
     'projects/deleteProject',
     async ({name}, {dispatch}) => {
         await doFetch<{}>(
-            "/openbach/project/" + name,
+            "/openbach/project/" + name + "/",
             dispatch,
             "DELETE",
         );
@@ -75,7 +75,7 @@ export const addProject = asyncThunk<IProject, {name: string; description: strin
         }
 
         return await doFetch<IProject>(
-            "/openbach/project",
+            "/openbach/project/",
             dispatch,
             "POST",
             body,
@@ -88,7 +88,7 @@ export const importProject = asyncThunk<IProject, {project: File; ignoreTopology
     'projects/importProject',
     async ({project, ignoreTopology}, {dispatch}) => {
         return await doFetch<IProject>(
-            "/openbach/project" + ignoreTopology ? "?ignore_topology" : "",
+            "/openbach/project/" + ignoreTopology ? "?ignore_topology" : "",
             dispatch,
             "POST",
             project,
@@ -102,7 +102,7 @@ export const refreshTopology = asyncThunk<IProject, {project: string; newName?: 
     async ({project, newName}, {dispatch}) => {
         dispatch(setMessage("Updating Topology, please wait!"));
         return await doFetch<IProject>(
-            "/openbach/project/" + project,
+            "/openbach/project/" + project + "/",
             dispatch,
             "POST",
             newName ? {networks: [newName]} : {},

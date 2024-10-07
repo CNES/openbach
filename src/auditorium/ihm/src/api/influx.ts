@@ -63,7 +63,7 @@ export const getStatisticsNamesAndSuffixes = asyncThunk<InfluxNamesAndSuffixes, 
     'influx/getStatisticsNamesAndSuffixes',
     async ({jobId}, {dispatch}) => {
         return await doFetch<InfluxNamesAndSuffixes> (
-            "/openbach/statistic/" + jobId,
+            "/openbach/statistic/" + jobId + "/",
             dispatch,
         );
     },

@@ -26,7 +26,7 @@ export const getVersion = asyncThunk<void>(
     'global/getVersion',
     async (_, {dispatch}) => {
         const {openbach_version} = await doFetch<OpenbachVersion>(
-            '/openbach/version',
+            '/openbach/version/',
             dispatch,
         );
         dispatch(setVersion("OpenBach Version: " + openbach_version));

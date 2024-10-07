@@ -185,7 +185,7 @@ const ProjectDetails: React.FC<Props> = (props) => {
                     Fetch NTP Offset
                 </Button>
                 <DownloadButton
-                    route={`/openbach/project/${project.name}`}
+                    route={`/openbach/project/${project.name}/`}
                     filename={`${project.name}.json`}
                     label="Project"
                     sx={miscellaneousStyle}
