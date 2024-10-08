@@ -1,5 +1,6 @@
 $template obachfmt,"{ \"pri\": \"%pri%\", \"timestamp\": \"%timestamp%\", \"hostname\": \"%hostname%\", \"programname\": \"%programname%\", \"procid\": \"%procid%\", \"msg\": \"%msg%\" }\n"
 $template OBachFileName,"/var/log/openbach/%programname%_%$now%T%$hour%0000.log"
+$ActionForwardDefaultTemplateName RSYSLOG_ForwardFormat
 {% set default_jobs = ['rstats', 'openbach_agent', 'openbach_backend', 'openbach_conductor', 'openbach_director'] %}
 {% for item in default_jobs %}
 if $programname == '{{ item }}' then {
