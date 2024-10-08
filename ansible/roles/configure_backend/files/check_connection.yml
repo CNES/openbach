@@ -21,9 +21,3 @@
     - name: Check NTP Status
       shell: ntpq -p
       when: collect_metrics is defined and collect_metrics
-      ignore_errors: true
-
-    - name: Check TimeDateCTL Status
-      shell: timedatectl timesync-status
-      when: collect_metrics is defined and collect_metrics
-      ignore_errors: true

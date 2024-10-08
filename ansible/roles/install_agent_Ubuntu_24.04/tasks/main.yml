@@ -99,7 +99,7 @@
 - name: Install apt dependencies
   apt:
     pkg:
-      - systemd-timesyncd
+      - ntp
       - rsyslog
       - rsync
       - grub-common
@@ -120,16 +120,11 @@
     - restart ntp
     - restart rsyslog
 
-- name: Create NTP Configuration Folder
-  file:
-    path: /etc/systemd/timesyncd.conf.d
-    state: directory
-  become: yes
-
 - name: Configure NTP Server
   template:
-    src: timesyncd.conf.j2
-    dest: /etc/systemd/timesyncd.conf.d/openbach.conf
+    src: ntp.conf.j2
+    dest: /etc/ntpsec/ntp.conf
+    backup: yes
   become: yes
   notify: restart ntp
   when: openbach_keep_ntp_server_configuration is not defined or not openbach_keep_ntp_server_configuration
