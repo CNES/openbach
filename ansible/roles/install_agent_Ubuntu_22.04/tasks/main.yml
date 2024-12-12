@@ -100,12 +100,11 @@
   apt:
     pkg:
       - ntp
-      - python3-pip
-      - python3-setuptools
       - rsyslog
       - rsync
       - grub-common
       - collect-agent
+      - python3-venv
     state: latest
     update_cache: yes
   become: yes
@@ -122,7 +121,24 @@
     delete: yes
   remote_user: openbach
 
-- name: Install pip3 Dependencies
+- name: Create virtualenv
+  pip:
+    name:
+      - pip
+    state: latest
+    virtualenv: /opt/openbach/virtualenv
+    virtualenv_command: python3 -m venv
+  environment: "{{ openbach_proxy_env }}"
+  remote_user: openbach
+
+- name: Share Collect Agent Python module into the Virtualenv
+  file:
+    path: /opt/openbach/virtualenv/lib/python3.10/site-packages/collect_agent
+    src: /usr/lib/python3.10/dist-packages/collect_agent
+    state: link
+  remote_user: openbach
+
+- name: Install Python Dependencies
   pip:
     name:
       - apscheduler==3.7.0
@@ -131,18 +147,18 @@
       - requests
       - pandas
       - matplotlib
-    executable: pip3
-    extra_args: "-U"
+    state: latest
+    virtualenv: /opt/openbach/virtualenv
   environment: "{{ openbach_proxy_env }}"
-  become: yes
+  remote_user: openbach
 
 - name: Install OpenBach APIs
   pip:
     name:
       - openbach_api
-    executable: pip3
+    virtualenv: /opt/openbach/virtualenv
     extra_args: "-U --no-index --find-links=file:///opt/openbach/pip_mirror/python3/"
-  become: yes
+  remote_user: openbach
 
 - name: Configure NTP Server
   template:

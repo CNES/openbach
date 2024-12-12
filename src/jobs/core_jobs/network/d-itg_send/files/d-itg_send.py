@@ -171,7 +171,7 @@ def main(target_address, log_address, dest_path, granularity, traffic_type='UDP'
 
     # Send the stats of the sender to the collector
     try:
-        snd_path.open('r')
+        stats = snd_path.open('r')
     except Exception as ex:
         message = 'Error opening file {} : {}'.format(snd_path, ex)
         collect_agent.send_log(syslog.LOG_ERR, message)

@@ -30,9 +30,6 @@
     name:
       - openjdk-8-jdk
       - zip
-      - python3-elasticsearch
-      - python3-elasticsearch-curator
-      - python3-influxdb
     state: present
   environment: "{{ openbach_proxy_env }}"
   become: yes
@@ -46,6 +43,17 @@
     - https://artifacts.elastic.co/downloads/logstash/logstash-{{ logstash_version }}.deb
   environment: "{{ openbach_proxy_env }}"
   become: yes
+
+- name: Install Python Dependencies
+  pip:
+    name:
+      - elasticsearch
+      - elasticsearch_curator
+      - influxdb
+    state: latest
+    virtualenv: /opt/openbach/virtualenv
+  environment: "{{ openbach_proxy_env }}"
+  remote_user: openbach
 
 - name: Change owner of elasticsearch sources
   file:

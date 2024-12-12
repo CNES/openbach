@@ -103,6 +103,8 @@
         module: jobs_metadata
         folders: "{{ ['../src/jobs/'] }}"
         substitute: /opt/openbach/controller/src/jobs/
+      vars:
+        ansible_python_interpreter:
       register: openbach_jobs_metadata_core
 
     - name: List Jobs found in User-provided Folders
@@ -110,6 +112,8 @@
         module: jobs_metadata
         folders: "{{ openbach_jobs_folders | default([]) }}"
         substitute: /opt/openbach/controller/src/jobs/private_jobs/
+      vars:
+        ansible_python_interpreter:
       register: openbach_jobs_metadata_extra
 
     - name: Add Jobs into the Backend Database
@@ -155,7 +159,7 @@
 
 - name: Wait until Playbook Finishes
   uri:
-    url: http://localhost:{{ django_port }}/collector/{{ item }}/state
+    url: http://localhost:{{ django_port }}/collector/{{ item }}/state/
   register: response
   with_items: "{{ groups.collector | default([]) }}"
   when: hostvars[item].openbach_restore_host is not defined
@@ -182,7 +186,7 @@
 
 - name: Wait until Playbook Finishes
   uri:
-    url: http://localhost:{{ django_port }}/agent/{{ item }}/state
+    url: http://localhost:{{ django_port }}/agent/{{ item }}/state/
   register: response
   with_items: "{{ groups.agent | default([]) }}"
   when: hostvars[item].openbach_restore_host is not defined
@@ -192,7 +196,7 @@
 
 - name: Change Old IP Addresses to New One
   uri:
-    url: http://localhost:{{ django_port }}/agent/{{ hostvars[item].openbach_restore_host }}
+    url: http://localhost:{{ django_port }}/agent/{{ hostvars[item].openbach_restore_host }}/
     method: PUT
     body_format: json
     body:

@@ -8,7 +8,7 @@ Type=simple
 User=openbach
 Group=openbach
 Environment="PYTHONPATH=/opt/openbach/controller/backend/"
-ExecStart=/usr/bin/python3 /opt/openbach/controller/conductor/openbach_conductor.py
+ExecStart=/opt/openbach/virtualenv/bin/python3 /opt/openbach/controller/conductor/openbach_conductor.py
 
 [Install]
 WantedBy=multi-user.target

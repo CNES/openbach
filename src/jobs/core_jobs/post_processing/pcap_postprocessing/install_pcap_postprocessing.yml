@@ -29,20 +29,21 @@
 
 - name: Install tshark
   apt: 
-    name: tshark
+    name:
+      - tshark
     state: present
   become: yes
   environment: "{{ openbach_proxies }}"
 
-- name: Install PyShark module and some required depenencies
+- name: Install PyShark module and some required Dependencies
   pip:
     name:
       - pyshark
       - lxml
     state: latest
-    executable: pip3
-  become: yes
+    virtualenv: /opt/openbach/virtualenv
   environment: "{{ openbach_proxies }}"
+  remote_user: openbach
 
 - name: Create pcap_postprocessing repository
   file:

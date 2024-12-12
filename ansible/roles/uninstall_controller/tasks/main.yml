@@ -26,12 +26,11 @@
 ---
 
 - name: Drop installed Jobs and Entities from the Backend Database
-  command: ./manage.py shell
+  command: /opt/openbach/virtualenv/bin/python3 manage.py shell
   args:
     chdir: /opt/openbach/controller/backend
     stdin: "from openbach_django.models import *; Job.objects.all().delete(); Entity.objects.all().delete(); Agent.objects.all().delete(); Collector.objects.all().delete()"
-  become: yes
-  become_user: openbach
+  remote_user: openbach
   when: not (openbach_clear_databases | default(False))
 
 - name: Stop Controller Services

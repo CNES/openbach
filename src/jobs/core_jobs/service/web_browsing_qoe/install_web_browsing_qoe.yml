@@ -67,10 +67,10 @@
     name:
       - selenium
       - selenium-wire
-    executable: pip3
     state: present
-  become: yes
+    virtualenv: /opt/openbach/virtualenv
   environment: "{{ openbach_proxies }}"
+  remote_user: openbach
 
 - name: Install some dependencies
   apt:

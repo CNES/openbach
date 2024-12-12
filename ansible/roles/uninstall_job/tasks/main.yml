@@ -31,6 +31,8 @@
     folders: "{{ ['../src/jobs/'] + (openbach_jobs_folders | default([])) }}"
     limit: "{{ (default_jobs + default_collector_jobs) if 'collector' in group_names or ('controller' in group_names and ('collector' not in groups or not groups.collector)) else default_jobs }}"
     platforms: yes
+  vars:
+    ansible_python_interpreter:
   register: openbach_uninstall_default_jobs
   when: jobs is not defined
 

@@ -68,7 +68,7 @@ from collections import defaultdict, Counter
 import yaml
 import numpy
 from fuzzywuzzy import fuzz
-from pkg_resources import parse_version as version
+from packaging.version import parse as version
 from django import db
 from django.utils import timezone
 from django.core.exceptions import ValidationError

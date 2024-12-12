@@ -42,7 +42,7 @@
 
 - name: Wait for the End of the Installation Playbook
   uri:
-    url: "{{ controller_api_url }}/job/{{ job_name }}/state?address={{ address }}"
+    url: "{{ controller_api_url }}/job/{{ job_name }}/state/?address={{ address }}"
     method: GET
     headers:
       Cookie: "sessionid={{ session_id }}"

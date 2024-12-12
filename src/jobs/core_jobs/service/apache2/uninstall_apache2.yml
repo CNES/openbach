@@ -63,9 +63,9 @@
 - name: Uninstall pyOpenSSL
   pip:
     name: pyopenssl
-    executable: pip3
     state: absent
-  become: yes
+    virtualenv: /opt/openbach/virtualenv
+  remote_user: openbach
 
 - name: Delete certificates and private keys
   file:

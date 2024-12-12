@@ -77,12 +77,16 @@
 - name: Install Collectors
   hosts: collector
   any_errors_fatal: yes
+  vars:
+    ansible_python_interpreter: /opt/openbach/virtualenv/bin/python3
   roles:
     - install_collector
 
 - name: Install Controllers
   hosts: controller
   any_errors_fatal: yes
+  vars:
+    ansible_python_interpreter: /opt/openbach/virtualenv/bin/python3
   roles:
     - install_controller
 
@@ -90,6 +94,8 @@
   hosts: agent
   gather_facts: no
   any_errors_fatal: yes
+  vars:
+    ansible_python_interpreter: /opt/openbach/virtualenv/bin/python3
   roles:
     - configure_ssh_keys
 
@@ -97,6 +103,8 @@
   hosts: controller
   gather_facts: no
   any_errors_fatal: yes
+  vars:
+    ansible_python_interpreter: /opt/openbach/virtualenv/bin/python3
   roles:
     - configure_backend
 
@@ -104,6 +112,8 @@
   hosts: agent
   gather_facts: no
   any_errors_fatal: yes
+  vars:
+    ansible_python_interpreter: /opt/openbach/virtualenv/bin/python3
   tags:
     - encrypt_proxy_variable
   roles:
@@ -113,6 +123,8 @@
 - name: Install Auditoriums
   hosts: auditorium
   any_errors_fatal: yes
+  vars:
+    ansible_python_interpreter: /opt/openbach/virtualenv/bin/python3
   roles:
     - install_auditorium
 
@@ -120,12 +132,16 @@
   hosts: agent
   gather_facts: no
   any_errors_fatal: yes
+  vars:
+    ansible_python_interpreter: /opt/openbach/virtualenv/bin/python3
   roles:
     - install_job
 
 - name: Create Openbach project
   hosts: controller
   any_errors_fatal: yes
+  vars:
+    ansible_python_interpreter: /opt/openbach/virtualenv/bin/python3
   roles:
     - role: create_project
       when: project_name is defined
@@ -134,6 +150,8 @@
   hosts: controller
   gather_facts: no
   any_errors_fatal: yes
+  vars:
+    ansible_python_interpreter: /opt/openbach/virtualenv/bin/python3
   tags:
     - never
     - tests
@@ -146,6 +164,8 @@
     - auditorium
   gather_facts: no
   any_errors_fatal: yes
+  vars:
+    ansible_python_interpreter: /opt/openbach/virtualenv/bin/python3
   tags:
     - always
   roles:

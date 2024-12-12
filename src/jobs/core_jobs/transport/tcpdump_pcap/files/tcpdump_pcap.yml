@@ -44,12 +44,17 @@ platform_configuration:
   - ansible_system: 'Debian'
     ansible_distribution:  'Ubuntu'
     ansible_distribution_version: '20.04'
-    command: '/usr/bin/env python3 /opt/openbach/agent/jobs/tcpdump_pcap/tcpdump_pcap.py'
+    command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/tcpdump_pcap/tcpdump_pcap.py'
     command_stop:
   - ansible_system: 'Debian'
     ansible_distribution:  'Ubuntu'
     ansible_distribution_version: '22.04'
-    command: '/usr/bin/env python3 /opt/openbach/agent/jobs/tcpdump_pcap/tcpdump_pcap.py'
+    command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/tcpdump_pcap/tcpdump_pcap.py'
+    command_stop:
+  - ansible_system: 'Debian'
+    ansible_distribution:  'Ubuntu'
+    ansible_distribution_version: '24.04'
+    command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/tcpdump_pcap/tcpdump_pcap.py'
     command_stop:
 
 arguments:

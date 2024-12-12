@@ -107,10 +107,9 @@
   become: yes
   when: openbach_clear_databases | default(False)
 
-- name: Remove Openbach API Modules
-  pip:
-    executable: pip3
-    name: openbach_api
+- name: Remove Virtualenv
+  file:
+    path: /opt/openbach/virtualenv
     state: absent
   become: yes
 

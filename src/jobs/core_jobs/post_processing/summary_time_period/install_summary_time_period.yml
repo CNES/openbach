@@ -26,17 +26,25 @@
 ---
 
 - name: Create the Summary Time Period Job Repository
-  file: path=/opt/openbach/agent/jobs/{{ job_name }} state=directory mode=0755
+  file:
+    path: /opt/openbach/agent/jobs/{{ job_name }}
+    state: directory
+    mode: 0755
 
 - name: Install pip3 Dependencies
   pip:
     name:
       - openpyxl
-    executable: pip3
+    state: latest
+    vitualenv: /opt/openbach/virtualenv
   environment: "{{ openbach_proxy_env }}"
-  become: yes
+  remote_user: openbach
+
 - name: Install Summary Time Period
-  copy: src={{ item.file }} dest=/opt/openbach/agent/jobs/{{ job_name }}/ mode={{ item.mode }}
+  copy:
+    src: "{{ item.file }}"
+    dest: /opt/openbach/agent/jobs/{{ job_name }}/
+    mode: "{{ item.mode }}"
   with_items:
     - { file: 'summary_time_period.help', mode: '0644' }
     - { file: 'summary_time_period_rstats_filter.conf', mode: '0644' }
