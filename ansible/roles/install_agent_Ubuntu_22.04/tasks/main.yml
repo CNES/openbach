@@ -105,6 +105,8 @@
       - grub-common
       - collect-agent
       - python3-venv
+      - python3-dev
+      - build-essential
     state: latest
     update_cache: yes
   become: yes

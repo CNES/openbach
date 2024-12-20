@@ -164,15 +164,25 @@
   notify: restart pgbouncer
 
 - name: Copy Django's manager file
-  copy: src=../src/controller/backend/manage.py dest=/opt/openbach/controller/backend/manage.py mode=0500
+  copy:
+    src: ../src/controller/backend/manage.py
+    dest: /opt/openbach/controller/backend/manage.py
+    mode: 0500
   remote_user: openbach
 
 - name: Retrieve local settings if they Exist
-  local_settings: path=/opt/openbach/controller/backend/backend/
+  local_settings:
+    path: /opt/openbach/controller/backend/backend/
+    interpreter: /opt/openbach/virtualenv/bin/python3
   remote_user: openbach
 
 - name: Set up PgBouncer Users Database
-  template: src=pgbouncer_auth_file.j2 dest=/opt/openbach/controller/backend/backend/pgbouncer_auth.txt mode=0640 owner=postgres group=postgres
+  template:
+    src: pgbouncer_auth_file.j2
+    dest: /opt/openbach/controller/backend/backend/pgbouncer_auth.txt
+    mode: 0640
+    owner: postgres
+    group: postgres
   become: yes
   notify: restart pgbouncer
 
@@ -204,7 +214,7 @@
 
 - block:
     - name: Initialize the Backend's Database
-      shell: /opt/openbach/controller/backend/manage.py migrate --no-input
+      shell: /opt/openbach/virtualenv/bin/python3 /opt/openbach/controller/backend/manage.py migrate --no-input
       remote_user: openbach
       register: openbach_database_migration
       ignore_errors: yes
@@ -214,7 +224,7 @@
       when: openbach_database_migration.failed and openbach_database_migration.stdout_lines[-1] != '  Applying openbach_django.0001_openbach_2_0_0...'
 
     - name: Fake the Initialization of the Backend's Database
-      shell: /opt/openbach/controller/backend/manage.py migrate --no-input --fake-initial
+      shell: /opt/openbach/virtualenv/bin/python3 /opt/openbach/controller/backend/manage.py migrate --no-input --fake-initial
       remote_user: openbach
       when: openbach_database_migration.failed
 
@@ -226,7 +236,7 @@
         - consider_safe_network
     - name: Manage Superusers in the Backend's Database
       openbach_superuser:
-        manager: /opt/openbach/controller/backend/manage.py
+        manager: /opt/openbach/virtualenv/bin/python3 /opt/openbach/controller/backend/manage.py
       remote_user: openbach
 
   when: openbach_restore_host is not defined
@@ -288,7 +298,7 @@
   when: openbach_restore_host is defined
 
 - name: Collect Django's static files
-  shell: /opt/openbach/controller/backend/manage.py collectstatic --no-input
+  shell: /opt/openbach/virtualenv/bin/python3 /opt/openbach/controller/backend/manage.py collectstatic --no-input
   remote_user: openbach
 
 - name: Create services

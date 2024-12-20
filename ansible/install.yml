@@ -114,11 +114,8 @@
   any_errors_fatal: yes
   vars:
     ansible_python_interpreter: /opt/openbach/virtualenv/bin/python3
-  tags:
-    - encrypt_proxy_variable
   roles:
-    - role: encrypt_proxy_variable
-      when: openbach_proxy_env
+    - encrypt_proxy_variable
 
 - name: Install Auditoriums
   hosts: auditorium

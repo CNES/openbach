@@ -48,6 +48,7 @@ class ActionModule(ActionBase):
         result = super(ActionModule, self).run(tmp, task_vars)
 
         args = self._task.args
+        interpreter = args.get('interpreter', 'python3')
         result['invocation'] = dict(module_args=args)
         try:
             chdir = args['path']
@@ -62,7 +63,7 @@ class ActionModule(ActionBase):
                 from local_settings import *
                 password = DATABASES['default']['PASSWORD']
                 print([password, SECRET_KEY])"""
-        password, key = self.remote_shell(result, command, chdir)
+        password, key = self.remote_shell(result, interpreter, command, chdir)
 
         if result['rc']:
             command = """\
@@ -71,7 +72,7 @@ class ActionModule(ActionBase):
                     password = get_random_string(50, chars)
                     secret_key = get_random_string(50, chars)
                     print([password, secret_key])"""
-            password, key = self.remote_shell(result, command)
+            password, key = self.remote_shell(result, interpreter, command)
             result['msg'] = u'local settings created'
             result['changed'] = True
         else:
@@ -92,9 +93,9 @@ class ActionModule(ActionBase):
         result['ansible_facts_cacheable'] = cacheable
         return result
 
-    def remote_shell(self, result, command, chdir=None):
+    def remote_shell(self, result, interpreter, command, chdir=None):
         script = ';'.join(textwrap.dedent(command).splitlines())
-        shell = self._low_level_execute_command('python3 -c "{}"'.format(script), chdir=chdir)
+        shell = self._low_level_execute_command('{} -c "{}"'.format(interpreter, script), chdir=chdir)
         result.update(shell)
         result['stderr_lines'] = shell['stderr'].splitlines()
         if not result['rc']:
