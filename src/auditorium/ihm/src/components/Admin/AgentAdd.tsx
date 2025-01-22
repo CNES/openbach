@@ -44,8 +44,6 @@ const AgentAdd: React.FC<Props> = (props) => {
 
     const onSubmit = React.useCallback((reattach: boolean) => (data: FormData) => {
         const {name, address, collector, username, password, http_proxy, https_proxy} = data;
-        const private_key = data.private_key[0];
-        const public_key = data.public_key[0];
 
         const agent = selectedTab === 'password' ? ({
             name, address, collector_ip: collector,
@@ -53,8 +51,9 @@ const AgentAdd: React.FC<Props> = (props) => {
             http_proxy, https_proxy,
         }) : ({
             name, address, collector_ip: collector,
-            username, public_key, private_key,
-            http_proxy, https_proxy,
+            username, http_proxy, https_proxy,
+            public_key: data.public_key[0],
+            private_key: data.private_key[0],
         });
         dispatch(addAgent({reattach, agent}));
         reset();

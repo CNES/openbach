@@ -56,6 +56,9 @@ export const doFetch = async <T extends unknown>(
         if (body instanceof File) {
             configuration.body = body;
             configuration.headers['Content-Type'] = body.type;
+        } else if (body instanceof FormData) {
+            configuration.body = body;
+            configuration.headers['Content-Type'] = 'multipart/form-data';
         } else {
             configuration.body = JSON.stringify(body);
         }
