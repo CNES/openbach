@@ -156,10 +156,21 @@
   copy:
     src: pgbouncer.ini
     dest: /etc/pgbouncer/pgbouncer.ini
-    mode: '0640'
+    mode: 0640
     owner: postgres
     group: postgres
     backup: yes
+  become: yes
+  notify: restart pgbouncer
+
+- name: Allow PgBouncer to Manage OpenBACH's Database
+  lineinfile:
+    path: /etc/pgbouncer/userlist.txt
+    line: '"openbach"'
+    mode: 0640
+    owner: postgres
+    group: postgres
+    create: yes
   become: yes
   notify: restart pgbouncer
 

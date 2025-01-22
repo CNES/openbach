@@ -39,6 +39,7 @@
   when: 
     - openbach_vault_pass is undefined
     - hostvars[openbach_controller].vault_pass is defined
+    - "'user_input' in hostvars[openbach_controller].vault_pass"
   tags:
     - encrypt_proxy_variable
 
