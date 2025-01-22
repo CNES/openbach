@@ -18,7 +18,7 @@ declare type Dispatch = Pick<ThunkConfig, "dispatch">["dispatch"];
 class RequestError extends Error {
     constructor(message: string) {
         super(message);
-        this.name = 'RequestError';
+        this.name = "RequestError";
     }
 }
 
@@ -26,7 +26,7 @@ class RequestError extends Error {
 class AnsibleError extends Error {
     constructor(message: string) {
         super(message);
-        this.name = 'AnsibleError';
+        this.name = "AnsibleError";
     }
 }
 
@@ -51,16 +51,15 @@ export const doFetch = async <T extends unknown>(
     if (body) {
         configuration.headers = {
             "Accept": "application/json",
-            "Content-Type": "application/json",
         };
         if (body instanceof File) {
             configuration.body = body;
-            configuration.headers['Content-Type'] = body.type;
+            configuration.headers["Content-Type"] = body.type;
         } else if (body instanceof FormData) {
             configuration.body = body;
-            configuration.headers['Content-Type'] = 'multipart/form-data';
         } else {
             configuration.body = JSON.stringify(body);
+            configuration.headers["Content-Type"] = "application/json";
         }
     }
 
@@ -79,7 +78,7 @@ export const doFetch = async <T extends unknown>(
     const msg = "HTTP Request sent back error code: " + response.status + " " + response.statusText;
     try {
         const data = await response.json();
-        if ('error' in data) {
+        if ("error" in data) {
             dispatch(setMessage("Error while processing the request: " + data.error));
         } else {
             dispatch(setMessage(msg));
