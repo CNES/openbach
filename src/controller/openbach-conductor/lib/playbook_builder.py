@@ -90,16 +90,31 @@ class PlayResult(CallbackBase):
                     **self.failure)
 
     def _store_failure(self, result):
-        self.failure[result._host.get_name()].append(result._result)
+        task = result._task
+        uuid = task._uuid
+        parent = task._parent
+        hostname = result._host.get_name()
+
+        try:
+            block = parent._block
+        except AttributeError:
+            self.failure[hostname].append(result._result)
+        else:
+            if all(t._uuid != uuid for t in block) or not parent.rescue:
+                hostvars = task._variable_manager._hostvars[hostname]
+                failed_task = hostvars.get('ansible_failed_task')
+                failed_uuid = failed_task['uuid']
+                if failed_task is not None and any(t._uuid == failed_uuid for t in block):
+                    self.failure[hostname].append(hostvars.get('ansible_failed_result'))
+                self.failure[hostname].append(result._result)
 
     # From here on, Ansible hooks definition
-
     def v2_runner_on_failed(self, result, ignore_errors=False):
         if not ignore_errors:
             self._store_failure(result)
 
     def v2_runner_on_unreachable(self, result):
-        self._store_failure(result)
+        self.failure[result._host.get_name()].append(result._result)
 
     def v2_runner_on_async_failed(self, result):
         self._store_failure(result)
