@@ -4,8 +4,8 @@ Requires=network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/python3 /opt/openbach/agent/rstats/rstats.py
-ExecReload=/usr/bin/python3 /opt/openbach/agent/rstats/rstats_reload.py
+ExecStart=/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/rstats/rstats.py
+ExecReload=/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/rstats/rstats_reload.py
 
 [Install]
 WantedBy=multi-user.target
