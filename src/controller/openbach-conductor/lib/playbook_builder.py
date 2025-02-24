@@ -103,9 +103,10 @@ class PlayResult(CallbackBase):
             if all(t._uuid != uuid for t in block) or not parent.rescue:
                 hostvars = task._variable_manager._hostvars[hostname]
                 failed_task = hostvars.get('ansible_failed_task')
-                failed_uuid = failed_task['uuid']
-                if failed_task is not None and any(t._uuid == failed_uuid for t in block):
-                    self.failure[hostname].append(hostvars.get('ansible_failed_result'))
+                if failed_task is not None:
+                    failed_uuid = failed_task['uuid']
+                    if any(t._uuid == failed_uuid for t in block):
+                        self.failure[hostname].append(hostvars.get('ansible_failed_result'))
                 self.failure[hostname].append(result._result)
 
     # From here on, Ansible hooks definition
