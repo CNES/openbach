@@ -48,7 +48,7 @@ urlpatterns = [
     path('statistic/<int:job_instance_id>/',
         views.StatisticView.as_view(),
         name='job_statistics'),
-    path('statistic/<str:project>/',
+    path('statistics/<str:project>/',
         views.StatisticsView.as_view(),
         name='project_statistics'),
 

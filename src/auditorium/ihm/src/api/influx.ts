@@ -52,7 +52,7 @@ export const getStatisticsNames = asyncThunk<InfluxNames, {project: string;}>(
     'influx/getStatisticsNames',
     async ({project}, {dispatch}) => {
         return await doFetch<InfluxNames> (
-            "/openbach/statistic/" + project,
+            "/openbach/statistics/" + project + "/",
             dispatch,
         );
     },
