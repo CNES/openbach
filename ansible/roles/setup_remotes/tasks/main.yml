@@ -29,8 +29,8 @@
   set_fact:
     openbach_controller: "{{ openbach_controller | default(('controller' in group_names and inventory_hostname) or ('controller' in groups and groups.controller and groups.controller[0]) or omit) }}"
     openbach_collector: "{{ openbach_collector | default(('collector' in group_names and inventory_hostname) or ('collector' in groups and groups.collector and groups.collector[0]) or omit) }}"
-    openbach_http_proxy: "{{ openbach_http_proxy is defined and (openbach_http_proxy | encode_url) or (lookup('env', 'HTTP_PROXY') | encode_url) }}"
-    openbach_https_proxy: "{{ openbach_https_proxy is defined and (openbach_https_proxy | encode_url) or (lookup('env', 'HTTPS_PROXY') | encode_url) }}"
+    openbach_http_proxy: "{{ openbach_http_proxy is defined and (openbach_http_proxy | encode_url) or lookup('env', 'HTTP_PROXY') }}"
+    openbach_https_proxy: "{{ openbach_https_proxy is defined and (openbach_https_proxy | encode_url) or lookup('env', 'HTTPS_PROXY') }}"
     openbach_proxy_env: "{{ openbach_proxy_env | default({}) }}"
 
 

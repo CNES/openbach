@@ -96,7 +96,15 @@
       label: "{{ item.path }}"
   when: ansible_architecture != 'x86_64'
 
-- name: Install apt dependencies
+- name: Remove Conflicting Time Sync Package
+  apt:
+    pkg:
+      - systemd-timesyncd
+    state: absent
+  become: yes
+  environment: "{{ openbach_proxy_env }}"
+
+- name: Install APT Dependencies
   apt:
     pkg:
       - ntp
