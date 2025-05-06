@@ -30,7 +30,7 @@ general:
   description: >
       This job post-process statistics from other job instances. It compares the
       average value and the confidence interval of several time series.
-  job_version: '3.2'
+  job_version: '3.3'
   keywords:
     - post-processing
     - comparison
@@ -39,19 +39,24 @@ general:
   persistent: no
 
 platform_configuration:
-  - ansible_system: Debian
-    ansible_distribution: Ubuntu
+  - ansible_system: 'Debian'
+    ansible_distribution: 'Ubuntu'
     ansible_distribution_version: '20.04'
     command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/comparison/comparison.py'
     command_stop:
-  - ansible_system: Debian
-    ansible_distribution: Ubuntu
+  - ansible_system: 'Debian'
+    ansible_distribution: 'Ubuntu'
     ansible_distribution_version: '22.04'
     command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/comparison/comparison.py'
     command_stop:
-  - ansible_system: Debian
-    ansible_distribution: Ubuntu
+  - ansible_system: 'Debian'
+    ansible_distribution: 'Ubuntu'
     ansible_distribution_version: '24.04'
+    command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/comparison/comparison.py'
+    command_stop:
+  - ansible_system: 'Debian'
+    ansible_distribution: 'Debian'
+    ansible_distribution_version: '12.10'
     command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/comparison/comparison.py'
     command_stop:
 

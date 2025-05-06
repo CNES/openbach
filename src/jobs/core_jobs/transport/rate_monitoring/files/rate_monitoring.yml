@@ -31,7 +31,7 @@ general:
       This Job measures the rate (b/s) of flows with specific
       characteristics (e.g. dest/src IP/port, protocol,
       interface) using iptables chains.
-  job_version: '2.3'
+  job_version: '2.4'
   keywords:
     - rate
     - monitoring
@@ -53,6 +53,11 @@ platform_configuration:
   - ansible_system: 'Debian'
     ansible_distribution: 'Ubuntu'
     ansible_distribution_version: '24.04'
+    command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/rate_monitoring/rate_monitoring.py'
+    command_stop:
+  - ansible_system: 'Debian'
+    ansible_distribution: 'Debian'
+    ansible_distribution_version: '12.10'
     command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/rate_monitoring/rate_monitoring.py'
     command_stop:
 

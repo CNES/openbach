@@ -6,7 +6,7 @@ general:
       This Job principaly launches the executable of D-ITG
       that sends data towards a target. The flow is unilateral.
       It is possible to launch multiple instances of the job at the same time.
-  job_version:     '0.9'
+  job_version:     '1.0'
   keywords:        [d-itg, round, trip, time, rate]
   persistent:      True
   need_privileges: False
@@ -25,6 +25,11 @@ platform_configuration:
   - ansible_system: 'Debian'
     ansible_distribution: 'Ubuntu'
     ansible_distribution_version: '24.04'
+    command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/d-itg_send/d-itg_send.py'
+    command_stop:
+  - ansible_system: 'Debian'
+    ansible_distribution: 'Debian'
+    ansible_distribution_version: '12.10'
     command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/d-itg_send/d-itg_send.py'
     command_stop:
 

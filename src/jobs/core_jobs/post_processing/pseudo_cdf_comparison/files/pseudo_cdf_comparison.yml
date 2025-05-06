@@ -29,7 +29,7 @@ general:
   name: pseudo_cdf_comparison
   description: >
       This job post-process data of other jobs. It allows to performs statistics analysis of jobs metrics.
-  job_version: '1.2'
+  job_version: '1.3'
   keywords:
     - post-processing
     - pseudo_cdf
@@ -37,19 +37,24 @@ general:
   persistent: no
 
 platform_configuration:
-  - ansible_system: Debian
+  - ansible_system: 'Debian'
     ansible_distribution: Ubuntu
     ansible_distribution_version: '20.04'
     command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/pseudo_cdf_comparison/pseudo_cdf_comparison.py'
     command_stop:
-  - ansible_system: Debian
+  - ansible_system: 'Debian'
     ansible_distribution: Ubuntu
     ansible_distribution_version: '22.04'
     command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/pseudo_cdf_comparison/pseudo_cdf_comparison.py'
     command_stop:
-  - ansible_system: Debian
+  - ansible_system: 'Debian'
     ansible_distribution: Ubuntu
     ansible_distribution_version: '24.04'
+    command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/pseudo_cdf_comparison/pseudo_cdf_comparison.py'
+    command_stop:
+  - ansible_system: 'Debian'
+    ansible_distribution: 'Debian'
+    ansible_distribution_version: '12.10'
     command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/pseudo_cdf_comparison/pseudo_cdf_comparison.py'
     command_stop:
 

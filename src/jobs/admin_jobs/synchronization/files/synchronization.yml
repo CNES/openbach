@@ -31,7 +31,7 @@ general:
       This Job is used by OpenBACH to synchronize agents. 
       It verify the offset and force a re-synchronization if necessary.
       It will launch the ntpdate command (admin job)
-  job_version: '1.0'
+  job_version: '1.1'
   keywords:
     - synchronization
     - admin
@@ -52,6 +52,11 @@ platform_configuration:
   - ansible_system: 'Debian'
     ansible_distribution: 'Ubuntu'
     ansible_distribution_version: '24.04'
+    command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/synchronization/synchronization.py'
+    command_stop:
+  - ansible_system: 'Debian'
+    ansible_distribution: 'Debian'
+    ansible_distribution_version: '12.10'
     command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/synchronization/synchronization.py'
     command_stop:
 

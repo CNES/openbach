@@ -4,7 +4,7 @@ general:
   name:            web_browsing_qoe
   description: >
       Monitors W3C Navigation Timing metrics of an HTTP Service using Firefox web browser (please go to config.yaml to check/modify the list of web sites to be visited).
-  job_version:     '1.9'
+  job_version:     '2.0'
   keywords:        [web, performance, HTTP, QoE, PLT]
   persistent:      False
 
@@ -22,6 +22,11 @@ platform_configuration:
   - ansible_system: 'Debian'
     ansible_distribution:  'Ubuntu'
     ansible_distribution_version: '24.04'
+    command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/web_browsing_qoe/web_browsing_qoe.py'
+    command_stop:
+  - ansible_system: 'Linux'
+    ansible_distribution:  'Debian'
+    ansible_distribution_version: '12.10'
     command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/web_browsing_qoe/web_browsing_qoe.py'
     command_stop:
 

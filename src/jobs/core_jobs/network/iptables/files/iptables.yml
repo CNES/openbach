@@ -29,7 +29,7 @@ general:
   name: iptables
   description: >
       This Job allows to add any iptables rule (you should specify your full chain).
-  job_version: '2.0'
+  job_version: '2.1'
   keywords:
     - iptables
     - rule
@@ -53,6 +53,11 @@ platform_configuration:
   - ansible_system: 'Debian'
     ansible_distribution: 'Ubuntu'
     ansible_distribution_version: '24.04'
+    command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/iptables/iptables.py'
+    command_stop:
+  - ansible_system: 'Debian'
+    ansible_distribution: 'Debian'
+    ansible_distribution_version: '12.10'
     command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/iptables/iptables.py'
     command_stop:
 
