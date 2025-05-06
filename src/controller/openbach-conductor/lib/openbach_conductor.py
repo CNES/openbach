@@ -1164,7 +1164,7 @@ class AddJob(JobAction):
         # Remove OSes associated to the previous version of the job
         for system, system_info in system_list.items():
             for distribution, versions in system_info.items():
-                job.os.filter(family=os_system, distribution=os_distribution).exclude(version__in=versions).delete()
+                job.os.filter(family=system, distribution=distribution).exclude(version__in=versions).delete()
 
         # Associate "new" keywords
         keywords = general_section['keywords']
