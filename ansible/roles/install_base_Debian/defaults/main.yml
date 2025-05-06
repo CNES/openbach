@@ -25,5 +25,6 @@
 
 ---
 
-- include_role:
-    name: "install_auditorium_{{ ansible_distribution }}"
+openbach_repository_gpg_key: https://raw.githubusercontent.com/CNES/net4sat-packages/master/gpg/net4sat.gpg.key
+openbach_repository:
+  - deb [signed-by=/etc/apt/keyrings/net4sat.gpg] https://raw.githubusercontent.com/CNES/net4sat-packages/master/bookworm/ bookworm dev

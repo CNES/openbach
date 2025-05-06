@@ -1,0 +1,75 @@
+#   OpenBACH is a generic testbed able to control/configure multiple
+#   network/physical entities (under test) and collect data from them. It is
+#   composed of an Auditorium (HMIs), a Controller, a Collector and multiple
+#   Agents (one for each network entity that wants to be tested).
+#   
+#   
+#   Copyright © 2016-2023 CNES
+#   
+#   
+#   This file is part of the OpenBACH testbed.
+#   
+#   
+#   OpenBACH is a free software : you can redistribute it and/or modify it under
+#   the terms of the GNU General Public License as published by the Free Software
+#   Foundation, either version 3 of the License, or (at your option) any later
+#   version.
+#   
+#   This program is distributed in the hope that it will be useful, but WITHOUT
+#   ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS
+#   FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+#   details.
+#   
+#   You should have received a copy of the GNU General Public License along with
+#   this program. If not, see http://www.gnu.org/licenses/.
+
+---
+
+- name: Create openbach User
+  user:
+    name: openbach
+    shell: /bin/bash
+  become: yes
+
+- name: Trust the install SSH key by the openbach user
+  authorized_key:
+    user: openbach
+    key: "{{ lookup('file', '{{ ansible_ssh_private_key_file }}.pub') }}"
+  become: yes
+
+- name: Create openbach folder in /opt
+  file:
+    path: /opt/openbach
+    owner: openbach
+    group: openbach
+    state: directory
+  become: yes
+
+- name: Make sure folder exists for Net4sat GPG key
+  file:
+    path: /etc/apt/keyrings
+    state: directory
+  become: yes
+ 
+- name: Add Net4sat GPG key for Apt
+  get_url:
+    url: "{{ openbach_repository_gpg_key }}"
+    dest: /etc/apt/keyrings/net4sat.gpg
+    force: yes
+  become: yes
+  environment: "{{ openbach_proxy_env }}"
+
+- name: Dearmor Net4sat GPG key for Apt
+  shell:
+    cmd: exec 3<net4sat.gpg; rm net4sat.gpg; gpg --dearmor <&3 | dd of=net4sat.gpg; exec 3>&-
+    chdir: /etc/apt/keyrings
+  become: yes
+
+- name: Add OpenBACH repository
+  apt_repository:
+    repo: "{{ item }}"
+    state: present
+    update_cache: yes
+  with_items: "{{ openbach_repository }}"
+  become: yes
+  environment: "{{ openbach_proxy_env }}"

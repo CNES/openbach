@@ -1,0 +1,439 @@
+#   OpenBACH is a generic testbed able to control/configure multiple
+#   network/physical entities (under test) and collect data from them. It is
+#   composed of an Auditorium (HMIs), a Controller, a Collector and multiple
+#   Agents (one for each network entity that wants to be tested).
+#   
+#   
+#   Copyright © 2016-2023 CNES
+#   
+#   
+#   This file is part of the OpenBACH testbed.
+#   
+#   
+#   OpenBACH is a free software : you can redistribute it and/or modify it under
+#   the terms of the GNU General Public License as published by the Free Software
+#   Foundation, either version 3 of the License, or (at your option) any later
+#   version.
+#   
+#   This program is distributed in the hope that it will be useful, but WITHOUT
+#   ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS
+#   FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+#   details.
+#   
+#   You should have received a copy of the GNU General Public License along with
+#   this program. If not, see http://www.gnu.org/licenses/.
+
+---
+
+- name: Install APT Dependencies
+  apt:
+    pkg:
+    - acl
+    - sshpass
+    - postgresql-server-dev-all
+    - postgresql
+    - pgbouncer
+    state: present
+    update_cache: no
+  become: yes
+  environment: "{{ openbach_proxy_env }}"
+  notify: restart postgresql
+
+- name: Install Python Dependencies
+  pip:
+    name:
+      - packaging
+      - ansible
+      - psycopg2
+      - fuzzywuzzy
+      - python-Levenshtein
+      - django
+      - uwsgi
+    state: latest
+    virtualenv: /opt/openbach/virtualenv
+  environment: "{{ openbach_proxy_env }}"
+  remote_user: openbach
+
+- name: Check the installed version of Ansible
+  command: /opt/openbach/virtualenv/bin/python3 -c "from packaging.version import parse; from ansible import __version__; print(parse(__version__) < parse('2.9'))"
+  remote_user: openbach
+  register: openbach_check_ansible_version
+
+- name: Install extraneous Ansible collection
+  command: ansible-galaxy collection install ansible.posix
+  args:
+    creates: /opt/openbach/virtualenv/lib/python3.12/site-packages/ansible_collections/ansible/posix
+  environment: "{{ openbach_proxy_env }}"
+  remote_user: openbach
+  when: openbach_check_ansible_version.stdout == "False"
+
+- name: Create OpenBACH repository
+  file:
+    path: /opt/openbach/controller/{{ item }}
+    state: directory
+  with_items:
+    - backend
+    - conductor
+    - src/jobs/private_jobs
+    - src/agent
+    - ansible
+  remote_user: openbach
+
+- name: Setup temporary files cleanup
+  copy:
+    src: remove-openbach-downloads.conf
+    dest: /etc/tmpfiles.d/remove-openbach-downloads.conf
+  become: yes
+
+- name: Create temporary files folder
+  command: systemd-tmpfiles --create
+  become: yes
+
+- name: Install the Backend
+  block:
+    - synchronize:
+        src: ../src/controller/backend/
+        dest: /opt/openbach/controller/backend/
+        recursive: yes
+        delete: yes
+        rsync_opts:
+          - --exclude
+          - __pycache__
+          - --exclude
+          - functional_tests.sh
+          - --exclude
+          - manage.py
+          - --filter
+          - P static_root
+          - --filter
+          - P local_settings.py
+          - --filter
+          - P pgbouncer_auth.txt
+      remote_user: openbach
+  rescue:
+    - synchronize:
+        src: ../src/controller/backend/
+        dest: /opt/openbach/controller/backend/
+        recursive: yes
+        delete: yes
+        rsync_opts:
+          - --exclude=__pycache__
+          - --exclude=functional_tests.sh
+          - --exclude=manage.py
+          - --filter='P static_root'
+          - --filter='P local_settings.py'
+          - --filter='P pgbouncer_auth.txt'
+      remote_user: openbach
+
+- name: Install the Conductor
+  block:
+    - synchronize:
+        src: ../src/controller/openbach-conductor/
+        dest: /opt/openbach/controller/conductor/
+        recursive: yes
+        delete: yes
+        rsync_opts:
+          - --exclude
+          - __pycache__
+      remote_user: openbach
+  rescue:
+    - synchronize:
+        src: ../src/controller/openbach-conductor/
+        dest: /opt/openbach/controller/conductor/
+        recursive: yes
+        delete: yes
+        rsync_opts:
+          - --exclude=__pycache__
+      remote_user: openbach
+
+- name: Fetch the openbach User's SSH public Key
+  fetch:
+    src: /home/openbach/.ssh/id_rsa.pub
+    dest: "{{ openbach_installer_folder }}/controller_key"
+  become: yes
+
+- name: Configure PgBouncer
+  copy:
+    src: pgbouncer.ini
+    dest: /etc/pgbouncer/pgbouncer.ini
+    mode: 0640
+    owner: postgres
+    group: postgres
+    backup: yes
+  become: yes
+  notify: restart pgbouncer
+
+- name: Allow PgBouncer to Manage OpenBACH's Database
+  lineinfile:
+    path: /etc/pgbouncer/userlist.txt
+    line: '"openbach"'
+    mode: 0640
+    owner: postgres
+    group: postgres
+    create: yes
+  become: yes
+  notify: restart pgbouncer
+
+- name: Copy Django's manager file
+  copy:
+    src: ../src/controller/backend/manage.py
+    dest: /opt/openbach/controller/backend/manage.py
+    mode: 0500
+  remote_user: openbach
+
+- name: Retrieve local settings if they Exist
+  local_settings:
+    path: /opt/openbach/controller/backend/backend/
+    interpreter: /opt/openbach/virtualenv/bin/python3
+  remote_user: openbach
+
+- name: Set up PgBouncer Users Database
+  template:
+    src: pgbouncer_auth_file.j2
+    dest: /opt/openbach/controller/backend/backend/pgbouncer_auth.txt
+    mode: 0640
+    owner: postgres
+    group: postgres
+  become: yes
+  notify: restart pgbouncer
+
+- meta: flush_handlers
+
+- name: Set up local settings
+  template:
+    src: backend_settings.py.j2
+    dest: /opt/openbach/controller/backend/backend/local_settings.py
+    mode: 0600
+  remote_user: openbach
+
+- name: Create the Backend's Database Admin User
+  postgresql_user:
+    name: openbach
+    password: "{{ openbach_local_settings_database_password }}"
+    role_attr_flags: CREATEDB
+  become: yes
+  become_user: postgres
+
+- name: Create the Backend's Database
+  postgresql_db:
+    name: openbach_db
+    owner: openbach
+    state: present
+  become: yes
+  become_user: postgres
+  register: openbach_backend_database
+
+- block:
+    - name: Initialize the Backend's Database
+      shell: /opt/openbach/virtualenv/bin/python3 /opt/openbach/controller/backend/manage.py migrate --no-input
+      remote_user: openbach
+      register: openbach_database_migration
+      ignore_errors: yes
+
+    - fail:
+        msg: Impossible to apply the current schema to your controller database. You may want to drop the openbach database manually to proceed further.
+      when: openbach_database_migration.failed and openbach_database_migration.stdout_lines[-1] != '  Applying openbach_django.0001_openbach_2_0_0...'
+
+    - name: Fake the Initialization of the Backend's Database
+      shell: /opt/openbach/virtualenv/bin/python3 /opt/openbach/controller/backend/manage.py migrate --no-input --fake-initial
+      remote_user: openbach
+      when: openbach_database_migration.failed
+
+    - name: Setup Default Superuser Name and Password
+      set_fact:
+        openbach_backend_admin_name: "{{ openbach_backend_admin_name | default('openbach') }}"
+        openbach_backend_admin_password: "{{ openbach_backend_admin_password | default('openbach') }}"
+      tags:
+        - consider_safe_network
+    - name: Manage Superusers in the Backend's Database
+      openbach_superuser:
+        manager: /opt/openbach/virtualenv/bin/python3 /opt/openbach/controller/backend/manage.py
+      remote_user: openbach
+
+  when: openbach_restore_host is not defined
+
+- block:
+    - name: Extract Backup Files
+      unarchive:
+        src: "{{ openbach_archive_root }}/{{ openbach_restore_host }}/openbach_controller.tar.gz"
+        dest: "/"
+
+    - fail:
+        msg: >
+          It appears that a previous OpenBACH database is still present in
+          the Controller. To avoid loss of data we won't overwrite it. If
+          you know what you’re doing, remove this database manually before
+          retrying; or run the playbook with the
+          '--skip-tags restore_backend_database' option.
+      when: not openbach_backend_database.changed
+      tags:
+        - restore_backend_database
+
+    - name: Lookup for Database Dump Filename
+      find:
+        paths: /tmp
+        recurse: no
+        patterns: openbach_controller_backup_*.sql
+      register: openbach_sql_dump
+      failed_when: (openbach_sql_dupm.files | count) != 1
+
+    - name: Store Database Dump Filename
+      set_fact:
+        openbach_sql_dump_file: "{{ openbach_sql_dump.files | map(attribute='path') | first }}"
+
+    - name: Fix Permissions of Database Dump File so Postgres Can Read It
+      file:
+        path: "{{ openbach_sql_dump_file }}"
+        owner: postgres
+        group: postgres
+      become: yes
+
+    - name: Restore Backend's Database Content
+      postgresql_db:
+        name: openbach_db
+        owner: openbach
+        state: restore
+        target: "{{ openbach_sql_dump_file }}"
+      become: yes
+      become_user: postgres
+      tags:
+        - restore_backend_database
+
+    - name: Remove Extracted Files
+      file:
+        path: "{{ openbach_sql_dump_file }}"
+        state: absent
+      become: yes
+
+  remote_user: openbach
+  when: openbach_restore_host is defined
+
+- name: Collect Django's static files
+  shell: /opt/openbach/virtualenv/bin/python3 /opt/openbach/controller/backend/manage.py collectstatic --no-input
+  remote_user: openbach
+
+- name: Create services
+  copy: src={{ item }}.service dest=/etc/systemd/system/ mode=0644
+  with_items:
+    - openbach_conductor
+    - openbach_director
+  become: yes
+
+- name: Install services
+  template: src=openbach_backend.service.j2 dest=/etc/systemd/system/openbach_backend.service mode=0644
+  become: yes
+
+- name: Copy the sources of the Agent
+  block:
+    - synchronize:
+        src: ../src/agent/
+        dest: /opt/openbach/controller/src/agent/
+        recursive: yes
+        delete: yes
+        rsync_opts:
+          - --exclude
+          - __pycache__
+      remote_user: openbach
+  rescue:
+    - synchronize:
+        src: ../src/agent/
+        dest: /opt/openbach/controller/src/agent/
+        recursive: yes
+        delete: yes
+        rsync_opts:
+          - --exclude=__pycache__
+      remote_user: openbach
+
+- name: Copy the installation Playbooks
+  block:
+    - synchronize:
+        src: ../ansible/{{ item }}/
+        dest: /opt/openbach/controller/ansible/{{ item }}/
+        recursive: yes
+        delete: yes
+        rsync_opts:
+          - --exclude
+          - __pycache__
+          - --exclude
+          - '*.pyc'
+      with_items:
+        - roles
+        - library
+        - action_plugins
+        - filter_plugins
+      remote_user: openbach
+  rescue:
+    - synchronize:
+        src: ../ansible/{{ item }}/
+        dest: /opt/openbach/controller/ansible/{{ item }}/
+        recursive: yes
+        delete: yes
+        rsync_opts:
+          - --exclude=__pycache__
+          - --exclude=*.pyc
+      with_items:
+        - roles
+        - library
+        - action_plugins
+        - filter_plugins
+      remote_user: openbach
+
+- name: Place a Link to /opt/openbach/pip_mirror so that Playbooks can Find it
+  file: path=/opt/openbach/controller/pip_mirror src=/opt/openbach/pip_mirror state=link
+  remote_user: openbach
+
+- name: Copy the Sources of the Core Jobs
+  block:
+    - synchronize:
+        src: ../src/jobs/
+        dest: /opt/openbach/controller/src/jobs/
+        recursive: yes
+        delete: yes
+        rsync_opts:
+          - --exclude
+          - __pycache__
+          - --filter
+          - P private_jobs
+      remote_user: openbach
+  rescue:
+    - synchronize:
+        src: ../src/jobs/
+        dest: /opt/openbach/controller/src/jobs/
+        recursive: yes
+        delete: yes
+        rsync_opts:
+          - --exclude=__pycache__
+          - --filter='P private_jobs'
+      remote_user: openbach
+
+- name: Copy the Sources of the User-provided Jobs
+  block:
+    - synchronize:
+        src: "{{ item }}"
+        dest: /opt/openbach/controller/src/jobs/private_jobs/
+        recursive: yes
+        delete: no
+        rsync_opts:
+          - --exclude
+          - __pycache__
+      with_items:
+        - "{{ openbach_jobs_folders }}"
+      remote_user: openbach
+  rescue:
+    - synchronize:
+        src: "{{ item }}"
+        dest: /opt/openbach/controller/src/jobs/private_jobs/
+        recursive: yes
+        delete: no
+        rsync_opts:
+          - --exclude=__pycache__
+      with_items:
+        - "{{ openbach_jobs_folders }}"
+      remote_user: openbach
+  when:
+    - openbach_restore_host is not defined
+    - openbach_jobs_folders is defined and openbach_jobs_folders
+
+- name: Copy the version file on the Controller
+  copy: src=../version dest=/opt/openbach/controller/version
+  remote_user: openbach

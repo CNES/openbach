@@ -1,0 +1,200 @@
+#   OpenBACH is a generic testbed able to control/configure multiple
+#   network/physical entities (under test) and collect data from them. It is
+#   composed of an Auditorium (HMIs), a Controller, a Collector and multiple
+#   Agents (one for each network entity that wants to be tested).
+#   
+#   
+#   Copyright © 2016-2023 CNES
+#   
+#   
+#   This file is part of the OpenBACH testbed.
+#   
+#   
+#   OpenBACH is a free software : you can redistribute it and/or modify it under
+#   the terms of the GNU General Public License as published by the Free Software
+#   Foundation, either version 3 of the License, or (at your option) any later
+#   version.
+#   
+#   This program is distributed in the hope that it will be useful, but WITHOUT
+#   ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS
+#   FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+#   details.
+#   
+#   You should have received a copy of the GNU General Public License along with
+#   this program. If not, see http://www.gnu.org/licenses/.
+
+---
+
+- name: Install apt Dependencies
+  apt:
+    pkg:
+      - libfontconfig
+      - nginx-extras
+    state: present
+  become: yes
+  environment: "{{ openbach_proxy_env }}"
+
+- name: Install apt Dependencies from Upstream
+  apt:
+    deb: "{{ item }}"
+  with_items:
+    - https://dl.influxdata.com/chronograf/releases/chronograf_{{ chronograf_version }}_amd64.deb
+    - https://artifacts.elastic.co/downloads/kibana/kibana-{{ kibana_version }}-amd64.deb
+  become: yes
+  environment: "{{ openbach_proxy_env }}"
+
+- name: Configure Chronograf
+  template: src=chronograf.j2 dest=/etc/default/chronograf mode=0640
+  become: yes
+
+- name: Configure Kibana
+  template: src=kibana.yml.j2 dest=/etc/kibana/kibana.yml
+  vars:
+    collector_ip: "{{ openbach_collector }}"
+  become: yes
+
+- name: Configure Kibana environement variables 
+  lineinfile: path=/etc/default/kibana line="NODE_OPTIONS=--max-old-space-size=512"
+  become: yes
+
+- name: Configure Nginx
+  template: src=default.j2 dest=/etc/nginx/sites-available/default
+  vars:
+    controller_ip: "{{ openbach_controller | mandatory }}"
+    auditorium_ip: "{{ inventory_hostname }}"
+    collector_ip: "{{ openbach_collector | mandatory }}"
+  become: yes
+
+- name: Create OpenBACH repository
+  file: path=/opt/openbach/auditorium/frontend state=directory
+  remote_user: openbach
+
+- name: Upload Auditorium Frontend
+  synchronize: src=frontend/ dest=/opt/openbach/auditorium/frontend/ recursive=yes delete=yes
+  remote_user: openbach
+
+- name: Restart OpenBACH Services
+  systemd: name={{ item }} state=restarted enabled=yes daemon_reload=yes
+  with_items:
+    - kibana
+    - chronograf
+    - nginx
+  become: yes
+
+- block:
+    - name: Wait for Kibana to Start
+      wait_for: port={{ kibana_port }} timeout=60
+
+    - name: Check if Kibana dashboard exists
+      uri:
+        url: http://localhost:{{ kibana_port }}/api/saved_objects/{{ item.url }}
+        method: GET
+        status_code: 200, 404
+        headers:
+          kbn-version: "6.2.4"
+          kbn-name: "kibana"
+          kbn-xsrf: "reporting"
+      with_items:
+        - { filename: 'vertical_bar.json', url: 'visualization/vertical_bar'}
+        - { filename: 'pie.json', url: 'visualization/pie', result: 'pie_response' }
+        - { filename: 'index_pattern.json', url: 'index-pattern/default_logstash_index', }
+        - { filename: 'log_search.json', url: 'search/log_search' }
+        - { filename: 'dashboard.json', url: 'dashboard/default_dashboard' }
+      register: responses
+
+    - block:
+      - name: Configure Kibana dashboard
+        uri:
+          url: http://localhost:{{ kibana_port }}/api/saved_objects/{{ item.url }}
+          method: "{{ 'PUT' if (item.code == '200') else 'POST' }}"
+          body: "{{ lookup('file', item.filename) }}"
+          status_code: 200, 201
+          body_format: json
+          headers:
+            kbn-version: "6.2.4"
+            kbn-name: "kibana"
+            kbn-xsrf: "reporting"
+        with_items:
+          - { filename: 'vertical_bar.json', url: 'visualization/vertical_bar', code: "{{responses.results[0].status}}" }
+          - { filename: 'pie.json', url: 'visualization/pie', code: "{{responses.results[1].status}}" }
+          - { filename: 'index_pattern.json', url: 'index-pattern/default_logstash_index', code: "{{responses.results[2].status}}" }
+          - { filename: 'log_search.json', url: 'search/log_search', code: "{{responses.results[3].status}}" }
+          - { filename: 'dashboard.json', url: 'dashboard/default_dashboard', code: "{{responses.results[4].status}}" }
+      rescue:
+      - name: Remove Old Kibana Index
+        uri:
+          url: http://{{ openbach_collector }}:{{ elasticsearch_port }}/.kibana
+          method: DELETE
+          user: "elastic"
+          password: "elastic"
+
+      - name: Configure Kibana dashboard
+        uri:
+          url: http://localhost:{{ kibana_port }}/api/saved_objects/{{ item.url }}
+          method: POST
+          body: "{{ lookup('file', item.filename) }}"
+          status_code: 200, 201
+          body_format: json
+          headers:
+            kbn-version: "6.2.4"
+            kbn-name: "kibana"
+            kbn-xsrf: "reporting"
+        with_items:
+          - { filename: 'vertical_bar.json', url: 'visualization/vertical_bar'}
+          - { filename: 'pie.json', url: 'visualization/pie'}
+          - { filename: 'index_pattern.json', url: 'index-pattern/default_logstash_index'}
+          - { filename: 'log_search.json', url: 'search/log_search'}
+          - { filename: 'dashboard.json', url: 'dashboard/default_dashboard'}
+  when: openbach_restore_host is not defined
+
+- name: Wait for Chronograf to Start
+  wait_for: port={{ chronograf_port }} timeout=60
+
+- block:
+    - name: Extract Backup Files
+      unarchive:
+        src: "{{ openbach_archive_root }}/{{ openbach_restore_host }}/openbach_auditorium.tar.gz"
+        dest: "/tmp/"
+
+    - name: Lookup for Chronograf Dump Folder
+      find:
+        paths: /tmp
+        recurse: no
+        patterns: openbach_auditorium_backup_*_chronograf
+        file_type: directory
+      register: openbach_chronograf_dump_folder
+      failed_when: (openbach_chronograf_dump_folder.files | count) != 1
+
+    - name: Store Chronograf Dump Folder Name
+      set_fact:
+        openbach_chronograf_dump_folder_name: "{{ openbach_chronograf_dump_folder.files | map(attribute='path') | first }}"
+
+    - name: Lookup for Chronograf Dump Filename
+      find:
+        paths: "{{ openbach_chronograf_dump_folder_name }}"
+        recurse: no
+        patterns: '*'
+      register: openbach_chronograf_dump
+
+    - name: Restore Chronograf Dashboards
+      uri:
+        url: http://localhost:{{ chronograf_port }}/chronograf/v1/dashboards
+        method: POST
+        src: "{{ item.path }}"
+        remote_src: yes
+        status_code: 201
+        body_format: json
+      loop: "{{ openbach_chronograf_dump.files }}"
+      loop_control:
+        label: "{{ item.path }}"
+
+    - name: Remove Extracted Files
+      file:
+        path: "{{ openbach_chronograf_dump_folder_name }}"
+        state: absent
+  remote_user: openbach
+  when: openbach_restore_host is defined
+
+- name: Copy the version file on the Auditorium
+  copy: src=../version dest=/opt/openbach/auditorium/version
+  remote_user: openbach

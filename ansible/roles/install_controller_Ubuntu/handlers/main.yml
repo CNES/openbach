@@ -25,5 +25,12 @@
 
 ---
 
-- include_role:
-    name: "install_auditorium_{{ ansible_distribution }}"
+- name: restart pgbouncer
+  systemd: name=pgbouncer state=restarted enabled=yes daemon_reload=yes
+  become: yes
+  notify:
+    - restart postgresql
+
+- name: restart postgresql
+  systemd: name=postgresql state=restarted enabled=yes daemon_reload=yes
+  become: yes

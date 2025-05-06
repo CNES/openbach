@@ -25,5 +25,6 @@
 
 ---
 
-- include_role:
-    name: "install_auditorium_{{ ansible_distribution }}"
+elasticsearch_version: 9.0.0
+influxdb_version: 1.7.1
+logstash_version: 9.0.0

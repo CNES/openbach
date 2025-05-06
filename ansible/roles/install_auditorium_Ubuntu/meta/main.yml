@@ -25,5 +25,5 @@
 
 ---
 
-- include_role:
-    name: "install_auditorium_{{ ansible_distribution }}"
+dependencies:
+  - role: install_base
