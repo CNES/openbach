@@ -58,11 +58,15 @@ platform_configuration:
     command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/summary_agent_comparisond/summary_agent_comparison.py'
     command_stop:
   - ansible_system: 'Debian'
-    ansible_distribution: De'bian
+    ansible_distribution: 'Debian'
     ansible_distribution_version: '12.10'
     command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/summary_agent_comparisond/summary_agent_comparison.py'
     command_stop:
-
+  - ansible_system: 'Debian'
+    ansible_distribution: 'Debian'
+    ansible_distribution_version: '12.11'
+    command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/summary_agent_comparisond/summary_agent_comparison.py'
+    command_stop:
 
 arguments:
   required:

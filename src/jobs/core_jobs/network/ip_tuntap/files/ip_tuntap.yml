@@ -53,12 +53,17 @@ platform_configuration:
     ansible_distribution_version: '24.04'
     command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/ip_tuntap/ip_tuntap.py'
     command_stop:
-    - ansible_system: 'Debian'
+  - ansible_system: 'Debian'
     ansible_distribution: 'Debian'
     ansible_distribution_version: '12.10'
     command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/ip_tuntap/ip_tuntap.py'
     command_stop:
-
+    - ansible_system: 'Debian'
+    ansible_distribution: 'Debian'
+    ansible_distribution_version: '12.11'
+    command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/ip_tuntap/ip_tuntap.py'
+    command_stop:
+    
 arguments:
   required:
     - name: command

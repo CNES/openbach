@@ -56,6 +56,12 @@ platform_configuration:
     ansible_distribution_version: '12.10'
     command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/send_stats/send_stats.py'
     command_stop:
+  - ansible_system: 'Debian'
+    ansible_distribution: 'Debian'
+    ansible_distribution_version: '12.11'
+    command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/send_stats/send_stats.py'
+    command_stop:
+
 
 arguments:
   required:
