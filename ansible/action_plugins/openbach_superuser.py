@@ -48,9 +48,9 @@ except ImportError:
 
 
 def display_message(message, color=None):
-    msg = to_bytes(message, encoding=display._output_encoding(stderr=False))
+    msg = to_bytes(message, encoding="utf-8")
     if PY3:
-        msg = to_text(msg, display._output_encoding(stderr=False), errors='replace')
+        msg = to_text(msg, "utf-8", errors='replace')
 
     sys.stdout.write(msg)
     try:
@@ -185,7 +185,7 @@ class ActionModule(ActionBase):
         #  - is created;
         #  - has the provided password;
         #  - is admin.
-        changed, = self.remote_shell(result, cmd, """\
+        changed = self.remote_shell(result, cmd, """\
                 from django.contrib.auth.models import User
                 user = User.objects.filter(username='{0}').last()
                 changed = user is None or (not user.check_password('{1}') or not user.is_active or not user.is_staff)

@@ -32,6 +32,7 @@ filter {
 		mutate {
 			remove_field => "message"
 			rename => { "_metadata" => "@metadata" }
+			remove_field => "event"
 			# Put back the field we just overwrite & Save important fields for export (InfluxDB + broadcast)
 			add_field => {
 				"[@metadata][type]" => "stats"
@@ -55,7 +56,7 @@ filter {
 
 	# If the type is 'logs', we add the flag (broadcast on severity ERROR or more)
 	if [@metadata][type] == "logs" {
-		if [severity] <= 3 {
+		if [log][syslog][severity][code] <= 3 {
 			mutate {
 				add_field => { "[@metadata][flag]" => 3 }
 			}
@@ -70,7 +71,7 @@ filter {
 		}
 		mutate {
 			convert => { "[@metadata][flag]" => "integer" }
-			remove_field => [ "tags", "type", "port" ]
+			remove_field => [ "tags", "type", "port" ,"event" ]
 		}
 		if "_grokparsefailure" in [tags] {
 			mutate {

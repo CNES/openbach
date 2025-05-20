@@ -24,18 +24,6 @@
 #   this program. If not, see http://www.gnu.org/licenses/.
 
 ---
-# - name: Add openjdk repository
-#   get_url:
-#     url: "http://www.mirbsd.org/~tg/Debs/sources.txt/wtf-bookworm.sources"
-#     dest: "/etc/apt/sources.list.d/"
-#     force: yes
-#   become: yes
-#   environment: "{{ openbach_proxy_env }}"
-# - name: Update apt cache
-#   apt:
-#     update_cache: yes
-#   become: yes
-#   environment: "{{ openbach_proxy_env }}"
 - name: Install APT Dependencies
   apt:
     name:
@@ -79,37 +67,6 @@
   copy:
     src: logstash-offline-plugins.zip
     dest: /tmp/
-    
-# - name: Generate Elasticsearch CA certificate
-#   command: /usr/share/elasticsearch/bin/elasticsearch-certutil ca --out http-ca.p12 --pass elastic -s 
-#   args:
-#     chdir: /usr/share/elasticsearch
-#     creates: http-ca.p12
-#   become: yes
-#   become_user: elasticsearch
-
-# - name: Configure TLS certificate for elasticsearch nodes
-#   expect: 
-#     command: /usr/share/elasticsearch/bin/elasticsearch-certutil http -s
-#     chdir: /usr/share/elasticsearch
-#     creates: elasticsearch-ssl-http.zip
-#     responses:
-#       "Generate a CSR? [y/N]": n
-#       "Use an existing CA? [y/N]": y
-#       "CA Path:": /usr/share/elasticsearch/http-ca.p12
-#       "Password for http-ca.p12:": elastic
-#       "For how long should your certificate be valid? [5y]": 
-#       "Generate a certificate per node? [y/N]": n
-#       "Enter all the hostnames that you need, one per line.": collector
-#       "Is this correct [Y/n]": y
-#       "Enter all the IP addresses that you need, one per line.": 0.0.0.0
-#       "Is this correct [Y/n]": y
-#       "Do you wish to change any of these options? [y/N]": n
-#       'Provide a password for the "http.p12" file:' : elastic
-#       'Repeat password to confirm:': elastic
-#       "What filename should be used for the output zip file? [/usr/share/elasticsearch/elasticsearch-ssl-http.zip]": /usr/share/elasticsearch/elasticsearch-ssl-http.zip
-#   become: yes
-#   become_user: elasticsearch
 
 - name: Configure Elasticsearch
   template:
@@ -144,6 +101,17 @@
     job: /etc/cron.daily/curator_cronjob.py
   become: yes
 
+- name: Check if Token exist for kibana 
+  command: /usr/share/elasticsearch/bin/elasticsearch-service-tokens list elastic/kibana 
+  register: tokens
+  changed_when: false
+  become: yes
+
+- name: Create kibana Service Account Token
+  command: /usr/share/elasticsearch/bin/elasticsearch-service-tokens create elastic/kibana kibana_token
+  become: yes
+  when: "'kibana_token' not in tokens.stdout"
+
 - name: Configure Logstash
   template:
     src: collector.conf.j2
@@ -167,25 +135,10 @@
     executable: /bin/bash
     creates: ~logstash/vendor/bundle/jruby/2.3.0/gems/logstash-output-influxdb-5.0.5
   become: yes
-  #become_user: logstash
   vars:
     # The install user and the logstash user most likely do not share any group
     # so ask Ansible to push its script world readable so :become: do work
     ansible_shell_allow_world_readable_temp: yes
-
-# - name: Remove problematic log4j vulnerability
-#   shell: zip -q -d logstash-core/lib/jars/log4j-core-2.* org/apache/logging/log4j/core/lookup/JndiLookup.class
-#   args:
-#     chdir: '~logstash'
-#     executable: /bin/bash
-#   become: yes
-#   become_user: logstash
-#   vars:
-#     # The install user and the logstash user most likely do not share any group
-#     # so ask Ansible to push its script world readable so :become: do work
-#     ansible_shell_allow_world_readable_temp: yes
-#   register: openbach_log4j_vulnerability
-#   failed_when: openbach_log4j_vulnerability.rc != 0 and openbach_log4j_vulnerability.rc != 12
 
 - name: Set the Port to use by InfluxDB
   replace:

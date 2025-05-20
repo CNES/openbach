@@ -87,12 +87,12 @@
 
     - name: Wait for kibana server to get ready
       uri:
-        url: http://localhost:{{ kibana_port }}/api/visualization/vertical_bar
+        url: http://localhost:{{ kibana_port }}/api/saved_objects/lens/vertical_bar
         method: GET
         status_code: 200, 404
       register: responses
       until: responses.status not in  [503,-1]
-      retries: 5
+      retries: 10
       delay: 5
       
 
@@ -104,33 +104,35 @@
         headers:
           kbn-version: "9.0.0"
           kbn-name: "kibana"
-          kbn-xsrf: "reporting"
+          kbn-xsrf: "true"
       with_items:
-        - { filename: 'vertical_bar.json', url: 'visualization/vertical_bar'}
-        - { filename: 'pie.json', url: 'visualization/pie', result: 'pie_response' }
-        - { filename: 'index_pattern.json', url: 'index-pattern/default_logstash_index', }
-        - { filename: 'log_search.json', url: 'search/log_search' }
-        - { filename: 'dashboard.json', url: 'dashboard/default_dashboard' }
+        - { filename: 'index_pattern.ndjson', url: 'index-pattern/default_logstash_index', }
+        - { filename: 'vertical_bar.ndjson', url: 'lens/vertical_bar'}
+        - { filename: 'pie.ndjson', url: 'lens/pie', result: 'pie_response' }
+        - { filename: 'log_search.ndjson', url: 'search/log_search' }
+        - { filename: 'dashboard.ndjson', url: 'dashboard/default_dashboard' }
       register: responses
 
     - block:
       - name: Configure Kibana dashboard
         uri:
-          url: http://localhost:{{ kibana_port }}/api/saved_objects/{{ item.url }}
-          method: "{{ 'PUT' if (item.code == '200') else 'POST' }}"
-          body: "{{ lookup('file', item.filename) }}"
+          url: http://localhost:{{ kibana_port }}/api/saved_objects/_import?overwrite=true
+          method: POST
+          body: 
+            file: 
+              filename: "{{ item.filename }}"
           status_code: 200, 201
-          body_format: json
+          body_format: form-multipart
           headers:
             kbn-version: "9.0.0"
             kbn-name: "kibana"
-            kbn-xsrf: "reporting"
+            kbn-xsrf: "true"
         with_items:
-          - { filename: 'vertical_bar.json', url: 'visualization/vertical_bar', code: "{{responses.results[0].status}}" }
-          - { filename: 'pie.json', url: 'visualization/pie', code: "{{responses.results[1].status}}" }
-          - { filename: 'index_pattern.json', url: 'index-pattern/default_logstash_index', code: "{{responses.results[2].status}}" }
-          - { filename: 'log_search.json', url: 'search/log_search', code: "{{responses.results[3].status}}" }
-          - { filename: 'dashboard.json', url: 'dashboard/default_dashboard', code: "{{responses.results[4].status}}" }
+          - { filename: 'index_pattern.ndjson', url: 'index-pattern/default_logstash_index', code: "{{responses.results[2].status}}" }
+          - { filename: 'vertical_bar.ndjson', url: 'lens/vertical_bar', code: "{{responses.results[0].status}}" }
+          - { filename: 'pie.ndjson', url: 'lens/pie', code: "{{responses.results[1].status}}" }
+          - { filename: 'log_search.ndjson', url: 'search/log_search', code: "{{responses.results[3].status}}" }
+          - { filename: 'dashboard.ndjson', url: 'dashboard/default_dashboard', code: "{{responses.results[4].status}}" }
       rescue:
       - name: Remove Old Kibana Index
         uri:
@@ -141,21 +143,23 @@
 
       - name: Configure Kibana dashboard
         uri:
-          url: http://localhost:{{ kibana_port }}/api/saved_objects/{{ item.url }}
+          url: http://localhost:{{ kibana_port }}/api/saved_objects/_import?overwrite=true
           method: POST
-          body: "{{ lookup('file', item.filename) }}"
+          body: 
+            file: 
+              filename: "{{ item.filename }}"
           status_code: 200, 201
-          body_format: json
+          body_format: form-multipart
           headers:
             kbn-version: "9.0.0"
             kbn-name: "kibana"
             kbn-xsrf: "reporting"
         with_items:
-          - { filename: 'vertical_bar.json', url: 'visualization/vertical_bar'}
-          - { filename: 'pie.json', url: 'visualization/pie'}
-          - { filename: 'index_pattern.json', url: 'index-pattern/default_logstash_index'}
-          - { filename: 'log_search.json', url: 'search/log_search'}
-          - { filename: 'dashboard.json', url: 'dashboard/default_dashboard'}
+          - { filename: 'index_pattern.ndjson', url: 'index-pattern/default_logstash_index'}
+          - { filename: 'vertical_bar.ndjson', url: 'lens/vertical_bar'}
+          - { filename: 'pie.ndjson', url: 'lens/pie'}
+          - { filename: 'log_search.ndjson', url: 'search/log_search'}
+          - { filename: 'dashboard.ndjson', url: 'dashboard/default_dashboard'}
   when: openbach_restore_host is not defined
 
 - name: Wait for Chronograf to Start
