@@ -378,8 +378,8 @@ job for an example using most of these capabilities.
 ## Installing a job
 
 Installing a job can be done through:
-  * a Web Interface (see the "Manage jobs" section of the [[openbach:manuals:2.x:administrator_manual:web_interface:index|Web Interface Administrator Manual]])
-  * a Command Line Interface (see the [[openbach:manuals:2.x:administrator_manual:command_line_interface:index|Command Line Interface Administrator Manual]])
+  * a Web Interface (see the "Manage jobs" section of the [Web Interface Administrator Manual](../auditorium/README.md))
+  * a Command Line Interface (see the [Auditorium Scripts in openbach-extra repository](https://github.com/CNES/openbach-extra/blob/master/apis/auditorium_scripts/README.md))
 
 ## Debugging
 
