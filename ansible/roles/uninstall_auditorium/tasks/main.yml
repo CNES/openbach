@@ -30,11 +30,11 @@
   with_items:
     - nginx
     - kibana
-    - grafana-server
+    - chronograf
   become: yes
 
-- name: Remove Grafana Config Files
-  file: path=/etc/grafana/grafana.ini state=absent
+- name: Remove chronograf Config Files
+  file: path=/etc/default/chronograf state=absent
   become: yes
 
 - name: Remove Kibana Config Files
@@ -44,7 +44,7 @@
 - name: Remove Auditorium Packages
   apt:
     name:
-      - grafana
+      - chronograf
       - kibana
     state: absent
     purge: yes

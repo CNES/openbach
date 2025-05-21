@@ -32,7 +32,7 @@ general:
       generate UDP/TCP traffic with configured parameters (duration,
       bandwidth, parallel flows, ToS, MSS, etc.). It measures
       throughput, sent/lost packets, jitter, etc. 
-  job_version: '2.11'
+  job_version: '2.12'
   keywords:
     - iperf
     - iperf3
@@ -48,12 +48,17 @@ platform_configuration:
   - ansible_system: 'Debian'
     ansible_distribution: 'Ubuntu'
     ansible_distribution_version: '20.04'
-    command: '/usr/bin/env python3 /opt/openbach/agent/jobs/iperf3/iperf3.py'
+    command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/iperf3/iperf3.py'
     command_stop:
   - ansible_system: 'Debian'
     ansible_distribution: 'Ubuntu'
     ansible_distribution_version: '22.04'
-    command: '/usr/bin/env python3 /opt/openbach/agent/jobs/iperf3/iperf3.py'
+    command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/iperf3/iperf3.py'
+    command_stop:
+  - ansible_system: 'Debian'
+    ansible_distribution: 'Ubuntu'
+    ansible_distribution_version: '24.04'
+    command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/iperf3/iperf3.py'
     command_stop:
 
 arguments:

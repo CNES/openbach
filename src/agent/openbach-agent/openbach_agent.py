@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/opt/openbach/virtualenv/bin/env python3
 
 # OpenBACH is a generic testbed able to control/configure multiple
 # network/physical entities (under test) and collect data from them. It is
@@ -55,7 +55,7 @@ from contextlib import suppress, contextmanager
 
 import yaml
 import psutil
-from pkg_resources import parse_version as version
+from packaging.version import parse as version
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.jobstores.base import JobLookupError, ConflictingIdError
 from apscheduler.triggers.interval import IntervalTrigger
@@ -795,6 +795,7 @@ def read_subcommand_configuration(subcommand):
             count = arg['count']
             if count == '+':
                 required_count += 1
+                optional_found = True
             else:
                 if not isinstance(count, int):
                     counts = count.split('-')

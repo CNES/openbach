@@ -9,12 +9,15 @@
         - openbach_agent
       become: yes
       when: openbach_restart is defined and openbach_restart
+
     - name: Wait for Agent Service to Restart
       wait_for: port={{ openbach_agent_port }} timeout=60
       when: openbach_restart is defined and openbach_restart
+
     - name: Check Services Status
       service_facts:
       when: collect_metrics is defined and collect_metrics
+
     - name: Check NTP Status
       shell: ntpq -p
       when: collect_metrics is defined and collect_metrics

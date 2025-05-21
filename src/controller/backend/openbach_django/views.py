@@ -57,6 +57,7 @@ import yaml
 
 from .utils import send_fifo, extract_integer, user_to_json, build_storage_path
 
+
 class GenericView(base.View):
     """Base class for our own class-based views"""
 
@@ -82,7 +83,8 @@ class GenericView(base.View):
                 return JsonResponse(
                         status=400,
                         data={'error': 'API error: data should be sent as JSON in the request body'})
-
+        if 'vault_password' in request.JSON:
+            request.session['vault_password'] = request.JSON.pop('vault_password')
         try:
             response = super().dispatch(request, *args, **kwargs)
         except Exception:
@@ -119,6 +121,7 @@ class GenericView(base.View):
     def conductor_execute(self, **command):
         """Send a command to openbach_conductor"""
         command['_username'] = self.request.user.get_username()
+        command['vault_password'] = self.request.session.get('vault_password')
         response = send_fifo(command)
         result = json.loads(response)
         returncode = result.pop('returncode')
@@ -291,15 +294,37 @@ class AgentsView(BaseAgentView):
         """create a new agent"""
         command = 'attach_agent' if 'reattach' in request.GET else 'install_agent'
         try:
-            return self.conductor_execute(
-                    command=command,
-                    name=request.JSON['name'],
-                    address=request.JSON['address'],
-                    collector=request.JSON['collector_ip'],
-                    username=request.JSON.get('username'),
-                    password=request.JSON.get('password'),
-                    skip_playbook=request.JSON.get('skip_playbook', False),
-                    cookie=request.COOKIES.get('sessionid'))
+            parameters={
+            'command':command,
+            'name':request.JSON['name'],
+            'address':request.JSON['address'],
+            'collector':request.JSON['collector_ip'],
+            'username':request.JSON.get('username'),
+            'password':request.JSON.get('password'),
+            'http_proxy':request.JSON.get('http_proxy'),
+            'https_proxy':request.JSON.get('https_proxy'),
+            'skip_playbook':request.JSON.get('skip_playbook', False),
+            'cookie':request.COOKIES.get('sessionid')}
+
+            if 'private_file' in request.FILES and 'public_file' in request.FILES:
+                private_file=request.FILES['private_file']
+                public_file=request.FILES['public_file']
+
+                with tempfile.NamedTemporaryFile('wb', prefix='ansible-ssh-key-', delete=False) as private_key:
+                    private_storage = Path(private_key.name)
+                    public_storage = Path(private_key.name + '.pub')
+
+                with private_storage.open('wb') as private_key:
+                    for chunk in private_file.chunks() :
+                        private_key.write(chunk)
+
+                with public_storage.open('wb') as public_key:
+                    for chunk in public_file.chunks():
+                        public_key.write(chunk)
+                public_storage.chmod(mode=0o600)
+
+                parameters['private_key_file'] = private_storage.as_posix()
+            return self.conductor_execute(**parameters)
         except KeyError as e:
             return {'msg': 'Missing parameter {}'.format(e)}, 400
 
@@ -350,6 +375,13 @@ class AgentView(BaseAgentView):
                 command='set_log_severity_agent',
                 address=address, severity=severity,
                 local_severity=local_severity)
+
+    def _action_log_refresh(self, request, address):
+        """regenerate rsyslog configuration file"""
+
+        return self.conductor_execute(
+                command='regenerate_syslog_configuration',
+                address=address)
 
     def _action_reserve_project(self, request, address):
         """reserve this agent for the given project"""
@@ -569,7 +601,7 @@ class JobView(BaseJobView):
 
         return self.conductor_execute(
                 command='set_statistics_policy_job',
-                name=name, address=address, 
+                name=name, address=address,
                 config_file=self.request.JSON.get('config_file'),
                 stat_name=self.request.JSON.get('stat_name'),
                 path=self.request.JSON.get('path'),
@@ -837,7 +869,7 @@ class ProjectView(GenericView):
         """remove a project from the database"""
         return self.conductor_execute(
                 command='delete_project', name=project_name)
-    
+
     def post(self, request, project_name):
         """refresh a project's network topology"""
         if request.JSON:
@@ -1097,6 +1129,10 @@ class VersionView(GenericView):
             return {'msg': 'Cannot fetch version: {}'.format(e)}, 500
         return {'openbach_version': openbach_infos['version']}, 200
 
+    post = get
+    put = get
+    patch = get
+
 
 class Reboot(GenericView):
     """Manage actions to reboot an agent"""
@@ -1132,11 +1168,16 @@ class PushFile(GenericView):
         if isinstance(remote_path, str):
             remote_path = [remote_path]
 
-        users = request.JSON.get('users', [])
+        try:
+            users = request.JSON.getlist('users')
+        except AttributeError:
+            users = request.JSON.get('users', [])
         if users and len(users) != len(remote_path):
             return {'msg': 'POST data malformed: users and paths length mismatch'}, 400
-
-        groups = request.JSON.get('groups', [])
+        try:
+            groups = request.JSON.getlist('groups')
+        except AttributeError:
+            groups = request.JSON.get('groups', [])
         if groups and len(groups) != len(remote_path):
             return {'msg': 'POST data malformed: groups and paths length mismatch'}, 400
 
@@ -1220,7 +1261,7 @@ class DatabasesView(GenericView):
                 influxdb=influxdb,
                 elasticsearch=elasticsearch,
                 credentials=credentials)
- 
+
 
 def mock_generic_view(request, command, **kwargs):
     """Mock using a class-based view to contact the conductor"""

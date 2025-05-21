@@ -1,0 +1,7 @@
+---
+
+- hosts: all
+  tasks:
+    - name: Provide with debug informations
+      debug:
+        var: openbach_proxy_env

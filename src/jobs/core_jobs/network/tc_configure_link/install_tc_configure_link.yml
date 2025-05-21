@@ -26,15 +26,24 @@
 ---
 
 - name: Install dependencies
-  apt: name=iproute2 state=present
+  apt:
+    name:
+      - iproute2
+    state: present
   become: yes
   environment: "{{ openbach_proxies }}"
 
 - name: Create the tc_configure_link Job Repository
-  file: path=/opt/openbach/agent/jobs/{{ job_name }} state=directory mode=0755
+  file:
+    path: /opt/openbach/agent/jobs/{{ job_name }}
+    state: directory
+    mode: 0755
 
 - name: Install the tc_configure_link Job
-  copy: src={{ item.file }} dest=/opt/openbach/agent/jobs/{{ job_name }}/ mode={{ item.mode }}
+  copy:
+    src: "{{ item.file }}"
+    dest: /opt/openbach/agent/jobs/{{ job_name }}/
+    mode: "{{ item.mode }}"
   with_items:
     - { file: 'tc_configure_link.py', mode: '0755' }
     - { file: 'tc_configure_link_rstats_filter.conf', mode: '0644' }

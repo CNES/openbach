@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/opt/openbach/virtualenv/bin/python3
 
 # OpenBACH is a generic testbed able to control/configure multiple
 # network/physical entities (under test) and collect data from them. It is

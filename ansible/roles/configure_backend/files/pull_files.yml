@@ -20,5 +20,5 @@
         path: "{{ item.source }}"
         state: absent
       with_items: "{{ copy_parameters }}"
-      when: "{{ item.remove }}"
+      when: item.remove | default(False)
       become: yes

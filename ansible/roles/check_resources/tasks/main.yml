@@ -41,9 +41,9 @@
     cpu: "{{ ansible_facts.processor_vcpus | int }}"
     ipv4: "{{ ansible_facts.default_ipv4 }}"
     ipv6: "{{ ansible_facts.default_ipv6 }}"
-    required_disk: "{{ controller_disk if inventory_hostname in groups.controller else agent_disk }}"
-    required_ram: "{{ controller_ram if inventory_hostname in groups.controller else agent_ram }}"
-    required_cpu: "{{ controller_cpu if inventory_hostname in groups.controller else agent_cpu }}"
+    required_disk: "{{ controller_disk if 'controller' in groups and  inventory_hostname in groups.controller else agent_disk }}"
+    required_ram: "{{ controller_ram if 'controller' in groups and inventory_hostname in groups.controller else agent_ram }}"
+    required_cpu: "{{ controller_cpu if 'controller' in groups and inventory_hostname in groups.controller else agent_cpu }}"
 
 - name: Ensure the machine meets the requirements
   fail:
@@ -62,6 +62,6 @@
     cpu: "{{ ansible_facts.processor_vcpus }}"
     ipv4: "{{ ansible_facts.default_ipv4 }}"
     ipv6: "{{ ansible_facts.default_ipv6 }}"
-    required_disk: "{{ controller_disk if inventory_hostname in groups.controller else agent_disk }}"
-    required_ram: "{{ controller_ram if inventory_hostname in groups.controller else agent_ram }}"
-    required_cpu: "{{ controller_cpu if inventory_hostname in groups.controller else agent_cpu }}"
+    required_disk: "{{ controller_disk if 'controller' in groups and inventory_hostname in groups.controller else agent_disk }}"
+    required_ram: "{{ controller_ram if 'controller' in groups and inventory_hostname in groups.controller else agent_ram }}"
+    required_cpu: "{{ controller_cpu if 'controller' in groups and inventory_hostname in groups.controller else agent_cpu }}"

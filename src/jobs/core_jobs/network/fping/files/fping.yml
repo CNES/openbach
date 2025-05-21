@@ -31,7 +31,7 @@ general:
       This Job executes the fping command to measure the rtt delay of a
       group of ICMP packets (with a frequency of count*interval sec. or
       count packets).
-  job_version: '1.1'
+  job_version: '1.2'
   keywords:
     - ping
     - fping
@@ -46,12 +46,17 @@ platform_configuration:
   - ansible_system: 'Debian'
     ansible_distribution: 'Ubuntu'
     ansible_distribution_version: '20.04'
-    command: '/usr/bin/env python3 /opt/openbach/agent/jobs/fping/fping.py'
+    command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/fping/fping.py'
     command_stop:
   - ansible_system: 'Debian'
     ansible_distribution: 'Ubuntu'
     ansible_distribution_version: '22.04'
-    command: '/usr/bin/env python3 /opt/openbach/agent/jobs/fping/fping.py'
+    command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/fping/fping.py'
+    command_stop:
+  - ansible_system: 'Debian'
+    ansible_distribution: 'Ubuntu'
+    ansible_distribution_version: '24.04'
+    command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/fping/fping.py'
     command_stop:
 
 arguments:

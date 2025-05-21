@@ -56,3 +56,15 @@
     when: item.item == inventory_hostname
   tags:
     - configure_ntp_server
+
+- block:
+  - name: get vault password
+    pause:
+      prompt: Enter a Vault password
+      echo: no 
+    register: vault_pass
+    no_log: True
+    when: openbach_proxy_env
+
+  tags:
+    - encrypt_proxy_variable

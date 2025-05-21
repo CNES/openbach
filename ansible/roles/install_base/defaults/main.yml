@@ -27,4 +27,4 @@
 
 openbach_repository_gpg_key: https://raw.githubusercontent.com/CNES/net4sat-packages/master/gpg/net4sat.gpg.key
 openbach_repository:
-  - deb https://raw.githubusercontent.com/CNES/net4sat-packages/master/jammy/ jammy stable
+  - deb [signed-by=/etc/apt/keyrings/net4sat.gpg] https://raw.githubusercontent.com/CNES/net4sat-packages/master/noble/ noble stable

@@ -32,6 +32,8 @@
         folders: "{{ ['../src/jobs/'] + (openbach_jobs_folders | default([])) }}"
         limit: "{{ omit if installed_on is defined and installed_on in group_names else ((default_jobs + default_collector_jobs) if 'collector' in group_names or ('controller' in group_names and ('collector' not in groups or not groups.collector)) else default_jobs) }}"
         platforms: yes
+      vars:
+        ansible_python_interpreter:
       register: openbach_install_default_jobs
       when: jobs is not defined
 
@@ -73,6 +75,7 @@
           body:
             login: "{{ hostvars[openbach_controller].openbach_backend_admin_name | mandatory }}"
             password: "{{ hostvars[openbach_controller].openbach_backend_admin_password | mandatory }}"
+            vault_password: "{{ openbach_vault_pass | default(omit) }}"
         register: openbach_backend_login
         when: session_cookie is not defined
 
@@ -137,30 +140,6 @@
     group: openbach
   become: yes
   with_items: "{{ jobs | default([]) }}"
-
-- name: Set Default Logs Severity
-  template:
-    src: roles/configure_backend/files/rsyslog_job.j2
-    dest: /etc/rsyslog.d/{{ item.name }}.conf
-  vars:
-    job: "{{ item.name }}"
-    syslogseverity: 4
-    collector_ip: "{{ openbach_collector }}"
-  become: yes
-  with_items: "{{ jobs | default([]) }}"
-  notify: restart rsyslog
-  when: openbach_collector is defined
-
-- name: Set Default Logs Local Severity
-  template:
-    src: roles/configure_backend/files/rsyslog_job_local.j2
-    dest: /etc/rsyslog.d/{{ item.name }}_local.conf
-  vars:
-    job: "{{ item.name }}"
-    syslogseverity_local: 4
-  become: yes
-  with_items: "{{ jobs | default([]) }}"
-  notify: restart rsyslog
 
 - name: Inform Agent that a new Job is Installed
   job_description:

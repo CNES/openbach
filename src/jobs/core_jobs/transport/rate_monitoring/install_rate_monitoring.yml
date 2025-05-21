@@ -29,10 +29,10 @@
   pip:
     name: python-iptables
     version: 0.12.0
-    executable: pip3
-  become: yes
+    virtualenv: /opt/openbach/virtualenv
   environment: "{{ openbach_proxies }}"
-  
+  remote_user: openbach
+
 - name: Create the Rate Monitoring Job Repository
   file:
     path: /opt/openbach/agent/jobs/{{ job_name }}

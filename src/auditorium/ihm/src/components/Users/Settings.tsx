@@ -1,149 +1,195 @@
-import * as React from "react";
-import {FormProps, reduxForm} from "redux-form";
+import React from 'react';
+import {useForm, Controller} from 'react-hook-form';
 
-import RaisedButton from "material-ui/RaisedButton";
-import {grey500, red500} from "material-ui/styles/colors";
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import Divider from '@mui/material/Divider';
+import TextField from '@mui/material/TextField';
 
-import {ILoginCredentials} from "../../interfaces/login.interface";
-import {FormField, TextFormField} from "../common/Form";
-import PaddedContainer from "../common/PaddedContainer";
+import {grey, red} from '@mui/material/colors';
+
+import {updateUser} from '../../api/login';
+import {useSelector, useDispatch} from '../../redux';
+import {setMessage, setTitle} from '../../redux/message';
+import type {FieldErrors} from 'react-hook-form';
 
 
-class Settings extends React.Component<IProps & FormProps<IFields, {}, {}>, {}> {
-    constructor(props) {
-        super(props);
-        this.applyChanges = this.applyChanges.bind(this);
-    }
-
-    public render() {
-        const {username, name, is_user} = this.props.login;
-        let title = "User settings for " + username;
-        if (name) {
-            title = title + " (" + name + ")";
-        }
-
-        return (
-            <PaddedContainer>
-                <h1>{title}</h1>
-                {is_user ? <div /> : <p style={{color: red500}}>Your account is not activated, please contact your administrator</p>}
-                <form>
-                    <h2 style={{marginTop: "32px"}}>Profile</h2>
-                    <div><FormField
-                        name="email"
-                        component={TextFormField}
-                        fullWidth={true}
-                        text="Email"
-                    /></div>
-                    <div><FormField
-                        name="firstName"
-                        component={TextFormField}
-                        fullWidth={true}
-                        text="First Name"
-                    /></div>
-                    <div><FormField
-                        name="lastName"
-                        component={TextFormField}
-                        fullWidth={true}
-                        text="Last Name"
-                    /></div>
-                    <h2 style={{marginTop: "32px"}}>Change password</h2>
-                    <p style={{color: grey500}}>Fill in the following fields only if you want to change your password</p>
-                    <div><FormField
-                        name="password"
-                        component={TextFormField}
-                        fullWidth={true}
-                        text="Password"
-                        type="password"
-                    /></div>
-                    <div><FormField
-                        name="password2"
-                        component={TextFormField}
-                        fullWidth={true}
-                        text="Confirm Password"
-                        type="password"
-                    /></div>
-                </form>
-                <div style={{margin: "16px", textAlign: "right"}}>
-                    <RaisedButton
-                        label="Modify User Settings"
-                        secondary={true}
-                        disabled={this.props.pristine}
-                        onClick={this.applyChanges}
-                        style={{margin: "16px"}}
-                    />
-                </div>
-            </PaddedContainer>
-        );
-    }
-
-    public componentWillMount() {
-        this.doInitialize(this.props.defaultValues);
-    }
-
-    public componentWillReceiveProps(nextProps: IProps) {
-        const {email, firstName, lastName} = this.props.defaultValues;
-        if (email !== nextProps.defaultValues.email ||
-            firstName !== nextProps.defaultValues.firstName ||
-            lastName !== nextProps.defaultValues.lastName
-        ) {
-            this.doInitialize(nextProps.defaultValues);
-        }
-    }
-
-    private doInitialize(defaultValues) {
-        const fields: IFields = {};
-        for (const name in defaultValues) {
-            if (defaultValues.hasOwnProperty(name)) {
-                const value = defaultValues[name];
-                if (value !== undefined) {
-                    fields[name] = value.toString();
-                }
-            }
-        }
-        this.props.initialize(fields);
-    }
-
-    private applyChanges(event) {
-        const onSubmit = this.props.onUserUpdate;
-        this.props.handleSubmit(onSubmit)(null);
-        this.props.reset();
-    }
+const fieldsEqual = (originalValue?: string, fieldValue?: string): boolean => {
+    return !originalValue && !fieldValue ? true : originalValue === fieldValue;
 };
 
 
-interface IProps {
-    login: ILoginCredentials;
-    onUserUpdate: () => void;
-    defaultValues: {
-        email: string;
-        firstName: string;
-        lastName: string;
-    };
+const Settings: React.FC<Props> = (props) => {
+    const {username, first_name, last_name, email, is_user} = useSelector((state) => state.login);
+    const dispatch = useDispatch();
+    const {control, handleSubmit, reset, formState: {isDirty}} = useForm<FormData>();
+
+    const onSubmit = React.useCallback((data: FormData) => {
+        if (username) {
+            dispatch(updateUser({
+                login: username,
+                password: data.password || undefined,
+                first_name: data.firstName,
+                last_name: data.lastName,
+                email: data.email,
+            }));
+            reset({password: "", passwordVerif: ""});
+        }
+    }, [username, reset, dispatch]);
+
+    const onError = React.useCallback((error: FieldErrors<FormData>) => {
+        const errors: string[] = [];
+        const passwordError = error?.password?.message;
+        if (passwordError) {
+            errors.push(passwordError);
+        }
+        const firstNameError = error?.firstName?.message;
+        if (firstNameError) {
+            errors.push("First Name " + firstNameError);
+        }
+        const lastNameError = error?.lastName?.message;
+        if (lastNameError) {
+            errors.push("Last Name " + lastNameError);
+        }
+        if (errors.length) {
+            dispatch(setMessage(errors.join(" / ")));
+        }
+    }, [dispatch]);
+
+    React.useEffect(() => {
+        dispatch(setTitle("Settings"));
+    }, [dispatch]);
+
+    const name = [first_name, last_name].join(" ").trim();
+    const title = name ? `User settings for ${username} (${name})` : "User settings for " + username;
+
+    return (
+        <React.Fragment>
+            <h1>{title}</h1>
+            {!is_user && <Box component="p" color={red[500]}>
+                Your account is not activated yet, please contact your administrator
+            </Box>}
+            <form onSubmit={handleSubmit(onSubmit, onError)}>
+                <Divider>Profile</Divider>
+                <Controller
+                    name="firstName"
+                    control={control}
+                    rules={{required: false, maxLength: {value: 30, message: "Length is limited to 30 characters"}}}
+                    defaultValue={first_name || ""}
+                    render={({field: {onBlur, onChange, value, ref}, fieldState: {error}}) => (
+                        <TextField
+                            fullWidth
+                            variant="standard"
+                            label="First Name"
+                            onChange={onChange}
+                            onBlur={onBlur}
+                            value={value}
+                            inputRef={ref}
+                            error={!!error?.message}
+                            helperText={error?.message}
+                        />
+                    )}
+                />
+                <Controller
+                    name="lastName"
+                    control={control}
+                    rules={{required: false, maxLength: {value: 30, message: "Length is limited to 30 characters"}}}
+                    defaultValue={last_name || ""}
+                    render={({field: {onBlur, onChange, value, ref}, fieldState: {error}}) => (
+                        <TextField
+                            fullWidth
+                            variant="standard"
+                            label="Last Name"
+                            onChange={onChange}
+                            onBlur={onBlur}
+                            value={value}
+                            inputRef={ref}
+                            error={!!error?.message}
+                            helperText={error?.message}
+                        />
+                    )}
+                />
+                <Controller
+                    name="email"
+                    control={control}
+                    rules={{required: false}}
+                    defaultValue={email || ""}
+                    render={({field: {onBlur, onChange, value, ref}}) => (
+                        <TextField
+                            fullWidth
+                            variant="standard"
+                            label="Email"
+                            onChange={onChange}
+                            onBlur={onBlur}
+                            value={value}
+                            inputRef={ref}
+                        />
+                    )}
+                />
+                <Divider sx={{mt: 5}}>Change Password</Divider>
+                <Box component="p" color={grey[500]}>
+                    Fill in the following fields only if you want to change your password
+                </Box>
+                <Controller
+                    name="password"
+                    control={control}
+                    rules={{required: false, validate: (_, values) => fieldsEqual(values.password, values.passwordVerif) || "The two passwords do not match"}}
+                    defaultValue=""
+                    render={({field: {onBlur, onChange, value, ref}, fieldState: {error}}) => (
+                        <TextField
+                            fullWidth
+                            variant="standard"
+                            type="password"
+                            label="Password"
+                            onChange={onChange}
+                            onBlur={onBlur}
+                            value={value}
+                            inputRef={ref}
+                            error={!!error?.message}
+                            helperText={error?.message}
+                        />
+                    )}
+                />
+                <Controller
+                    name="passwordVerif"
+                    control={control}
+                    rules={{required: false, validate: (_, values) => fieldsEqual(values.password, values.passwordVerif) || "The two passwords do not match"}}
+                    defaultValue=""
+                    render={({field: {onBlur, onChange, value, ref}, fieldState: {error}}) => (
+                        <TextField
+                            fullWidth
+                            variant="standard"
+                            type="password"
+                            label="Confirm Password"
+                            onChange={onChange}
+                            onBlur={onBlur}
+                            value={value}
+                            inputRef={ref}
+                            error={!!error?.message}
+                            helperText={error?.message}
+                        />
+                    )}
+                />
+                <Button variant="contained" color="secondary" disabled={!isDirty} type="submit" sx={{mt: 5}}>
+                    Modify User Settings
+                </Button>
+            </form>
+        </React.Fragment>
+    );
 };
 
 
-interface IFields {
+interface Props {
+}
+
+
+interface FormData {
     password?: string;
-    password2?: string;
+    passwordVerif?: string;
     email?: string;
-    lastName?: string;
     firstName?: string;
-};
+    lastName?: string;
+}
 
 
-const validate = (values): IFields => {
-    const errors: IFields = {};
-    if (values.password && values.password !== values.password2) {
-        errors.password2 = "The two passwords do not match";
-    }
-    if (values.firstName && values.firstName.length > 30) {
-        errors.firstName = "Length is limited to 30 characters";
-    }
-    if (values.lastName && values.lastName.length > 30) {
-        errors.lastName = "Length is limited to 30 characters";
-    }
-    return errors;
-};
-
-
-export default reduxForm({ form: "settingsuser", validate })(Settings);
+export default Settings;

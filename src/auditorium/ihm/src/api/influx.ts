@@ -1,135 +1,129 @@
-import * as moment from "moment";
-import "whatwg-fetch";
+import moment from 'moment';
+import {doFetch, asyncThunk} from './base';
 
-import {
-    IChronografDashboardResult,
-    IGrafanaStatistic,
-    IInfluxComparative,
-    IInfluxHistogram,
-    IInfluxNames,
-    IInfluxNamesAndSuffixes,
-    IInfluxStatistics,
-} from "../interfaces/influx.interface";
-import {IScenarioInstance} from "../interfaces/scenarioInstance.interface";
-import {checkStatus, doApiCall} from "./common";
+import type {IScenarioInstance, IChronografStatistic} from '../utils/interfaces';
 
 
-export function getStatisticsNames(projectName: string): Promise<IInfluxNames> {
-    return doApiCall("/statistic/" + projectName)
-        .then((response: Response) => response.json<IInfluxNames>());
-};
+interface InfluxNames {
+    [jobName: string]: string[];
+}
 
 
-export function getStatisticsNamesAndSuffixes(jobID: number): Promise<IInfluxNamesAndSuffixes> {
-    return doApiCall("/statistic/" + jobID)
-        .then((response: Response) => response.json<IInfluxNamesAndSuffixes>());
-};
+interface InfluxNamesAndSuffixes {
+    statistics: string[];
+    suffixes: string[];
+}
 
 
-export function getStatisticsOrigin(jobID: number): Promise<Date> {
-    return doApiCall("/statistic/" + jobID + "/?origin")
-        .then((response: Response) => response.json<number>())
-        .then((response: number) => new Date(response))
-        .catch(() => new Date());
-};
+interface ChronografQuery {
+    instance: IScenarioInstance;
+    statistics: IChronografStatistic[];
+    grouped: boolean;
+}
 
 
-const buildStatisticsRoute = (jobID: number, statName: string, suffix: string): string => {
-    const route = `/statistic/${jobID}?name=${statName}`;
-    if (!suffix) {
-        return route;
-    }
-    return `${route}&suffix=${suffix}`;
-};
+interface ChronografQueryResult {
+    type: string;
+    source: string;
+    query: string;
+    text: string;
+}
 
 
-export function getStatistics(jobID: number, statName: string, suffix: string, origin?: number): Promise<IInfluxStatistics> {
-    let route = buildStatisticsRoute(jobID, statName, suffix);
-    if (origin || origin === 0) {
-        route += "&origin=" + origin;
-    }
-    return doApiCall(route).then((response: Response) => response.json<IInfluxStatistics>());
-};
-
-
-export function getStatisticsHistogram(jobID: number, statName: string, suffix: string, buckets: number): Promise<IInfluxHistogram> {
-    const route = buildStatisticsRoute(jobID, statName, suffix) + "&histogram=" + buckets;
-    return doApiCall(route).then((response: Response) => response.json<IInfluxHistogram>());
-};
-
-
-export function getStatisticsComparative(jobID: number, statName: string, suffix: string): Promise<IInfluxComparative> {
-    const route = buildStatisticsRoute(jobID, statName, suffix) + "&comparative";
-    return doApiCall(route).then((response: Response) => response.json<IInfluxComparative>());
-};
-
-
-interface IGraphIntermediate {
-    agent: string;
+interface ChronografCellResult {
+    i: string;
+    x: number;
+    y: number;
+    w: number;
+    h: number;
     name: string;
-    jobId: number;
-    unit: string;
+    queries: ChronografQueryResult[];
+}
+
+
+interface ChronografDashboardResult {
+    id: number;
+    name: string;
+    cells: ChronografCellResult[];
+}
+
+
+export const getStatisticsNames = asyncThunk<InfluxNames, {project: string;}>(
+    'influx/getStatisticsNames',
+    async ({project}, {dispatch}) => {
+        return await doFetch<InfluxNames> (
+            "/openbach/statistics/" + project + "/",
+            dispatch,
+        );
+    },
+);
+
+
+export const getStatisticsNamesAndSuffixes = asyncThunk<InfluxNamesAndSuffixes, {jobId: number;}>(
+    'influx/getStatisticsNamesAndSuffixes',
+    async ({jobId}, {dispatch}) => {
+        return await doFetch<InfluxNamesAndSuffixes> (
+            "/openbach/statistic/" + jobId + "/",
+            dispatch,
+        );
+    },
+);
+
+
+interface ChronografIntermediate extends Omit<IChronografStatistic, "statName"> {
     targets: string[];
-};
+}
 
 
-export function postGrafanaDashboard(instance: IScenarioInstance, statistics: IGrafanaStatistic[], grouped: boolean): Promise<IChronografDashboardResult> {
-    const graphs: IGraphIntermediate[] = [];
-    let targets = null;
-    statistics.sort((a: IGrafanaStatistic, b: IGrafanaStatistic): number => {
-        if (a.jobId === b.jobId) {
-            if (a.unit === b.unit) {
-                return 0;
+export const createChronografDashboard = asyncThunk<ChronografDashboardResult, ChronografQuery>(
+    'influx/createChronografDashboard',
+    async ({instance, statistics, grouped}, {dispatch}) => {
+        let targets: string[] = [];
+        const graphs: ChronografIntermediate[] = [];
+        statistics.slice().sort((a: IChronografStatistic, b: IChronografStatistic) => {
+            if (a.jobId === b.jobId) {
+                if (a.unit === b.unit) {
+                    return 0;
+                }
+                return a.unit < b.unit ? -1 : 1;
             }
-            return a.unit < b.unit ? -1 : 1;
-        }
-        return a.jobId - b.jobId;
-    }).forEach((statistic: IGrafanaStatistic, index: number, array: IGrafanaStatistic[]) => {
-        const {jobAgent, jobName, jobId, statName, unit} = statistic;
-        if (!grouped || index === 0 || array[index - 1].jobId !== jobId || array[index - 1].unit !== unit) {
-            targets = [];
-            graphs.push({
-                agent: jobAgent,
-                name: jobName,
-                jobId,
-                targets,
-                unit,
-            });
-        }
-        targets.push(statName);
-    });
+            return a.jobId - b.jobId;
+        }).forEach((s: IChronografStatistic, index: number, array: IChronografStatistic[]) => {
+            const {jobAgent, jobName, jobId, statName, unit} = s;
+            if (!grouped || index === 0 || array[index - 1].jobId !== jobId || array[index - 1].unit !== unit) {
+                targets = [];
+                graphs.push({jobName, jobAgent, jobId, targets, unit});
+            }
+            targets.push(statName);
+        });
 
-    const dashboard = {
-        cells: graphs.map((graph: IGraphIntermediate, index: number) => ({
-            h: 4,
-            name: `${graph.name} (#${graph.jobId})`,
-            queries: graph.targets.map((statName: string, id: number) => ({
-                query: [
-                    `SELECT "${statName}" FROM "openbach"."openbach"."${graph.name}"`,
-                    `WHERE time > ${moment(instance.start_date).valueOf()}ms`,
-                    `AND time < ${instance.stop_date ? moment(instance.stop_date).add(1, "s").valueOf() + "ms" : "now"}`,
-                    `AND "@job_instance_id"='${graph.jobId}' GROUP BY "@suffix" FILL(null)`,
-                ].join(" "),
-                source: "",
-                text: `${statName} (${graph.unit})`,
-                type: "influxql",
+        const dashboard = {
+            cells: graphs.map((graph: ChronografIntermediate, index: number) => ({
+                h: 4,
+                name: `${graph.jobName} (#${graph.jobId})`,
+                queries: graph.targets.map((statName: string) => ({
+                    query: [
+                        `SELECT "${statName}" FROM "openbach"."openbach"."${graph.jobName}"`,
+                        `WHERE time > ${moment(instance.start_date).valueOf()}ms`,
+                        `AND time < ${instance.stop_date ? moment(instance.stop_date).add(1, "s").valueOf() + "ms" : "now()"}`,
+                        `AND "@job_instance_id"='${graph.jobId}' GROUP BY "@suffix" FILL(null)`,
+                    ].join(" "),
+                    source: "",
+                    text: `${statName} (${graph.unit})`,
+                    type: "influxql",
+                })),
+                w: 12,
+                x: 0,
+                y: 4 * index,
             })),
-            w: 12,
-            x: 0,
-            y: 4 * index,
-        })),
-        name: `Scenario instance #${instance.owner_scenario_instance_id}`,
-    };
-
-    const params: RequestInit = {
-        body: JSON.stringify(dashboard),
-        headers: {
-            "Accept": "application/json",
-            "Content-Type": "application/json",
-        },
-        method: "POST",
-    };
-    return fetch("/chronograf/api/dashboards", params)
-        .then(checkStatus)
-        .then((response: Response) => new Promise<IChronografDashboardResult>((resolve) => resolve(response.json<IChronografDashboardResult>())));
-};
+            name: `Scenario instance #${instance.owner_scenario_instance_id}`,
+        };
+        
+        return await doFetch<ChronografDashboardResult> (
+            "/chronograf/api/dashboards",
+            dispatch,
+            "POST",
+            dashboard,
+        );
+    },
+);

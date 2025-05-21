@@ -54,7 +54,7 @@ def main(command, mode, name):
 
 
 if __name__ == '__main__':
-    with use_configuration('/opt/openbach/agent/jobs/ip_tuntap/ip_tuntap_rstats_filter.conf'):
+    with collect_agent.use_configuration('/opt/openbach/agent/jobs/ip_tuntap/ip_tuntap_rstats_filter.conf'):
         #Define Usage
         parser = argparse.ArgumentParser(
                 description=__doc__,

@@ -61,7 +61,7 @@
 
   - name: Add entities to project
     uri:
-      url: http://localhost:{{ django_port }}/project/{{ project_name }}/entity
+      url: http://localhost:{{ django_port }}/project/{{ project_name }}/entity/
       method: POST
       body_format: json
       body:

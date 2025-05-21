@@ -25,13 +25,12 @@
 
 ---
 
-- name: Install apt dependencies
+- name: Install APT Dependencies
   apt:
     pkg:
-    - ansible
     - acl
     - sshpass
-    - postgresql-server-dev-14
+    - postgresql-server-dev-all
     - postgresql
     - pgbouncer
     state: present
@@ -40,66 +39,38 @@
   environment: "{{ openbach_proxy_env }}"
   notify: restart postgresql
 
-- name: Install pip3 Dependencies
+- name: Install Python Dependencies
   pip:
     name:
-      - psycopg2==2.8.6
-      - fuzzywuzzy==0.18.0
-      - python-Levenshtein==0.12.2
-      - django==3.0
-      - uwsgi==2.0.20
-    executable: pip3
-    extra_args: '-U'
-  become: yes
+      - packaging
+      - ansible
+      - psycopg2
+      - fuzzywuzzy
+      - python-Levenshtein
+      - django
+      - uwsgi
+    state: latest
+    virtualenv: /opt/openbach/virtualenv
   environment: "{{ openbach_proxy_env }}"
+  remote_user: openbach
 
 - name: Check the installed version of Ansible
-  command: python3 -c "from pkg_resources import parse_version as version; from ansible import __version__; print(version(__version__) < version('2.9'))"
+  command: /opt/openbach/virtualenv/bin/python3 -c "from packaging.version import parse; from ansible import __version__; print(parse(__version__) < parse('2.9'))"
   remote_user: openbach
   register: openbach_check_ansible_version
 
 - name: Install extraneous Ansible collection
   command: ansible-galaxy collection install ansible.posix
   args:
-    creates: /usr/local/lib/python3.8/dist-packages/ansible_collections/ansible/posix
+    creates: /opt/openbach/virtualenv/lib/python3.12/site-packages/ansible_collections/ansible/posix
   environment: "{{ openbach_proxy_env }}"
   remote_user: openbach
-  become: yes
   when: openbach_check_ansible_version.stdout == "False"
 
-- name: Configure Rsyslog (remote)
-  template:
-    src: roles/configure_backend/files/rsyslog_job.j2
-    dest: /etc/rsyslog.d/{{ item }}.conf
-    mode: "0644"
-  with_items:
-    - openbach_backend
-    - openbach_conductor
-    - openbach_director
-  vars:
-    job: "{{ item }}"
-    collector_ip: "{{ openbach_collector }}"
-    syslogseverity: 4
-  become: yes
-  notify: restart rsyslog
-
-- name: Configure Rsyslog (local)
-  template:
-    src: roles/configure_backend/files/rsyslog_job_local.j2
-    dest: /etc/rsyslog.d/{{ item }}_local.conf
-    mode: "0644"
-  with_items:
-    - openbach_backend
-    - openbach_conductor
-    - openbach_director
-  vars:
-    job: "{{ item }}"
-    syslogseverity_local: 4
-  become: yes
-  notify: restart rsyslog
-
 - name: Create OpenBACH repository
-  file: path=/opt/openbach/controller/{{ item }} state=directory
+  file:
+    path: /opt/openbach/controller/{{ item }}
+    state: directory
   with_items:
     - backend
     - conductor
@@ -119,29 +90,61 @@
   become: yes
 
 - name: Install the Backend
-  synchronize:
-    src: ../src/controller/backend/
-    dest: /opt/openbach/controller/backend/
-    recursive: yes
-    delete: yes
-    rsync_opts:
-      - --exclude=__pycache__
-      - --exclude=functional_tests.sh
-      - --exclude=manage.py
-      - --filter='P static_root'
-      - --filter='P local_settings.py'
-      - --filter='P pgbouncer_auth.txt'
-  remote_user: openbach
+  block:
+    - synchronize:
+        src: ../src/controller/backend/
+        dest: /opt/openbach/controller/backend/
+        recursive: yes
+        delete: yes
+        rsync_opts:
+          - --exclude
+          - __pycache__
+          - --exclude
+          - functional_tests.sh
+          - --exclude
+          - manage.py
+          - --filter
+          - P static_root
+          - --filter
+          - P local_settings.py
+          - --filter
+          - P pgbouncer_auth.txt
+      remote_user: openbach
+  rescue:
+    - synchronize:
+        src: ../src/controller/backend/
+        dest: /opt/openbach/controller/backend/
+        recursive: yes
+        delete: yes
+        rsync_opts:
+          - --exclude=__pycache__
+          - --exclude=functional_tests.sh
+          - --exclude=manage.py
+          - --filter='P static_root'
+          - --filter='P local_settings.py'
+          - --filter='P pgbouncer_auth.txt'
+      remote_user: openbach
 
 - name: Install the Conductor
-  synchronize:
-    src: ../src/controller/openbach-conductor/
-    dest: /opt/openbach/controller/conductor/
-    recursive: yes
-    delete: yes
-    rsync_opts:
-      - --exclude=__pycache__
-  remote_user: openbach
+  block:
+    - synchronize:
+        src: ../src/controller/openbach-conductor/
+        dest: /opt/openbach/controller/conductor/
+        recursive: yes
+        delete: yes
+        rsync_opts:
+          - --exclude
+          - __pycache__
+      remote_user: openbach
+  rescue:
+    - synchronize:
+        src: ../src/controller/openbach-conductor/
+        dest: /opt/openbach/controller/conductor/
+        recursive: yes
+        delete: yes
+        rsync_opts:
+          - --exclude=__pycache__
+      remote_user: openbach
 
 - name: Fetch the openbach User's SSH public Key
   fetch:
@@ -153,23 +156,44 @@
   copy:
     src: pgbouncer.ini
     dest: /etc/pgbouncer/pgbouncer.ini
-    mode: '0640'
+    mode: 0640
     owner: postgres
     group: postgres
     backup: yes
   become: yes
   notify: restart pgbouncer
 
+- name: Allow PgBouncer to Manage OpenBACH's Database
+  lineinfile:
+    path: /etc/pgbouncer/userlist.txt
+    line: '"openbach"'
+    mode: 0640
+    owner: postgres
+    group: postgres
+    create: yes
+  become: yes
+  notify: restart pgbouncer
+
 - name: Copy Django's manager file
-  copy: src=../src/controller/backend/manage.py dest=/opt/openbach/controller/backend/manage.py mode=0500
+  copy:
+    src: ../src/controller/backend/manage.py
+    dest: /opt/openbach/controller/backend/manage.py
+    mode: 0500
   remote_user: openbach
 
 - name: Retrieve local settings if they Exist
-  local_settings: path=/opt/openbach/controller/backend/backend/
+  local_settings:
+    path: /opt/openbach/controller/backend/backend/
+    interpreter: /opt/openbach/virtualenv/bin/python3
   remote_user: openbach
 
 - name: Set up PgBouncer Users Database
-  template: src=pgbouncer_auth_file.j2 dest=/opt/openbach/controller/backend/backend/pgbouncer_auth.txt mode=0640 owner=postgres group=postgres
+  template:
+    src: pgbouncer_auth_file.j2
+    dest: /opt/openbach/controller/backend/backend/pgbouncer_auth.txt
+    mode: 0640
+    owner: postgres
+    group: postgres
   become: yes
   notify: restart pgbouncer
 
@@ -201,7 +225,7 @@
 
 - block:
     - name: Initialize the Backend's Database
-      shell: /opt/openbach/controller/backend/manage.py migrate --no-input
+      shell: /opt/openbach/virtualenv/bin/python3 /opt/openbach/controller/backend/manage.py migrate --no-input
       remote_user: openbach
       register: openbach_database_migration
       ignore_errors: yes
@@ -211,7 +235,7 @@
       when: openbach_database_migration.failed and openbach_database_migration.stdout_lines[-1] != '  Applying openbach_django.0001_openbach_2_0_0...'
 
     - name: Fake the Initialization of the Backend's Database
-      shell: /opt/openbach/controller/backend/manage.py migrate --no-input --fake-initial
+      shell: /opt/openbach/virtualenv/bin/python3 /opt/openbach/controller/backend/manage.py migrate --no-input --fake-initial
       remote_user: openbach
       when: openbach_database_migration.failed
 
@@ -221,10 +245,9 @@
         openbach_backend_admin_password: "{{ openbach_backend_admin_password | default('openbach') }}"
       tags:
         - consider_safe_network
-
     - name: Manage Superusers in the Backend's Database
       openbach_superuser:
-        manager: /opt/openbach/controller/backend/manage.py
+        manager: /opt/openbach/virtualenv/bin/python3 /opt/openbach/controller/backend/manage.py
       remote_user: openbach
 
   when: openbach_restore_host is not defined
@@ -286,7 +309,7 @@
   when: openbach_restore_host is defined
 
 - name: Collect Django's static files
-  shell: /opt/openbach/controller/backend/manage.py collectstatic --no-input
+  shell: /opt/openbach/virtualenv/bin/python3 /opt/openbach/controller/backend/manage.py collectstatic --no-input
   remote_user: openbach
 
 - name: Create services
@@ -301,60 +324,115 @@
   become: yes
 
 - name: Copy the sources of the Agent
-  synchronize:
-    src: ../src/agent/
-    dest: /opt/openbach/controller/src/agent/
-    recursive: yes
-    delete: yes
-    rsync_opts:
-      - --exclude=__pycache__
-  remote_user: openbach
+  block:
+    - synchronize:
+        src: ../src/agent/
+        dest: /opt/openbach/controller/src/agent/
+        recursive: yes
+        delete: yes
+        rsync_opts:
+          - --exclude
+          - __pycache__
+      remote_user: openbach
+  rescue:
+    - synchronize:
+        src: ../src/agent/
+        dest: /opt/openbach/controller/src/agent/
+        recursive: yes
+        delete: yes
+        rsync_opts:
+          - --exclude=__pycache__
+      remote_user: openbach
 
 - name: Copy the installation Playbooks
-  synchronize:
-    src: ../ansible/{{ item }}/
-    dest: /opt/openbach/controller/ansible/{{ item }}/
-    recursive: yes
-    delete: yes
-    rsync_opts:
-      - --exclude=__pycache__
-      - --exclude=*.pyc
-  with_items:
-    - roles
-    - library
-    - action_plugins
-    - filter_plugins
-  remote_user: openbach
+  block:
+    - synchronize:
+        src: ../ansible/{{ item }}/
+        dest: /opt/openbach/controller/ansible/{{ item }}/
+        recursive: yes
+        delete: yes
+        rsync_opts:
+          - --exclude
+          - __pycache__
+          - --exclude
+          - '*.pyc'
+      with_items:
+        - roles
+        - library
+        - action_plugins
+        - filter_plugins
+      remote_user: openbach
+  rescue:
+    - synchronize:
+        src: ../ansible/{{ item }}/
+        dest: /opt/openbach/controller/ansible/{{ item }}/
+        recursive: yes
+        delete: yes
+        rsync_opts:
+          - --exclude=__pycache__
+          - --exclude=*.pyc
+      with_items:
+        - roles
+        - library
+        - action_plugins
+        - filter_plugins
+      remote_user: openbach
 
 - name: Place a Link to /opt/openbach/pip_mirror so that Playbooks can Find it
   file: path=/opt/openbach/controller/pip_mirror src=/opt/openbach/pip_mirror state=link
   remote_user: openbach
 
 - name: Copy the Sources of the Core Jobs
-  synchronize:
-    src: ../src/jobs/
-    dest: /opt/openbach/controller/src/jobs/
-    recursive: yes
-    delete: yes
-    rsync_opts:
-      - --exclude=__pycache__
-      - --filter='P private_jobs'
-  remote_user: openbach
+  block:
+    - synchronize:
+        src: ../src/jobs/
+        dest: /opt/openbach/controller/src/jobs/
+        recursive: yes
+        delete: yes
+        rsync_opts:
+          - --exclude
+          - __pycache__
+          - --filter
+          - P private_jobs
+      remote_user: openbach
+  rescue:
+    - synchronize:
+        src: ../src/jobs/
+        dest: /opt/openbach/controller/src/jobs/
+        recursive: yes
+        delete: yes
+        rsync_opts:
+          - --exclude=__pycache__
+          - --filter='P private_jobs'
+      remote_user: openbach
 
 - name: Copy the Sources of the User-provided Jobs
-  synchronize:
-    src: "{{ item }}"
-    dest: /opt/openbach/controller/src/jobs/private_jobs/
-    recursive: yes
-    delete: no
-    rsync_opts:
-      - --exclude=__pycache__
-  with_items:
-    - "{{ openbach_jobs_folders }}"
+  block:
+    - synchronize:
+        src: "{{ item }}"
+        dest: /opt/openbach/controller/src/jobs/private_jobs/
+        recursive: yes
+        delete: no
+        rsync_opts:
+          - --exclude
+          - __pycache__
+      with_items:
+        - "{{ openbach_jobs_folders }}"
+      remote_user: openbach
+  rescue:
+    - synchronize:
+        src: "{{ item }}"
+        dest: /opt/openbach/controller/src/jobs/private_jobs/
+        recursive: yes
+        delete: no
+        rsync_opts:
+          - --exclude=__pycache__
+      with_items:
+        - "{{ openbach_jobs_folders }}"
+      remote_user: openbach
   when:
     - openbach_restore_host is not defined
     - openbach_jobs_folders is defined and openbach_jobs_folders
-  remote_user: openbach
 
 - name: Copy the version file on the Controller
   copy: src=../version dest=/opt/openbach/controller/version

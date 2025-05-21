@@ -1,141 +1,102 @@
-import * as React from "react";
-import {connect} from "react-redux";
+import React from 'react';
 
-import List from "material-ui/List";
-import RaisedButton from "material-ui/RaisedButton";
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import List from '@mui/material/List';
 
-import {notify} from "../../actions/global";
-import {getUsersList} from "../../actions/login";
-import {deleteUsers, updateUsers} from "../../api/login";
-import {ILoginCredentials, IProfilePermissions} from "../../interfaces/login.interface";
-import PaddedContainer from "../common/PaddedContainer";
-import UserManager from "./UserManager";
+import UserManager from './UserManager';
+
+import {useSelector, useDispatch} from '../../redux';
+import {setTitle} from '../../redux/message';
+import {getUsers, deleteUsers, updateUsers} from '../../api/login';
+import type {IProfilePermissions} from '../../utils/interfaces';
 
 
-class Manage extends React.Component<IStoreProps & IDispatchProps, IState> {
-    constructor(props) {
-        super(props);
-        this.state = { permissions: [], pristine: true, usersToDelete: [] };
-        this.applyChanges = this.applyChanges.bind(this);
-        this.deleteUsers = this.deleteUsers.bind(this);
-        this.updateUsersToDelete = this.updateUsersToDelete.bind(this);
-    }
+const Manage: React.FC<Props> = (props) => {
+    const [usersToDelete, storeUsersToDelete] = React.useState<string[]>([]);
+    const [usersToModify, storeUsersToModify] = React.useState<IProfilePermissions[]>([]);
+    const users = useSelector((state) => state.users.users);
+    const dispatch = useDispatch();
 
-    public render() {
-        const permissions = this.state.permissions.map((permission: IProfilePermissions, idx: number) => (
-            <UserManager
-                key={permission.login}
-                permissions={permission}
-                onUserActiveChange={this.changeUserActive.bind(this, idx)}
-                onUserAdminChange={this.changeUserAdmin.bind(this, idx)}
-                onDeleteSelected={this.updateUsersToDelete}
-            />
-        ));
+    const toggleDelete = React.useCallback((username: string) => () => {
+        storeUsersToDelete((users: string[]) => {
+            const user = users.indexOf(username);
+            if (user < 0) {
+                return [...users, username];
+            } else {
+                return users.slice(0, user).concat(users.slice(user + 1));
+            }
+        });
+    }, []);
 
-        return (
-            <PaddedContainer>
-                <List>{permissions}</List>
-                <div style={{margin: "16px", textAlign: "right"}}>
-                    <RaisedButton
-                        label="Delete Selected Users"
-                        secondary={true}
-                        disabled={this.state.usersToDelete.length === 0}
-                        onClick={this.deleteUsers}
-                        style={{margin: "16px"}}
-                    />
-                    <RaisedButton
-                        label="Apply Modifications"
-                        secondary={true}
-                        disabled={this.state.pristine}
-                        onClick={this.applyChanges}
-                        style={{margin: "16px"}}
-                    />
-                </div>
-            </PaddedContainer>
-        );
-    }
+    const modifyUser = React.useCallback((username: string) => (active: boolean, admin: boolean) => {
+        storeUsersToModify((users: IProfilePermissions[]) => {
+            let found = false;
+            const newUsers = users.map((u: IProfilePermissions) => {
+                if (u.login === username) {
+                    found = true;
+                    return {login: username, active, admin}
+                } else {
+                    return u;
+                }
+            });
+            if (!found) {
+                newUsers.push({ login: username, active, admin });
+            }
+            return newUsers;
+        });
+    }, []);
 
-    public componentWillMount() {
-        this.props.listUsers();
-    }
+    const handleDelete = React.useCallback(() => {
+        dispatch(deleteUsers({usernames: usersToDelete}));
+        storeUsersToDelete([]);
+        storeUsersToModify([]);
+    }, [dispatch, usersToDelete]);
 
-    public componentWillReceiveProps(nextProps: IStoreProps & IDispatchProps) {
-        if (nextProps.users && nextProps.users !== this.props.users) {
-            const permissions: IProfilePermissions[] = nextProps.users.map((user: ILoginCredentials) => (
-                { login: user.username, active: user.is_user, admin: user.is_admin }
-            ));
-            this.setState({ permissions, pristine: true });
-        }
-    }
+    const handleModify = React.useCallback(() => {
+        dispatch(updateUsers({permissions: usersToModify}));
+        storeUsersToDelete([]);
+        storeUsersToModify([]);
+    }, [dispatch, usersToModify]);
 
-    private changeUserActive(idx: number, checked: boolean) {
-        this.state.permissions[idx].active = checked;
-        this.setState({ pristine: false });
-    }
+    React.useEffect(() => {
+        dispatch(setTitle("OpenBach Administration"));
+        const promise = dispatch(getUsers());
+        return () => {promise.abort();};
+    }, [dispatch]);
 
-    private changeUserAdmin(idx: number, checked: boolean) {
-        this.state.permissions[idx].admin = checked;
-        if (checked) {
-            this.state.permissions[idx].active = true;
-        }
-        this.setState({ pristine: false });
-    }
+    const permissions = users.map((user) => <UserManager key={user.username} user={user} onToggleDelete={toggleDelete(user.username)} onUserChange={modifyUser(user.username)} />);
 
-    private updateUsersToDelete(name: string, shouldDelete: boolean) {
-        if (shouldDelete) {
-            const {usersToDelete} = this.state;
-            usersToDelete.push(name);
-            this.setState({ usersToDelete });
-        } else {
-            const usersToDelete = this.state.usersToDelete.filter((username: string) => username !== name);
-            this.setState({ usersToDelete });
-        }
-    }
-
-    private applyChanges(event) {
-        updateUsers(this.state.permissions).then((onSuccess) => {
-            this.props.notify("Users successfully modified");
-            this.props.listUsers();
-        }).catch((error: Error) => this.props.notify("Users could not be modified: " + error.message));
-    }
-
-    private deleteUsers(event) {
-        deleteUsers(this.state.usersToDelete).then((onSuccess) => {
-            this.props.notify("Users successfully deleted");
-            this.setState({ usersToDelete: [] });
-            this.props.listUsers();
-        }).catch((error: Error) => this.props.notify("Could not delete users: " + error.message));
-    }
+    return (
+        <React.Fragment>
+            <List>{permissions}</List>
+            <Box m={5} textAlign="right">
+                <Button
+                    variant="contained"
+                    color="secondary"
+                    onClick={handleDelete}
+                    disabled={!usersToDelete.length}
+                    sx={{m: 5}}
+                >
+                    Delete Selected Users
+                </Button>
+                <Button
+                    variant="contained"
+                    color="secondary"
+                    onClick={handleModify}
+                    disabled={!usersToModify.length}
+                    sx={{m: 5}}
+                >
+                    Apply Modifications
+                </Button>
+            </Box>
+        </React.Fragment>
+    );
 };
 
 
-interface IState {
-    permissions: IProfilePermissions[];
-    pristine: boolean;
-    usersToDelete: string[];
-};
+interface Props {
+}
 
 
-interface IStoreProps {
-    users: ILoginCredentials[];
-};
-
-
-const mapStoreToProps = (store): IStoreProps => ({
-    users: store.users,
-});
-
-
-interface IDispatchProps {
-    listUsers: () => void;
-    notify: (message: string) => void;
-};
-
-
-const mapDispatchToProps = (dispatch): IDispatchProps => ({
-    listUsers: () => dispatch(getUsersList()),
-    notify: (message: string) => dispatch(notify(message)),
-});
-
-
-export default connect<IStoreProps, IDispatchProps, {}>(mapStoreToProps, mapDispatchToProps)(Manage);
+export default Manage;

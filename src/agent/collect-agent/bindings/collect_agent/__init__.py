@@ -1,6 +1,7 @@
 import os
 import sys
 import time
+import signal
 import contextlib
 
 from ._collect_agent import (
@@ -43,6 +44,31 @@ def use_configuration(filepath):
         raise
     finally:
         remove_stat()
+
+
+@contextlib.contextmanager
+def replace_all_signals(handler):
+    def replace_signal(signum):
+        with contextlib.suppress(OSError):
+            return signal.signal(signum, handler)
+    backup = {
+            sig: hdl
+            for sig in signal.valid_signals()
+            if (hdl := replace_signal(sig)) is not None
+    }
+    try:
+        yield
+    finally:
+        for sig, handler in backup.items():
+            signal.signal(sig, handler)
+
+
+def wait_for_signal(handler=None):
+    if handler is None:
+        def handler(signum, frame):
+            pass
+    with replace_all_signals(handler):
+        signal.pause()
 
 
 def now():

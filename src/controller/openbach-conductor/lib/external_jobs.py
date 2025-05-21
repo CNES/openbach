@@ -59,22 +59,7 @@ def _build_headers():
     return headers
 
 
-def _read_proxies(group_vars_file):
-    """Read proxy configuration from the provided Ansible :vars: file"""
-
-    with open(group_vars_file, encoding='utf-8') as openbach_variables:
-        variables = yaml.safe_load(openbach_variables)
-
-    proxies = {}
-    proxy_configuration = variables.get('openbach_proxy_env', {})
-    for protocol in ('http', 'https'):
-        with suppress(KeyError):
-            proxies[protocol] = proxy_configuration['{}_proxy'.format(protocol)]
-
-    return proxies
-
-
-def list_jobs_properties(repository):
+def list_jobs_properties(repository, proxies=None):
     """Retrieve the names and versions of jobs store in the provided :repository:"""
 
     try:
@@ -86,7 +71,7 @@ def list_jobs_properties(repository):
 
     files = {
             f['path']: f['sha']
-            for f in _list_project_files(project_info.id, project_info.jobs_path)
+            for f in _list_project_files(project_info.id, project_info.jobs_path, proxies)
             if os.path.splitext(f['path'])[1] == '.yml'
     }
 
@@ -94,12 +79,12 @@ def list_jobs_properties(repository):
             {
                 'display': ' '.join(map(str.title, name.split('_'))),
                 'name': name,
-                'version': _fetch_version(project_info.id, sha),
+                'version': _fetch_version(project_info.id, sha, proxies),
             } for name, sha in sorted(_filter_jobs(files))
     ]
 
 
-def add_job(name, repository, dest_dir='/opt/openbach/controller'):
+def add_job(name, repository, proxies=None, dest_dir='/opt/openbach/controller'):
     """Add a job from the given :repository: into the :dest_dir: folder of the controller"""
 
     try:
@@ -110,7 +95,7 @@ def add_job(name, repository, dest_dir='/opt/openbach/controller'):
                 project_name=repository)
 
     yaml = '{}.yml'.format(name)
-    project_files = _list_project_files(project_info.id, project_info.jobs_path)
+    project_files = _list_project_files(project_info.id, project_info.jobs_path, proxies)
     try:
         file_blob = next(
                 f for f in project_files
@@ -121,9 +106,9 @@ def add_job(name, repository, dest_dir='/opt/openbach/controller'):
 
     dest_dir = os.path.join(dest_dir, project_info.dest_dir)
     base_directory = os.path.dirname(os.path.dirname(file_blob['path']))
-    for blob in _list_project_files(project_info.id, base_directory):
+    for blob in _list_project_files(project_info.id, base_directory, proxies):
         destination = os.path.join(dest_dir, blob['path'])
-        _retrieve_file(project_info.id, blob['sha'], destination)
+        _retrieve_file(project_info.id, blob['sha'], destination, proxies)
 
     return os.path.join(dest_dir, base_directory)
 
@@ -146,16 +131,16 @@ def _filter_jobs(files):
             yield job_name, sha
 
 
-def _fetch_raw_content(project_id, checksum):
+def _fetch_raw_content(project_id, checksum, proxies=None):
     """Fetch a file from the repository without wrapping it in a JSON response"""
 
-    return _do_request(project_id, '/git/blobs/' + checksum, 'application/vnd.github.v3.raw').content
+    return _do_request(project_id, '/git/blobs/' + checksum, 'application/vnd.github.v3.raw', proxies=proxies).content
 
 
-def _fetch_version(project_id, sha):
+def _fetch_version(project_id, sha, proxies=None):
     """Read a job's configuration file and return its version"""
 
-    content = _fetch_raw_content(project_id, sha)
+    content = _fetch_raw_content(project_id, sha, proxies)
     try:
         job = yaml.safe_load(content)
         return job['general']['job_version']
@@ -163,10 +148,10 @@ def _fetch_version(project_id, sha):
         return None
 
 
-def _retrieve_file(project_id, sha, dest_file):
+def _retrieve_file(project_id, sha, dest_file, proxies=None):
     """Download a file from the repository and write it at the provided destination"""
 
-    content = _fetch_raw_content(project_id, sha)
+    content = _fetch_raw_content(project_id, sha, proxies)
 
     dest_folder = os.path.dirname(dest_file)
     os.makedirs(dest_folder, exist_ok=True)
@@ -175,15 +160,15 @@ def _retrieve_file(project_id, sha, dest_file):
         f.write(content)
 
 
-def _list_project_files(project_id, path):
+def _list_project_files(project_id, path, proxies=None):
     """Generate all entries in the repository that correspond to a file under the given path"""
 
-    reference = _do_request(project_id, '/git/ref/heads/' + REF_NAME).json()
-    tree = _do_request(project_id, '/git/trees/' + reference['object']['sha'], recursive=True).json()
+    reference = _do_request(project_id, '/git/ref/heads/' + REF_NAME, proxies=proxies).json()
+    tree = _do_request(project_id, '/git/trees/' + reference['object']['sha'], recursive=True, proxies=proxies).json()
     yield from (entry for entry in tree['tree'] if entry['type'] == 'blob' and entry['path'].startswith(path))
 
 
-def _do_request(project_id, route, accept=None, recursive=False, *, base_headers=_build_headers(), proxies=_read_proxies('/opt/openbach/controller/ansible/group_vars/all'), session=requests.Session()):
+def _do_request(project_id, route, accept=None, recursive=False, *, base_headers=_build_headers(), proxies=None, session=requests.Session()):
     """Hit an API endpoint and return the result"""
     params = {'recursive': 1} if recursive else None
 

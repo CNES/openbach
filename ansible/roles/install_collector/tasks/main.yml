@@ -44,32 +44,23 @@
   environment: "{{ openbach_proxy_env }}"
   become: yes
 
+- name: Install Python Dependencies
+  pip:
+    name:
+      - elasticsearch
+      - elasticsearch_curator
+      - influxdb
+    state: latest
+    virtualenv: /opt/openbach/virtualenv
+  environment: "{{ openbach_proxy_env }}"
+  remote_user: openbach
+
 - name: Change owner of elasticsearch sources
   file:
     path: /usr/share/elasticsearch/
     owner: elasticsearch
     group: elasticsearch
     recurse: yes
-  become: yes
-
-- name: Upgrade pip
-  pip:
-    name:
-      - pip
-    executable: pip3
-    state: latest
-  environment: "{{ openbach_proxy_env }}"
-  become: yes
-
-- name: Install pip Dependencies
-  pip:
-    name:
-      - elasticsearch
-      - elasticsearch_curator
-      - influxdb
-    executable: pip3
-    state: present
-  environment: "{{ openbach_proxy_env }}"
   become: yes
 
 - name: Upload Logstash Output Plugin

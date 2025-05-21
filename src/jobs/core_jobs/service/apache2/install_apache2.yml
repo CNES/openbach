@@ -101,10 +101,10 @@
 - name: Install pyOpenSSL
   pip:
     name: pyopenssl
-    executable: pip3
     state: latest
-  become: yes
+    virtualenv: /opt/openbach/virtualenv
   environment: "{{ openbach_proxies }}"
+  remote_user: openbach
 
 - name: Generate an OpenSSL private key with the default values (4096 bits, RSA)
   openssl_privatekey:
@@ -184,15 +184,25 @@
   become: yes
 
 - name: Install web files
-  openbach_synchronize:
-    src: "www/"
-    dest: "/var/www/{{ domain }}/"
-    recursive: yes
-    delete: yes
-    rsync_opts:
-      - --filter
-      - P dash_content
-  become: yes
+  block:
+    - openbach_synchronize:
+        src: "www/"
+        dest: "/var/www/{{ domain }}/"
+        recursive: yes
+        delete: yes
+        rsync_opts:
+          - --filter
+          - P dash_content
+      become: yes
+  rescue:
+    - openbach_synchronize:
+        src: "www/"
+        dest: "/var/www/{{ domain }}/"
+        recursive: yes
+        delete: yes
+        rsync_opts:
+          - --filter='P dash_content'
+      become: yes
 
 - name: Configure main.js
   copy:

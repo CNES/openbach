@@ -44,13 +44,13 @@ import psutil
 import syslog
 import argparse
 import threading
+from functools import partial
+
 from seleniumwire import webdriver
-from selenium.webdriver.remote.webdriver import WebDriver
-from selenium.webdriver.firefox.firefox_binary import FirefoxBinary
+from selenium.webdriver import FirefoxOptions
+from selenium.webdriver.firefox.service import Service
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.common.exceptions import WebDriverException
-from selenium.webdriver import FirefoxOptions
-from functools import partial
 
 import collect_agent
 
@@ -67,7 +67,6 @@ def init_driver(binary_path, binary_type, stop_compression, proxy_add, proxy_por
     """
     driver = None
     if binary_type == 'FirefoxBinary':
-        binary = FirefoxBinary(binary_path)
         options = FirefoxOptions()
         options.add_argument('--headless')
         if stop_compression:
@@ -84,7 +83,7 @@ def init_driver(binary_path, binary_type, stop_compression, proxy_add, proxy_por
             options.set_preference('network.proxy.ssl', proxy_add)
             options.set_preference('network.proxy.ssl_port', proxy_port)
             options.set_preference('network.proxy.type', 1)
-        driver = webdriver.Firefox(firefox_binary=binary, options=options)
+        driver = webdriver.Firefox(service=Service(), options=options)
     return driver
 
 

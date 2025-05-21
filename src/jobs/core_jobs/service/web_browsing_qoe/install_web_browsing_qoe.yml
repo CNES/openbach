@@ -67,10 +67,19 @@
     name:
       - selenium
       - selenium-wire
-    executable: pip3
     state: present
-  become: yes
+    virtualenv: /opt/openbach/virtualenv
   environment: "{{ openbach_proxies }}"
+  remote_user: openbach
+
+- name: Fix Selenium Wire dependencies (see https://github.com/seleniumbase/SeleniumBase/issues/2782)
+  pip:
+    name:
+      - blinker==1.7.0
+    state: present
+    virtualenv: /opt/openbach/virtualenv
+  environment: "{{ openbach_proxies }}"
+  remote_user: openbach
 
 - name: Install some dependencies
   apt:

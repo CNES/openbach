@@ -1,3 +1,9 @@
+collect-agent (1.4.3) focal; urgency=low
+
+  * Update Copyright Notice
+
+ -- OpenBACH maintainers <admin@openbach.org>  Tue, 18 jul 2023 11:26:17 +0200
+
 collect-agent (1.4.2) focal; urgency=low
 
   * Use pip instead of distutils to get a proper module when installing

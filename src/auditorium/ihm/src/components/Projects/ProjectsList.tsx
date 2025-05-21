@@ -1,65 +1,119 @@
-import * as React from "react";
-import {connect} from "react-redux";
+import React from 'react';
 
-import {List, ListItem} from "material-ui/List";
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import List from '@mui/material/List';
+import ListItem from '@mui/material/ListItem';
+import ListItemText from '@mui/material/ListItemText';
 
-import {IProject} from "../../interfaces/project.interface";
+import ProjectsListItem from './ProjectsListItem';
+import Dialog from '../common/ActionDialog';
+import ListItemButton from '../common/NestedListItem';
 
-import ProjectItem from "./ProjectItem";
+import {deleteProject} from '../../api/projects';
+import {useDispatch, useSelector} from '../../redux';
+import {IProject} from '../../utils/interfaces';
 
 
-class ProjectList extends React.Component<IStoreProps, {}> {
-    public render() {
-        if (!this.props.projects || this.props.projects.length === 0) {
-            return (
-                <List>
-                    <ListItem
-                        disabled={true}
-                        primaryText="No project yet..."
-                        secondaryText="Please add a new project"
-                    />
-                </List>
-            );
+const ProjectsList: React.FC<Props> = (props) => {
+    const projects = useSelector((state) => state.openbach.projects);
+    const username = useSelector((state) => state.login.username);
+    const dispatch = useDispatch();
+    const [projectToDelete, storeProjectToDelete] = React.useState<string>();
+
+    const handleOpen = React.useCallback((name: string) => {
+        storeProjectToDelete(name);
+    }, []);
+
+    const handleClose = React.useCallback(() => {
+        storeProjectToDelete(undefined);
+    }, []);
+
+    const handleDelete = React.useCallback(() => {
+        if (projectToDelete) {
+            dispatch(deleteProject({name: projectToDelete}));
         }
+        handleClose();
+    }, [projectToDelete, handleClose, dispatch]);
 
-        const projects = [];
-        this.buildFilteredList(projects, "Private", (project: IProject) => project.owners.indexOf(this.props.username) >= 0);
-        this.buildFilteredList(projects, "Owned", (project: IProject) => project.owners.length !== 0 && project.owners.indexOf(this.props.username) < 0);
-        this.buildFilteredList(projects, "Public", (project: IProject) => project.owners.length === 0);
-
-        return <List>{projects}</List>;
-    }
-
-    private buildFilteredList(aggregator: JSX.Element[], name: string, filterFunc: (project: IProject) => boolean) {
-        const filtered = this.props.projects.filter(filterFunc).map((project: IProject) => (
-            <ProjectItem key={project.name} name={project.name} description={project.description} />
+    const buildProjects = React.useCallback((predicate: Predicate) => {
+        if (!projects) {
+            return [];
+        }
+        return projects.filter(predicate).map((project: IProject) => (
+            <ProjectsListItem key={project.name} project={project} onDelete={handleOpen} />
         ));
+    }, [projects, handleOpen]);
 
-        if (filtered.length !== 0) {
-            aggregator.push((
-                <ListItem
-                    key={name.toLowerCase()}
-                    primaryText={`${name} Projects`}
-                    nestedItems={filtered}
-                    initiallyOpen={true}
-                    primaryTogglesNestedList={true}
-                />
-            ));
-        }
+    if (!projects) {
+        return (
+            <List>
+                <ListItem>
+                    <ListItemText primary="Fetching projects..." secondary="Please wait" />
+                </ListItem>
+            </List>
+        );
     }
+
+    if (!projects.length) {
+        return (
+            <List>
+                <ListItem>
+                    <ListItemText primary="No project yet..." secondary="Please add a new project" />
+                </ListItem>
+            </List>
+        );
+    }
+    
+    const privateProjects = buildProjects((p: IProject) => p.owners.indexOf(username!) >= 0);
+    const ownedProjects = buildProjects((p: IProject) => p.owners.length !== 0 && p.owners.indexOf(username!) < 0);
+    const publicProjects = buildProjects((p: IProject) => p.owners.length === 0);
+
+    return (
+        <React.Fragment>
+            <List>
+                {privateProjects.length > 0 && (
+                    <ListItemButton
+                        primary="Private Projects"
+                        initiallyOpen
+                        nestedItems={privateProjects}
+                    />
+                )}
+                {ownedProjects.length > 0 && (
+                    <ListItemButton
+                        primary="Owned Projects"
+                        nestedItems={ownedProjects}
+                    />
+                )}
+                {publicProjects.length > 0 && (
+                    <ListItemButton
+                        primary="Public Projects"
+                        nestedItems={publicProjects}
+                    />
+                )}
+            </List>
+            <Dialog
+                title="Delete project?"
+                open={Boolean(projectToDelete)}
+                cancel={{label: "Cancel", action: handleClose}}
+                actions={[{label: "Delete", action: handleDelete}]}
+            >
+                <DialogContent>
+                    <DialogContentText>
+                        Deleting the project "{projectToDelete}" is irreversible!
+                    </DialogContentText>
+                </DialogContent>
+            </Dialog>
+        </React.Fragment>
+    );
 };
 
 
-interface IStoreProps {
-    projects: IProject[];
-    username: string;
-};
+interface Props {
+}
 
 
-const mapStoreToProps = (store): IStoreProps => ({
-    projects: store.projects,
-    username: store.login.username,
-});
+type Predicate = (p: IProject) => boolean;
 
 
-export default connect<IStoreProps, {}, {}>(mapStoreToProps)(ProjectList);
+export default ProjectsList;

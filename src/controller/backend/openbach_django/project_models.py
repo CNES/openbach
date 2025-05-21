@@ -164,6 +164,8 @@ class Agent(models.Model):
             'Project', models.SET_NULL,
             blank=True, null=True,
             related_name='reserved_agents')
+    severity = models.IntegerField(default=2)
+    local_severity = models.IntegerField(default=2)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

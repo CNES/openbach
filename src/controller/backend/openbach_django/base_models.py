@@ -39,7 +39,9 @@ import json
 import shlex
 import string
 import ipaddress
+import datetime
 
+from dateutil.parser import parse
 from django.db import models
 from django.core.exceptions import ValidationError
 
@@ -53,12 +55,28 @@ class ValuesType(enum.Enum):
     NONE_TYPE = 'None'
     JOB_INSTANCE_ID = 'job'
     SCENARIO_INSTANCE_ID = 'scenario'
+    RATIO = 'ratio'
+    DATE = 'date'
 
     @classmethod
     def choices(cls):
         return tuple((t.value, t.name) for t in cls)
 
-
+class Ratio(enum.Enum):
+        
+        To = 1_024 ** 4
+        Gi = 1_024 ** 3
+        Mi = 1_024 ** 2
+        Ki = 1_024
+        T = 1_000_000_000_000
+        G = 1_000_000_000
+        M = 1_000_000
+        K = 1_000
+        _ = 1
+        m = 1e-3
+        u = 1e-6
+        n = 1e-9
+    
 class OpenbachFunctionParameter(models.TextField):
     """Custom field type to ease usage of placeholders in parameters values"""
 
@@ -71,6 +89,8 @@ class OpenbachFunctionParameter(models.TextField):
             ValuesType.NONE_TYPE: type(None),
             ValuesType.JOB_INSTANCE_ID: [int],
             ValuesType.SCENARIO_INSTANCE_ID: [int],
+            ValuesType.RATIO: Ratio,
+            ValuesType.DATE: datetime.datetime,
     }
 
     _CONVERTER = {
@@ -79,6 +99,8 @@ class OpenbachFunctionParameter(models.TextField):
             list: shlex.split,
             (ipaddress.IPv4Address, ipaddress.IPv6Address): ipaddress.ip_address,
             (ipaddress.IPv4Interface, ipaddress.IPv6Interface): ipaddress.ip_interface,
+            Ratio: lambda x: Ratio['_'] if not x else Ratio[x],
+            datetime.datetime : parse,
     }
 
     def __init__(self, *args, **kwargs):
@@ -222,6 +244,8 @@ class OpenbachFunctionParameter(models.TextField):
             return json.dumps(value)
         if self.type == list or isinstance(self.type, list):
             return ' '.join(shlex.quote(str(val)) for val in value)
+        if self.type == Ratio:
+            value=value.name
         # Now let TextField convert it to a str representation
         return super().to_python(value)
 
@@ -238,6 +262,7 @@ class OpenbachFunctionArgument(models.CharField):
             ValuesType.NONE_TYPE: type(None),
             ValuesType.JOB_INSTANCE_ID: [int],
             ValuesType.SCENARIO_INSTANCE_ID: [int],
+            ValuesType.RATIO: Ratio,
     }
 
     _CONVERTER = {
@@ -431,7 +456,7 @@ class ArgumentValue(models.Model):
 
     def _check_and_set_value(self, value, value_type):
         kind = ValuesType(value_type)
-        if kind in (ValuesType.JOB_INSTANCE_ID, ValuesType.SCENARIO_INSTANCE_ID):
+        if kind in (ValuesType.JOB_INSTANCE_ID, ValuesType.SCENARIO_INSTANCE_ID,ValuesType.RATIO,ValuesType.DATE):
             # These kind of arguments should have been converted
             # to the actual ID by now. So adapt their type in
             # order to avoid missmatches between the expected [int]
@@ -455,3 +480,4 @@ class Argument(models.Model):
 
     def __str__(self):
         return self.name
+    

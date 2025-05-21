@@ -88,7 +88,7 @@ def run_command(command):
     return p.stdout.decode()
 
 
-def restore_route(old_route, destination, operation, signal, frame):
+def restore_route(old_route, destination, operation):
     if operation == Operations.ADD.value:
         # Delete added route
         cmd = ['ip', 'route', 'del', str(destination)]
@@ -131,11 +131,9 @@ def main(operation, destination, gateway_ip, device, initcwnd, initrwnd, restore
     run_command(command)
 
     if restore:
-        # Manage SIGTERM and SIGINT signals behavior
-        signal.signal(signal.SIGTERM, partial(restore_route, old_route.split(), destination, operation))
-        signal.signal(signal.SIGINT, partial(restore_route, old_route.split(), destination, operation))
         # Sleep until a signal is received
-        signal.pause()
+        collect_agent.wait_for_signal()
+        restore_route(old_route.split(), destination, operation)
 
 
 if __name__ == '__main__':

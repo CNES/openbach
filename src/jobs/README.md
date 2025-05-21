@@ -131,7 +131,7 @@ platform_configuration:
   - ansible_system: 'Linux'
     ansible_distribution: 'Ubuntu'
     ansible_distribution_version: '20.04'
-    command: '/usr/bin/env python3 /opt/openbach/agent/jobs/toy/toy.py'
+    command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/toy/toy.py'
     command_stop:
 
 
@@ -273,7 +273,7 @@ In the web interface, set the following parameters:
 Or launch the job manually from the Agent as follows:
 
 ```
-JOB_NAME=iperf3 sudo -E python3 /opt/openbach/agent/jobs/toy/toy.py 1 -c 60
+JOB_NAME=iperf3 sudo -E /opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/toy/toy.py 1 -c 60
 ```
 
 ### Example 2
@@ -378,8 +378,8 @@ job for an example using most of these capabilities.
 ## Installing a job
 
 Installing a job can be done through:
-  * a Web Interface (see the "Manage jobs" section of the [[openbach:manuals:2.x:administrator_manual:web_interface:index|Web Interface Administrator Manual]])
-  * a Command Line Interface (see the [[openbach:manuals:2.x:administrator_manual:command_line_interface:index|Command Line Interface Administrator Manual]])
+  * a Web Interface (see the "Manage jobs" section of the [Web Interface Administrator Manual](../auditorium/README.md))
+  * a Command Line Interface (see the [Auditorium Scripts in openbach-extra repository](https://github.com/CNES/openbach-extra/blob/master/apis/auditorium_scripts/README.md))
 
 ## Debugging
 
@@ -399,7 +399,7 @@ can tweak these values by using the following environment variables:
 Example:
 
 ```
-$ JOB_NAME=toy JOB_INSTANCE_ID=12 SCENARIO_INSTANCE_ID=42 OWNER_SCENARIO_INSTANCE_ID=42 python3 /opt/openbach/agent/job/toy/toy.py -c 50 2
+$ JOB_NAME=toy JOB_INSTANCE_ID=12 SCENARIO_INSTANCE_ID=42 OWNER_SCENARIO_INSTANCE_ID=42 /opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/job/toy/toy.py -c 50 2
 ```
 
 ### Debugging an installed job

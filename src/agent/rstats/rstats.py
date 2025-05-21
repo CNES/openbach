@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/opt/openbach/virtualenv/bin/python3
 
 # OpenBACH is a generic testbed able to control/configure multiple
 # network/physical entities (under test) and collect data from them. It is
@@ -486,25 +486,25 @@ class RstatsRequestHandler(socketserver.BaseRequestHandler):
 
     def handle(self):
         data, sock = self.request
-        msg = 'KO: Unhandled exception occured\0'
+        msg = 'KO: Unhandled exception occured'
         try:
             data = data.decode()
             syslog.syslog(syslog.LOG_INFO, data)
             result = self.execute_request(data)
         except BadRequest as e:
             syslog.syslog(syslog.LOG_ERR, traceback.format_exc())
-            msg = 'KO: {}\0'.format(e.reason)
+            msg = 'KO: {}'.format(e.reason)
         except Exception as e:
             syslog.syslog(syslog.LOG_CRIT, traceback.format_exc())
-            msg = 'KO: An error occured: {}\0'.format(e)
+            msg = 'KO: An error occured: {}'.format(e)
         else:
             if result is None:
-                msg = 'OK\0'
+                msg = 'OK'
             else:
-                msg = 'OK {}\0'.format(result)
+                msg = 'OK {}'.format(result)
         finally:
             syslog.syslog(syslog.LOG_INFO, msg)
-            sock.sendto(msg.encode(), self.client_address)
+            sock.sendto(msg.encode() + b'\0', self.client_address)
 
     def execute_request(self, data):
         try:

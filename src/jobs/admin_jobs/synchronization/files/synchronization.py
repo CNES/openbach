@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 # OpenBACH is a generic testbed able to control/configure multiple
 # network/physical entities (under test) and collect data from them. It is
@@ -46,6 +46,7 @@ import argparse
 import traceback
 import subprocess
 import contextlib
+from shutil import which
 from time import perf_counter
 from itertools import zip_longest
 
@@ -53,7 +54,7 @@ import collect_agent
 
 
 def get_ntp_offset(retries=None, sleep_time=None):
-    command = ['ntp-wait']
+    command = [which('ntp-wait') or which('ntpwait')]
     if retries is not None:
         command.extend(['-n', str(retries)])
     if sleep_time is not None:
