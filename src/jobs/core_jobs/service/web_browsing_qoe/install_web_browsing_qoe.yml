@@ -34,7 +34,7 @@
 ---
  
 - name: Get client architecture
-  shell: uname -p
+  shell: uname -m
   register: cpu_arch
 
 - name: Remove conflicting packages
