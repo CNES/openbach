@@ -86,7 +86,7 @@ class ActionModule(ActionBase):
             for config in content.pop('platform_configuration', []):
                 if (config['ansible_system'] == os_family
                     and config['ansible_distribution'] == os_distribution
-                    and config['ansible_distribution_version'] == os_distribution_version):
+                    and config['ansible_distribution_release'] == os_distribution_version):
                     break
             else:
                 raise AnsibleActionFail("No suitable platform found in provided src")
