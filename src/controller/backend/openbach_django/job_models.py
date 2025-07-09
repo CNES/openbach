@@ -113,7 +113,7 @@ class OsCommand(models.Model):
         return {
                 'ansible_system': self.family,
                 'ansible_distribution': self.distribution,
-                'ansible_distribution_version': self.version,
+                'ansible_distribution_release': self.version,
                 'command': self.command,
                 'command_stop': self.command_stop,
         }

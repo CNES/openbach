@@ -41,27 +41,22 @@ general:
 platform_configuration:
   - ansible_system: 'Debian'
     ansible_distribution: 'Ubuntu'
-    ansible_distribution_version: '20.04'
+    ansible_distribution_version: 'focal'
     command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/comparison/comparison.py'
     command_stop:
   - ansible_system: 'Debian'
     ansible_distribution: 'Ubuntu'
-    ansible_distribution_version: '22.04'
+    ansible_distribution_version: 'jammy'
     command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/comparison/comparison.py'
     command_stop:
   - ansible_system: 'Debian'
     ansible_distribution: 'Ubuntu'
-    ansible_distribution_version: '24.04'
+    ansible_distribution_version: 'noble'
     command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/comparison/comparison.py'
     command_stop:
   - ansible_system: 'Debian'
     ansible_distribution: 'Debian'
-    ansible_distribution_version: '12.10'
-    command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/comparison/comparison.py'
-    command_stop:
-  - ansible_system: 'Debian'
-    ansible_distribution: 'Debian'
-    ansible_distribution_version: '12.11'
+    ansible_distribution_version: 'bookworm'
     command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/comparison/comparison.py'
     command_stop:
     

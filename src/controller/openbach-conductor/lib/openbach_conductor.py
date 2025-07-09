@@ -1147,7 +1147,7 @@ class AddJob(JobAction):
         for os_description in os_commands:
             os_system = os_description['ansible_system']
             os_distribution = os_description['ansible_distribution']
-            os_distribution_version = os_description['ansible_distribution_version']
+            os_distribution_version = os_description['ansible_distribution_release']
             command = os_description['command']
             command_stop = os_description.get('command_stop')
             system_list.setdefault(os_system, {}).setdefault(os_distribution, []).append(os_distribution_version)
@@ -1504,7 +1504,7 @@ class InstallJob(ThreadedAction, InstalledJobAction):
                 job.os.get(
                         family=ansible_fact['ansible_os_family'],
                         distribution=ansible_fact['ansible_distribution'],
-                        version=ansible_fact['ansible_distribution_version'])
+                        version=ansible_fact['ansible_distribution_release'])
             except OsCommand.DoesNotExist:
                 raise errors.UnprocessableError(
                         'Cannot install a job on an '
