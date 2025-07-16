@@ -271,7 +271,7 @@ class PlaybookBuilder():
         playbook_results.raise_for_error()
 
     @classmethod
-    def install_collector(cls, collector, name, vault_password, username=None, password=None, cookie=None):
+    def install_collector(cls, collector, name, username=None, password=None, vault_password=None, cookie=None):
         with tempfile.NamedTemporaryFile('w', prefix='openbach-ansible-vault-') as vault_file:
             vault_file_name = vault_file.name
             print(vault_password, file=vault_file, flush=True)
@@ -294,7 +294,7 @@ class PlaybookBuilder():
             self.launch_playbook('install', session_cookie=cookie)
 
     @classmethod
-    def uninstall_collector(cls, vault_password, collector, cookie=None):
+    def uninstall_collector(cls, collector, vault_password=None, cookie=None):
         with tempfile.NamedTemporaryFile('w', prefix='openbach-ansible-vault-') as vault_file:
             vault_file_name = vault_file.name
             print(vault_password, file=vault_file, flush=True)
@@ -348,7 +348,7 @@ class PlaybookBuilder():
             self.launch_playbook('install', session_cookie=cookie)
 
     @classmethod
-    def uninstall_agent(cls, address, collector, vault_password, jobs=None, cookie=None):
+    def uninstall_agent(cls, address, collector, jobs=None, vault_password=None, cookie=None):
         with tempfile.NamedTemporaryFile('w', prefix='openbach-ansible-vault-') as vault_file:
             vault_file_name = vault_file.name
             print(vault_password, file=vault_file, flush=True)
@@ -369,7 +369,7 @@ class PlaybookBuilder():
             self.launch_playbook('uninstall', session_cookie=cookie)
 
     @classmethod
-    def check_connection(cls, vault_password, address, port=1111, restart=False, cookie=None):
+    def check_connection(cls, address, port=1111, restart=False, vault_password=None, cookie=None):
         with tempfile.NamedTemporaryFile('w', prefix='openbach-ansible-vault-') as vault_file:
             vault_file_name = vault_file.name
             print(vault_password, file=vault_file, flush=True)
@@ -380,7 +380,7 @@ class PlaybookBuilder():
             self.launch_playbook('check_connection', session_cookie=cookie)
 
     @classmethod
-    def check_connections(cls, vault_password, *addresses, cookie=None):
+    def check_connections(cls, *addresses, vault_password=None, cookie=None):
         with tempfile.NamedTemporaryFile('w', prefix='openbach-ansible-vault-') as vault_file:
             vault_file_name = vault_file.name
             print(vault_password, file=vault_file, flush=True)
@@ -392,7 +392,7 @@ class PlaybookBuilder():
             return playbook_results.failure, playbook_results.services
 
     @classmethod
-    def assign_collector(cls, vault_password, address, port, collector, cookie=None):
+    def assign_collector(cls, address, port, collector, vault_password=None, cookie=None):
         with tempfile.NamedTemporaryFile('w', prefix='openbach-ansible-vault-') as vault_file:
             vault_file_name = vault_file.name
             print(vault_password, file=vault_file, flush=True)
@@ -410,7 +410,7 @@ class PlaybookBuilder():
             self.launch_playbook('assign_collector', session_cookie=cookie)
 
     @classmethod
-    def install_job(cls, address, collector_ip, logs_port, job_name, job_path, vault_password, cookie=None):
+    def install_job(cls, address, collector_ip, logs_port, job_name, job_path, vault_password=None, cookie=None):
         with tempfile.NamedTemporaryFile('w', prefix='openbach-ansible-vault-') as vault_file:
             vault_file_name = vault_file.name
             print(vault_password, file=vault_file, flush=True)
@@ -422,7 +422,7 @@ class PlaybookBuilder():
             self.launch_playbook('install_a_job', session_cookie=cookie)
 
     @classmethod
-    def uninstall_job(cls, address, collector_ip, job_name, job_path, vault_password, cookie=None):
+    def uninstall_job(cls, address, collector_ip, job_name, job_path, vault_password=None, cookie=None):
         with tempfile.NamedTemporaryFile('w', prefix='openbach-ansible-vault-') as vault_file:
             vault_file_name = vault_file.name
             print(vault_password, file=vault_file, flush=True)
@@ -433,7 +433,7 @@ class PlaybookBuilder():
             self.launch_playbook('uninstall_a_job', session_cookie=cookie)
 
     @classmethod
-    def enable_logs(cls, address, collector, vault_password, installed_jobs=None, severity=None, local_severity=None, cookie=None):
+    def enable_logs(cls, address, collector, installed_jobs=None, severity=None, local_severity=None, vault_password=None, cookie=None):
         with tempfile.NamedTemporaryFile('w', prefix='openbach-ansible-vault-') as vault_file:
             vault_file_name = vault_file.name
             print(vault_password, file=vault_file, flush=True)
@@ -451,7 +451,7 @@ class PlaybookBuilder():
             self.launch_playbook('enable_logs', session_cookie=cookie)
 
     @classmethod
-    def push_file(cls, address, vault_password, parameters, restart_services=False, cookie=None):
+    def push_file(cls, address, parameters, restart_services=False, vault_password=None, cookie=None):
         with tempfile.NamedTemporaryFile('w', prefix='openbach-ansible-vault-') as vault_file:
             vault_file_name = vault_file.name
             print(vault_password, file=vault_file, flush=True)
@@ -462,7 +462,7 @@ class PlaybookBuilder():
             self.launch_playbook('push_files', session_cookie=cookie)
 
     @classmethod
-    def pull_file(cls, address, vault_password, parameters, restart_services=False, cookie=None):
+    def pull_file(cls, address, parameters, restart_services=False, vault_password=None, cookie=None):
         with tempfile.NamedTemporaryFile('w', prefix='openbach-ansible-vault-') as vault_file:
             vault_file_name = vault_file.name
             print(vault_password, file=vault_file, flush=True)
@@ -473,7 +473,7 @@ class PlaybookBuilder():
             self.launch_playbook('pull_files', session_cookie=cookie)
 
     @classmethod
-    def fetch_file(cls, address, archive_prefix, local_path, remote_paths, vault_password, cookie=None):
+    def fetch_file(cls, address, archive_prefix, local_path, remote_paths, vault_password=None, cookie=None):
         with tempfile.NamedTemporaryFile('w', prefix='openbach-ansible-vault-') as vault_file:
             vault_file_name = vault_file.name
             print(vault_password, file=vault_file, flush=True)
@@ -485,7 +485,7 @@ class PlaybookBuilder():
             self.launch_playbook('fetch_files', session_cookie=cookie)
 
     @classmethod
-    def gather_facts(cls, address, vault_password, cookie=None):
+    def gather_facts(cls, address, vault_password=None, cookie=None):
         with tempfile.NamedTemporaryFile('w', prefix='openbach-ansible-vault-') as vault_file:
             print(vault_password, file=vault_file, flush=True)
             vault_file_name = vault_file.name
@@ -495,7 +495,7 @@ class PlaybookBuilder():
             return playbook_results.ansible_facts
 
     @classmethod
-    def enable_controller_access(cls, address, vault_password, username=None, password=None, cookie=None):
+    def enable_controller_access(cls, address, username=None, password=None, vault_password=None, cookie=None):
         with tempfile.NamedTemporaryFile('w', prefix='openbach-ansible-vault-') as vault_file:
             vault_file_name = vault_file.name
             print(vault_password, file=vault_file, flush=True)
@@ -504,7 +504,7 @@ class PlaybookBuilder():
             self.launch_playbook('controller_access', session_cookie=cookie)
 
     @classmethod
-    def disable_controller_access(cls, address, vault_password, cookie=None):
+    def disable_controller_access(cls, address, vault_password=None, cookie=None):
         with tempfile.NamedTemporaryFile('w', prefix='openbach-ansible-vault-') as vault_file:
             vault_file_name = vault_file.name
             print(vault_password, file=vault_file, flush=True)
@@ -523,7 +523,7 @@ class PlaybookBuilder():
             self.launch_playbook('reboot', session_cookie=cookie)
 
     @classmethod
-    def manage_retention_policies(cls, address, vault_password, openbach_influx_database, influxdb_port, cookie=None):
+    def manage_retention_policies(cls, address, openbach_influx_database, influxdb_port, vault_password=None, cookie=None):
         with tempfile.NamedTemporaryFile('w', prefix='openbach-ansible-vault-') as vault_file:
             vault_file_name = vault_file.name
             print(vault_password, file=vault_file, flush=True)    
@@ -533,7 +533,7 @@ class PlaybookBuilder():
             self.launch_playbook('manage_retention_policies', session_cookie=cookie)
 
     @classmethod
-    def proxies(cls, address, vault_password, cookie=None):
+    def proxies(cls, address, vault_password=None, cookie=None):
         with tempfile.NamedTemporaryFile('w', prefix='openbach-ansible-vault-') as vault_file:
             print(vault_password, file=vault_file, flush=True)
             vault_file_name = vault_file.name
