@@ -92,6 +92,9 @@ def signal_term_handler(signal, frame):
     exit(0)
 
 
+REQUEST_MAX_SIZE = 1_000_000
+
+
 class JobManager:
     """Context manager around job scheduling"""
     __shared_state = {
@@ -227,6 +230,17 @@ class TruncatedMessageException(Exception):
                 'reading the whole content. '
                 'Expected {} bytes but read {}'
                 .format(expected_length, length)
+        )
+        super().__init__(message)
+
+
+class TooLongMessageException(Exception):
+    """Raised when an incomming message advertise a size too long to be handled"""
+    def __init__(self, length):
+        message = (
+                'Incomming message of size {}. '
+                'Too long to be processed, aborting.'
+                .format(length)
         )
         super().__init__(message)
 
@@ -652,6 +666,9 @@ class AgentServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
 
 class RequestHandler(socketserver.BaseRequestHandler):
     def _read_all(self, amount):
+        if amount > REQUEST_MAX_SIZE:
+            raise TooLongMessageException(amount)
+
         expected = amount
         buffer = bytearray(amount)
         view = memoryview(buffer)
@@ -660,6 +677,7 @@ class RequestHandler(socketserver.BaseRequestHandler):
             if not received:
                 raise TruncatedMessageException(expected, expected - amount)
             amount -= received
+
         return buffer
 
     def finish(self):
@@ -677,8 +695,11 @@ class RequestHandler(socketserver.BaseRequestHandler):
             arguments = message['command_arguments']
             action = ''.join(map(str.title, action_name.split('_')))
             handler = getattr(sys.modules[__name__], action)(**arguments)
-        except TruncatedMessageException as e:
-            self.send_response(str(e), syslog.LOG_WARNING)
+        except (TruncatedMessageException, TooLongMessageException) as e:
+            self.send_response(
+                    'Improper message from {}: '
+                    '{}'.format(self.client_address, e),
+                    syslog.LOG_WARNING)
         except yaml.error.YAMLError as e:
             self.send_response(
                     'Error parsing the message as a JSON '
