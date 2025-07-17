@@ -17,11 +17,14 @@ server {
     }
 
     location /kibana {
-        return 301 http://{{ auditorium_ip }}:{{ kibana_port }}/;
+        proxy_pass http://{{ auditorium_ip }}:{{ kibana_port }}/kibana;
+        proxy_set_header Host $host;
+        proxy_set_header Authorization $http_authorization;
+        proxy_pass_header Authorization;
     }
 
     location ~ ^/chronograf/api/(.*)$ {
-        set $upstream_base http://{{ auditorium_ip }}:{{ chronograf_port }}/chronograf/v1/;
+        set $upstream_base http://{{ auditorium_ip }}:{{ chronograf_port }}/chronograf/chronograf/v1/;
         set $upstream $upstream_base$1$is_args$args;
 
         proxy_redirect $upstream_base /chronograf/api/;
@@ -62,16 +65,13 @@ server {
         proxy_pass $upstream;
     }
 
-    location ~ ^/chronograf/(.*) {
-        return 301 http://{{ auditorium_ip }}:{{ chronograf_port }}/$1$is_args$args;
+    location /chronograf {
+        proxy_pass http://{{ auditorium_ip }}:{{ chronograf_port }}/chronograf;
+        proxy_set_header Host $host;
     }
 
     location /influxdb_api/ {
         proxy_pass http://{{ collector_ip }}:{{ influxdb_port }}/;
         proxy_set_header Host $host;
-    }
-
-    location /influxdb {
-        return 301 http://{{ collector_ip }}:8083/;
     }
 }

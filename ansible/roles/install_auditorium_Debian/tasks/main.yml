@@ -44,21 +44,31 @@
   environment: "{{ openbach_proxy_env }}"
 
 - name: Configure Chronograf
-  template: src=chronograf.j2 dest=/etc/default/chronograf mode=0640
+  template:
+    src: chronograf.j2
+    dest: /etc/default/chronograf
+    mode: 0640
   become: yes
 
 - name: Configure Kibana
-  template: src=kibana.yml.j2 dest=/etc/kibana/kibana.yml
+  template:
+    src: kibana.yml.j2
+    dest: /etc/kibana/kibana.yml
   vars:
     collector_ip: "{{ openbach_collector }}"
+    auditorium_ip: "{{ inventory_hostname }}"
   become: yes
 
 - name: Configure Kibana environement variables 
-  lineinfile: path=/etc/default/kibana line="NODE_OPTIONS=--max-old-space-size=512"
+  lineinfile:
+    path: /etc/default/kibana
+    line: "NODE_OPTIONS=--max-old-space-size=512"
   become: yes
 
 - name: Configure Nginx
-  template: src=default.j2 dest=/etc/nginx/sites-available/default
+  template:
+    src: default.j2
+    dest: /etc/nginx/sites-available/default
   vars:
     controller_ip: "{{ openbach_controller | mandatory }}"
     auditorium_ip: "{{ inventory_hostname }}"
@@ -66,15 +76,25 @@
   become: yes
 
 - name: Create OpenBACH repository
-  file: path=/opt/openbach/auditorium/frontend state=directory
+  file:
+    path: /opt/openbach/auditorium/frontend
+    state: directory
   remote_user: openbach
 
 - name: Upload Auditorium Frontend
-  synchronize: src=frontend/ dest=/opt/openbach/auditorium/frontend/ recursive=yes delete=yes
+  synchronize:
+    src: frontend/
+    dest: /opt/openbach/auditorium/frontend/
+    recursive: yes
+    delete: yes
   remote_user: openbach
 
 - name: Restart OpenBACH Services
-  systemd: name={{ item }} state=restarted enabled=yes daemon_reload=yes
+  systemd:
+    name: "{{ item }}"
+    state: restarted
+    enabled: yes
+    daemon_reload: yes
   with_items:
     - kibana
     - chronograf
@@ -83,11 +103,13 @@
 
 - block:
     - name: Wait for Kibana to Start
-      wait_for: port={{ kibana_port }} timeout=60
+      wait_for:
+        port: "{{ kibana_port }}"
+        timeout: 60
 
     - name: Wait for kibana server to get ready
       uri:
-        url: http://localhost:{{ kibana_port }}/api/saved_objects/lens/vertical_bar
+        url: http://localhost:{{ kibana_port }}/kibana/api/saved_objects/lens/vertical_bar
         method: GET
         status_code: 200, 404
       register: responses
@@ -98,7 +120,7 @@
 
     - name: Check if Kibana dashboard exists
       uri:
-        url: http://localhost:{{ kibana_port }}/api/saved_objects/{{ item.url }}
+        url: http://localhost:{{ kibana_port }}/kibana/api/saved_objects/{{ item.url }}
         method: GET
         status_code: 200, 404
         headers:
@@ -116,7 +138,7 @@
     - block:
       - name: Configure Kibana dashboard
         uri:
-          url: http://localhost:{{ kibana_port }}/api/saved_objects/_import?overwrite=true
+          url: http://localhost:{{ kibana_port }}/kibana/api/saved_objects/_import?overwrite=true
           method: POST
           body: 
             file: 
@@ -143,7 +165,7 @@
 
       - name: Configure Kibana dashboard
         uri:
-          url: http://localhost:{{ kibana_port }}/api/saved_objects/_import?overwrite=true
+          url: http://localhost:{{ kibana_port }}/kibana/api/saved_objects/_import?overwrite=true
           method: POST
           body: 
             file: 
@@ -163,7 +185,9 @@
   when: openbach_restore_host is not defined
 
 - name: Wait for Chronograf to Start
-  wait_for: port={{ chronograf_port }} timeout=60
+  wait_for:
+    port: "{{ chronograf_port }}"
+    timeout: 60
 
 - block:
     - name: Extract Backup Files
@@ -193,7 +217,7 @@
 
     - name: Restore Chronograf Dashboards
       uri:
-        url: http://localhost:{{ chronograf_port }}/chronograf/v1/dashboards
+        url: http://localhost:{{ chronograf_port }}/chronograf/chronograf/v1/dashboards
         method: POST
         src: "{{ item.path }}"
         remote_src: yes
@@ -211,5 +235,7 @@
   when: openbach_restore_host is defined
 
 - name: Copy the version file on the Auditorium
-  copy: src=../version dest=/opt/openbach/auditorium/version
+  copy:
+    src: ../version
+    dest: /opt/openbach/auditorium/version
   remote_user: openbach
