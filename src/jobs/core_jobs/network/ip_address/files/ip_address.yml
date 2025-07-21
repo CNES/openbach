@@ -30,7 +30,7 @@ general:
   description: >
       This Job executes the ip address command in order
       to configure IP address of network interfaces.
-  job_version: '1.3'
+  job_version: '1.4'
   keywords:
     - ip_address
   persistent: no
@@ -39,20 +39,25 @@ general:
 platform_configuration:
   - ansible_system: 'Debian'
     ansible_distribution: 'Ubuntu'
-    ansible_distribution_version: '20.04'
+    ansible_distribution_release: 'focal'
     command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/ip_address/ip_address.py'
     command_stop:
   - ansible_system: 'Debian'
     ansible_distribution: 'Ubuntu'
-    ansible_distribution_version: '22.04'
+    ansible_distribution_release: 'jammy'
     command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/ip_address/ip_address.py'
     command_stop:
   - ansible_system: 'Debian'
     ansible_distribution: 'Ubuntu'
-    ansible_distribution_version: '24.04'
+    ansible_distribution_release: 'noble'
     command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/ip_address/ip_address.py'
     command_stop:
-
+  - ansible_system: 'Debian'
+    ansible_distribution: 'Debian'
+    ansible_distribution_release: 'bookworm'
+    command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/ip_address/ip_address.py'
+    command_stop:
+    
 arguments:
   required:
     - name: interface

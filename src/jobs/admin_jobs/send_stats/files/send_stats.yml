@@ -30,7 +30,7 @@ general:
   description: >
       This Job will resend the statistics produce by the named Job since the
       date
-  job_version: '2.0'
+  job_version: '2.1'
   keywords:
     - stats
   persistent: no
@@ -38,19 +38,25 @@ general:
 platform_configuration:
   - ansible_system: 'Debian'
     ansible_distribution: 'Ubuntu'
-    ansible_distribution_version: '20.04'
+    ansible_distribution_release: 'focal'
     command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/send_stats/send_stats.py'
     command_stop:
   - ansible_system: 'Debian'
     ansible_distribution: 'Ubuntu'
-    ansible_distribution_version: '22.04'
+    ansible_distribution_release: 'jammy'
     command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/send_stats/send_stats.py'
     command_stop:
   - ansible_system: 'Debian'
     ansible_distribution: 'Ubuntu'
-    ansible_distribution_version: '24.04'
+    ansible_distribution_release: 'noble'
     command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/send_stats/send_stats.py'
     command_stop:
+  - ansible_system: 'Debian'
+    ansible_distribution: 'Debian'
+    ansible_distribution_release: 'bookworm'
+    command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/send_stats/send_stats.py'
+    command_stop:
+
 
 arguments:
   required:

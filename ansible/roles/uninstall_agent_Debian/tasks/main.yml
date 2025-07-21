@@ -26,4 +26,4 @@
 ---
 
 - include_role:
-    name: "uninstall_agent_{{ ansible_distribution }}_{{ ansible_distribution_version }}"
+    name: "uninstall_agent_{{ ansible_distribution }}_{{ ansible_distribution_release }}"

@@ -1,0 +1,11 @@
+[Unit]
+Description=Startup script for Kibana
+Requires=network.target
+
+[Service]
+Type=simple
+Environment="NODE_OPTIONS=--max-old-space-size=512"
+ExecStart=/opt/{{ kibana_filename }}/bin/kibana
+
+[Install]
+WantedBy=multi-user.target

@@ -31,7 +31,7 @@ general:
       This Job compile and install a kernel from 
       a git source (for now only).
       It will prepare a reboot at the end of the execution of the job.
-  job_version: '1.0'
+  job_version: '1.1'
   keywords:
     - kernel_compile
     - admin
@@ -41,22 +41,27 @@ general:
 platform_configuration:
   - ansible_system: 'Debian'
     ansible_distribution: 'Ubuntu'
-    ansible_distribution_version: '20.04'
+    ansible_distribution_release: 'focal'
     command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/kernel_compile/kernel_compile.py'
     command_stop:
   - ansible_system: 'Debian'
     ansible_distribution: 'Ubuntu'
-    ansible_distribution_version: '22.04'
+    ansible_distribution_release: 'jammy'
     command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/kernel_compile/kernel_compile.py'
     command_stop:
   - ansible_system: 'Debian'
     ansible_distribution: 'Ubuntu'
-    ansible_distribution_version: '16.04'
+    ansible_distribution_release: 'noble'
     command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/kernel_compile/kernel_compile.py'
     command_stop:
   - ansible_system: 'Debian'
     ansible_distribution: 'Ubuntu'
-    ansible_distribution_version: '24.04'
+    ansible_distribution_release: 'xenial'
+    command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/kernel_compile/kernel_compile.py'
+    command_stop:
+  - ansible_system:  'Debian'
+    ansible_distribution: 'Debian'
+    ansible_distribution_release: 'bookworm'
     command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/kernel_compile/kernel_compile.py'
     command_stop:
 

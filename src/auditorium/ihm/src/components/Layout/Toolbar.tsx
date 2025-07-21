@@ -42,7 +42,7 @@ const Toolbar: React.FC<Props> = (props) => {
                     <Typography variant="h6" component="div" sx={{flexGrow: 1}}>
                         {pageTitle}
                     </Typography>
-                    <Button component={Link} to="/kibana" target="_blank">
+                    <Button component={Link} to="/kibana/app/dashboards#/view/default_dashboard" target="_blank">
                         Logs
                     </Button>
                     <Box ml={2} mr={2}>

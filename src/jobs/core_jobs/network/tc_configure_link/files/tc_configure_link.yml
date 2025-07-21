@@ -31,7 +31,7 @@ general:
       This Job configures the delay, the bandwidth or the
       loss on an given interface (it removes the previous
       configuration of the interface).
-  job_version: '3.1'
+  job_version: '3.2'
   keywords:
     - delay
     - bandwidth
@@ -46,20 +46,25 @@ general:
 platform_configuration:
   - ansible_system: 'Debian'
     ansible_distribution: 'Ubuntu'
-    ansible_distribution_version: '20.04'
+    ansible_distribution_release: 'focal'
     command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/tc_configure_link/tc_configure_link.py'
     command_stop:
   - ansible_system: 'Debian'
     ansible_distribution: 'Ubuntu'
-    ansible_distribution_version: '22.04'
+    ansible_distribution_release: 'jammy'
     command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/tc_configure_link/tc_configure_link.py'
     command_stop:
   - ansible_system: 'Debian'
     ansible_distribution: 'Ubuntu'
-    ansible_distribution_version: '24.04'
+    ansible_distribution_release: 'noble'
     command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/tc_configure_link/tc_configure_link.py'
     command_stop:
-
+  - ansible_system: 'Debian'
+    ansible_distribution: 'Debian'
+    ansible_distribution_release: 'bookworm'
+    command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/tc_configure_link/tc_configure_link.py'
+    command_stop:
+    
 arguments:
   required:
     - name: interface_name

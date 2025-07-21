@@ -125,7 +125,7 @@ openbach_jobs:
 '''
 
 
-REQUIRED_KEYS = ('ansible_system', 'ansible_distribution', 'ansible_distribution_version')
+REQUIRED_KEYS = ('ansible_system', 'ansible_distribution', 'ansible_distribution_release')
 
 
 def get_jobs_infos(folder):

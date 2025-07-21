@@ -6,7 +6,7 @@ general:
       This Job principaly launches the receiver of D-ITG.
       It can be assimilated to a daemon running on the host.
       It is possible to launch multiple instances of the job at the same time.
-  job_version:     '0.6'
+  job_version:     '0.7'
   keywords:        [D-ITG]
   persistent:      True
   need_privileges: False
@@ -14,20 +14,25 @@ general:
 platform_configuration:
   - ansible_system: 'Debian'
     ansible_distribution: 'Ubuntu'
-    ansible_distribution_version: '20.04'
+    ansible_distribution_release: 'focal'
     command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/d-itg_recv/d-itg_recv.py'
     command_stop:
   - ansible_system: 'Debian'
     ansible_distribution: 'Ubuntu'
-    ansible_distribution_version: '22.04'
+    ansible_distribution_release: 'jammy'
     command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/d-itg_recv/d-itg_recv.py'
     command_stop:
   - ansible_system: 'Debian'
     ansible_distribution: 'Ubuntu'
-    ansible_distribution_version: '24.04'
+    ansible_distribution_release: 'noble'
     command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/d-itg_recv/d-itg_recv.py'
     command_stop:
-
+  - ansible_system: 'Debian'
+    ansible_distribution: 'Debian'
+    ansible_distribution_release: 'bookworm'
+    command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/d-itg_recv/d-itg_recv.py'
+    command_stop:
+    
 arguments:
   required:
   optional:

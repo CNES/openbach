@@ -29,7 +29,7 @@ general:
   name: temporal_binning_histogram
   description: >
       This job post-process data of other jobs. It generates time-aggregated histograms of jobs metrics to perform statistics analysis.
-  job_version: '1.3'
+  job_version: '1.4'
   keywords:
     - post-processing
     - temporal-binning
@@ -39,22 +39,26 @@ general:
   persistent: no
 
 platform_configuration:
-  - ansible_system: Debian
-    ansible_distribution: Ubuntu
-    ansible_distribution_version: '20.04'
+  - ansible_system: 'Debian'
+    ansible_distribution: 'Ubuntu'
+    ansible_distribution_release: 'focal'
     command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/temporal_binning_histogram/temporal_binning_histogram.py'
     command_stop:
-  - ansible_system: Debian
-    ansible_distribution: Ubuntu
-    ansible_distribution_version: '22.04'
+  - ansible_system: 'Debian'
+    ansible_distribution: 'Ubuntu'
+    ansible_distribution_release: 'jammy'
     command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/temporal_binning_histogram/temporal_binning_histogram.py'
     command_stop:
-  - ansible_system: Debian
-    ansible_distribution: Ubuntu
-    ansible_distribution_version: '24.04'
+  - ansible_system: 'Debian'
+    ansible_distribution: 'Ubuntu'
+    ansible_distribution_release: 'noble'
     command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/temporal_binning_histogram/temporal_binning_histogram.py'
     command_stop:
-
+  - ansible_system: 'Debian'
+    ansible_distribution: 'Debian'
+    ansible_distribution_release: 'bookworm'
+    command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/temporal_binning_histogram/temporal_binning_histogram.py'
+    command_stop:
 arguments:
   required:
   optional:
