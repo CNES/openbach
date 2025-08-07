@@ -67,6 +67,7 @@ Authors
   *  Bastien Tauran      (Viveris Technologies),      bastien.tauran@viveris.fr
   *  Francklin Simo      (Viveris Technologies),      francklin.simo@viveris.fr
   *  Matthieu Petrou     (Viveris Technologies),      matthieu.petrou@viveris.fr
+  *  Aichatou Garba-Abdou     (Viveris Technologies),      aichatou.garba-abdou@viveris.fr
   *  Oumaima Zerrouq     (Viveris Technologies),      oumaima.zerrouq@viveris.fr
   *  David Pradas        (Viveris Technologies),      david.pradas@viveris.fr
   *  Emmanuel Dubois     (CNES),                      emmanuel.dubois@cnes.fr
