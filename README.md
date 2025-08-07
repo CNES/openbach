@@ -54,23 +54,23 @@ Examples of project using OpenBACH
 Project Partners
 ================
 
-Vivéris Technologies
+Viveris Technologies
 
 Authors
 =======
 
-  *  Adrien Thibaud      (Vivéris Technologies),      adrien.thibaud@viveris.fr
-  *  Mathias Ettinger    (Vivéris Technologies),      mathias.ettinger@viveris.fr
-  *  Léa Thibout         (Vivéris Technologies),      lea.thibout@viveris.fr
-  *  David Fernandes     (Vivéris Technologies),      david.fernandes@viveris.fr
-  *  Joaquin Muguerza    (Vivéris Technologies),      joaquin.muguerza@viveris.fr
-  *  Bastien Tauran      (Vivéris Technologies),      bastien.tauran@viveris.fr
-  *  Francklin Simo      (Vivéris Technologies),      francklin.simo@viveris.fr
-  *  Mathieu Petrou      (Vivéris Technologies),      mathieu.petrou@viveris.fr
-  *  Oumaima Zerrouq     (Vivéris Technologies),      oumaima.zerrouq@viveris.fr
-  *  David Pradas        (Vivéris Technologies),      david.pradas@viveris.fr
+  *  Adrien Thibaud      (Viveris Technologies),      adrien.thibaud@viveris.fr
+  *  Mathias Ettinger    (Viveris Technologies),      mathias.ettinger@viveris.fr
+  *  Joaquin Muguerza    (Viveris Technologies),      joaquin.muguerza@viveris.fr
+  *  Léa Thibout         (Viveris Technologies),      lea.thibout@viveris.fr
+  *  David Fernandes     (Viveris Technologies),      david.fernandes@viveris.fr
+  *  Bastien Tauran      (Viveris Technologies),      bastien.tauran@viveris.fr
+  *  Francklin Simo      (Viveris Technologies),      francklin.simo@viveris.fr
+  *  Matthieu Petrou     (Viveris Technologies),      matthieu.petrou@viveris.fr
+  *  Oumaima Zerrouq     (Viveris Technologies),      oumaima.zerrouq@viveris.fr
+  *  David Pradas        (Viveris Technologies),      david.pradas@viveris.fr
   *  Emmanuel Dubois     (CNES),                      emmanuel.dubois@cnes.fr
-  *  Nicolas Kuhn        (CNES),                      nicolas.kuhn@cnes.fr 
+  *  Nicolas Kuhn        (CNES),                      nicolas.kuhn@cnes.fr
   *  Santiago Garcia Guillen (CNES),                  santiago.garciaguillen@cnes.fr
 
 Licence
