@@ -88,8 +88,7 @@ def main(src_ip, dst_ip, src_port, dst_port, proto, ignore_ports, interface, cap
 
     do_save_pcap = partial(save_pcap, capture_file, False)
     if not capture_file:
-        tf = tempfile.NamedTemporaryFile(prefix='openbach_tcpdump_', suffix='_capture.pcap', delete_on_close=False, delete=False)
-        with open(tf.name,"w") as f:
+        with tempfile.NamedTemporaryFile(prefix='openbach_tcpdump_', suffix='_capture.pcap') as f:
             capture_file = f.name
         do_save_pcap = partial(save_pcap, capture_file, True)
     signal.signal(signal.SIGTERM, do_save_pcap)
