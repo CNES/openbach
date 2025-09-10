@@ -96,7 +96,9 @@ def main(src_ip, dst_ip, src_port, dst_port, proto, ignore_ports, interface, cap
 
     capture_file = pathlib.Path(capture_file)
     capture_filter = ' and '.join(format_capture_filter(src_ip, dst_ip, src_port, dst_port, proto, ignore_ports))
-    cmd = ['tcpdump', '-i', interface, capture_filter, '-w', capture_file.as_posix(), '-Z', user]
+    cmd = ['tcpdump', '-i', interface, capture_filter, '-w', capture_file.as_posix()] 
+    if user :
+        cmd += ['-Z', user]
     if duration:
         cmd += ['-G', str(duration), '-W', '1']
 
@@ -145,9 +147,8 @@ if __name__ == '__main__':
                 '-n', '--ignore-ports',
                 type=int, nargs='+', default=[],
                 help='Do not capture if one of the following ports is used')
-        parser.add_argument('-Z', '--user', default='root', type=str, 
+        parser.add_argument('-Z', '--user', type=str, 
                 help='change ownership of the captured file (default is root)')
-
         args = parser.parse_args()
         if args.capture_file:
             with args.capture_file as f:
