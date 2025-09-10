@@ -65,6 +65,9 @@ def _store_filename(namespace, file_argument):
 def build_display_filter(src_ip, dst_ip, src_port, dst_port, proto):
     """Build a display filter"""
 
+    if proto is not None:
+        proto = proto.lower()
+
     def format_display_filter():
         if src_ip is not None:
             yield 'ip.src=={}'.format(src_ip)
@@ -73,7 +76,6 @@ def build_display_filter(src_ip, dst_ip, src_port, dst_port, proto):
             yield 'ip.dst=={}'.format(dst_ip)
 
         if proto is not None:
-            proto = proto.lower()
             yield 'ip.proto=={}'.format(6 if proto == 'tcp' else 17)
 
         if src_port is not None:
@@ -219,7 +221,7 @@ def gilbert_elliot(capture_file, second_capture_file, src_ip, dst_ip, src_port, 
 
 def _flow_id_funct(packet):
     protocol = packet.transport_layer
-    return (packet.ip.src, pkt[protocol].srcport, packet.ip.dst, packet[protocol].dstport, protocol)
+    return (packet.ip.src, packet[protocol].srcport, packet.ip.dst, packet[protocol].dstport, protocol)
 
 
 def _time_range(start, step):
@@ -241,7 +243,7 @@ def one_file(capture_file, src_ip, dst_ip, src_port, dst_port, proto, metrics_in
             return
 
         flow_id_to_flow = {
-                (flow_id, sorted(flow, key=packet_time))
+                flow_id: sorted(flow, key=packet_time)
                 for flow_id, flow in sort_and_group(packets, key=_flow_id_funct)
         }
         all_flows = []
