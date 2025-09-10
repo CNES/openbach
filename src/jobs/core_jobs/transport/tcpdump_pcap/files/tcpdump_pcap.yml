@@ -116,7 +116,7 @@ arguments:
       type:          str
       count:         1
       flag:          '-Z'
-      description:   Change ownership of the captured file (default is root)
+      description:   Change ownership of the captured file. By default, tcpdump uses the "tcpdump" user.
 
 statistics:
     - name: "pcap_file"
