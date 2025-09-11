@@ -36,7 +36,7 @@
     name:
       - openpyxl
     state: latest
-    vitualenv: /opt/openbach/virtualenv
+    virtualenv: /opt/openbach/virtualenv
   environment: "{{ openbach_proxy_env }}"
   remote_user: openbach
 
