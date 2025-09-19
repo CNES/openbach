@@ -40,6 +40,7 @@ import os
 import time
 import syslog
 import argparse
+from pathlib import Path
 from datetime import datetime
 from contextlib import suppress
 try:
@@ -50,91 +51,60 @@ except ImportError:
 import collect_agent
 
 
-CONF_FILE = '/opt/openbach/agent/jobs/send_stats/send_stats_rstats_filter.conf'
 DATE_FORMAT = '%Y-%m-%d %H:%M:%S.%f'
-ENVIRON_METADATA = (
-        'job_name',
-        'job_instance_id',
-        'scenario_instance_id',
-        'owner_scenario_instance_id',
-)
+STATS_FOLDER = Path('/var/openbach_stats/')
 
 
-def send_stats(filename):
-    with open(filename) as statistics:
-        try:
-            # Parse the first line independently
-            # so we can update os.ENVIRON
-            statistic = json.loads(next(statistics))
-        except StopIteration:
-            return  # File was empty
-
-        # Setup os.ENVIRON for register_collect to work properly
-        metadata = statistic.pop('_metadata')
-        timestamp = metadata['time']
-        suffix = metadata.get('suffix')
-        for name in ENVIRON_METADATA:
-            # This way rstats will be aware and will not locally store the
-            # stats again
-            if name == 'job_name':
-                metadata[name] = 'send_stats-' + str(metadata[name])
-
-            os.environ[name.upper()] = str(metadata[name])
-
-        # Recreate connection with rstats
-        success = collect_agent.register_collect(CONF_FILE, new=True)
-        if not success:
-            message = 'Cannot communicate with rstats'
-            collect_agent.send_log(syslog.LOG_ERR, message)
-            raise ConnectionError(message)
-        collect_agent.send_stat(timestamp, suffix=suffix, **statistic)
-        for line in statistics:
-            statistic = json.loads(line)
-            metadata = statistic.pop('_metadata')
-            timestamp = metadata['time']
-            suffix = metadata.get('suffix')
-            collect_agent.send_stat(timestamp, suffix=suffix, **statistic)
+def forward_statistics(stats):
+    metadata = stats.pop('_metadata')
+    timestamp = metadata.pop('time')
+    suffix = metadata.pop('suffix', None)
+    collect_agent.send_stat(timestamp, suffix=suffix, metadatas=metadata, **stats)
 
 
-def main(origin, jobs=None, stats_folder='/var/openbach_stats/'):
-    jobs = set(jobs) if jobs else set()
-    origin_timestamp = datetime.timestamp(origin)
+def main(origin, jobs=None):
+    if jobs is not None:
+        jobs = set(jobs)
+    origin_timestamp = origin.timestamp()
 
-    connected = False
-    for job_name in os.listdir(stats_folder):
-        job_folder = os.path.join(stats_folder, job_name)
-        if job_name not in jobs or not os.path.isdir(job_folder):
+    for job_folder in STATS_FOLDER.iterdir():
+        if (jobs and job_folder.name not in jobs) or not job_folder.is_dir():
             continue
    
-        for filename in sorted(os.listdir(job_folder)):
-            file_timestamp = os.path.getmtime(os.path.join(job_folder, filename))
+        for file_path in sorted(job_folder.iterdir()):
+            file_timestamp = file_path.lstat().st_mtime
             if file_timestamp >= origin_timestamp:
-                with suppress(ValueError):
-                    send_stats(os.path.join(stats_folder, job_name, filename))
-                    connected = True
-
-    if connected:
-        collect_agent.remove_stat()
+                with file_path.open() as statistics:
+                    for line in statistics:
+                        try:
+                            statistic = json.loads(line)
+                        except ValueError:
+                            pass
+                        else:
+                            forward_statistics(statistic)
 
 
 if __name__ == "__main__":
-    # Define Usage
-    parser = argparse.ArgumentParser(
-            description=__doc__,
-            formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument(
-            'date', nargs=2,
-            help='date and time from which to re-send stats (accepted format: {})'.format(DATE_FORMAT))
-    parser.add_argument(
-            '-j', '--job_name',
-            action='append',
-            help='name of a Job to send stats from')
+    with collect_agent.register_collect('/opt/openbach/agent/jobs/send_stats/send_stats_rstats_filter.conf'):
+        date_usage = DATE_FORMAT.replace('%', '%%')  # Somehow argparse still uses %-formatting for its help message
 
-    # get args
-    args = parser.parse_args()
-    try:
-        date = datetime.strptime('{} {}'.format(*args.date), DATE_FORMAT)
-    except ValueError:
-        parser.error('date and time are not in the expected ({}) format'.format(DATE_FORMAT))
-    else:
-        main(date, args.job_name)
+        # Define Usage
+        parser = argparse.ArgumentParser(
+                description=__doc__,
+                formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        parser.add_argument(
+                'date', nargs=2,
+                help='date and time from which to re-send stats (accepted format: {})'.format(date_usage))
+        parser.add_argument(
+                '-j', '--job-name',
+                action='append',
+                help='name of a Job to send stats from (leave blank to send stats from all jobs)')
+
+        # get args
+        args = parser.parse_args()
+        try:
+            date = datetime.strptime('{} {}'.format(*args.date), DATE_FORMAT)
+        except ValueError:
+            parser.error('date and time are not in the expected ({}) format'.format(DATE_FORMAT))
+        else:
+            main(date, args.job_name)
