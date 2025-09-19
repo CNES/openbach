@@ -40,27 +40,17 @@ general:
   need_privileges: yes
 
 platform_configuration:
-  - ansible_system: 'Debian'
-    ansible_distribution: 'Ubuntu'
-    ansible_distribution_release: 'focal'
-    command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/ip_link/ip_link.py'
-    command_stop:
-  - ansible_system: 'Debian'
-    ansible_distribution: 'Ubuntu'
-    ansible_distribution_release: 'jammy'
-    command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/ip_link/ip_link.py'
-    command_stop:
-  - ansible_system: 'Debian'
-    ansible_distribution: 'Ubuntu'
-    ansible_distribution_release: 'noble'
-    command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/ip_link/ip_link.py'
-    command_stop:
-  - ansible_system: 'Debian'
-    ansible_distribution: 'Debian'
-    ansible_distribution_release: 'bookworm'
-    command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/ip_link/ip_link.py'
-    command_stop:
-    
+  ansible_system: 'Debian'
+  ansible_distribution: 'Ubuntu'
+  command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/ip_link/ip_link.py'
+  command_stop:
+  supported_platforms:
+    - ansible_distribution_release: 'focal'
+    - ansible_distribution_release: 'jammy'
+    - ansible_distribution_release: 'noble'
+    - ansible_distribution: 'Debian'
+      ansible_distribution_release: 'bookworm'
+
 arguments:
   required:
   optional:

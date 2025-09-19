@@ -1182,26 +1182,45 @@ class AddJob(JobAction):
         job.save()
 
         system_list = {}
-
-        # Associate OSes
-        os_commands = content['platform_configuration']
-        for os_description in os_commands:
-            os_system = os_description['ansible_system']
-            os_distribution = os_description['ansible_distribution']
-            os_distribution_version = os_description['ansible_distribution_release']
-            command = os_description['command']
-            command_stop = os_description.get('command_stop')
-            system_list.setdefault(os_system, {}).setdefault(os_distribution, []).append(os_distribution_version)
+        def _add_platform(system, distribution, release, command, stop):
+            if system is None:
+                raise KeyError('ansible_system')
+            if distribution is None:
+                raise KeyError('ansible_distribution')
+            if release is None:
+                raise KeyError('ansible_distribution_release')
+            if command is None:
+                raise KeyError('command')
+            system_list.setdefault(system, {}).setdefault(distribution, []).append(release)
             os_command, _ = OsCommand.objects.get_or_create(
-                    job=job, family=os_system, distribution=os_distribution,
-                    version=os_distribution_version,
+                    job=job, family=system, distribution=distribution, version=release,
                     defaults={
                         'command': command,
-                        'command_stop': command_stop,
+                        'command_stop': stop,
                     })
             os_command.command = command
-            os_command.command_stop = command_stop
+            os_command.command_stop = stop
             os_command.save()
+
+        # Associate OSes
+        configuration = content['platform_configuration']
+        default_system = configuration.get('ansible_system')
+        default_distribution = configuration.get('ansible_distribution')
+        default_release = configuration.get('ansible_distribution_release')
+        default_command = configuration.get('command')
+        default_stop = configuration.get('command_stop')
+        supported_platforms = configuration.get('supported_platforms')
+        if supported_platforms is None:
+            _add_platform(default_system, default_distribution, default_release, default_command, default_stop)
+        else:
+            for os_description in supported_platforms:
+                _add_platform(
+                        os_description.get('ansible_system', default_system),
+                        os_description.get('ansible_distribution', default_distribution),
+                        os_description.get('ansible_distribution_release', default_release),
+                        os_description.get('command', default_command),
+                        os_description.get('command_stop', default_stop))
+
         # Remove OSes associated to the previous version of the job
         for system, system_info in system_list.items():
             for distribution, versions in system_info.items():
