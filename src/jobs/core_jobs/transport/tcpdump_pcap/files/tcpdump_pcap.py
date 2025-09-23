@@ -148,7 +148,7 @@ if __name__ == '__main__':
                 type=int, nargs='+', default=[],
                 help='Do not capture if one of the following ports is used')
         parser.add_argument('-Z', '--user', type=str, 
-                help='change ownership of the captured file (default is root)')
+                help='change ownership of the captured file. By default, tcpdump uses the "tcpdump" user.')
         args = parser.parse_args()
         if args.capture_file:
             with args.capture_file as f:
