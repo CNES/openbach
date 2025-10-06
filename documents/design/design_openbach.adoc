@@ -626,8 +626,7 @@ benchmark, so that he would be able to correctly perform different tasks.
 The tasks that a user shall be able to carry out are:
 
 *	Install/uninstall Agents in the network entities. The procedure for
-installing new Agents is explained in section <<install-agent,TBD>>
-and in the http://opensand.org/support/wiki/doku.php?id=openbach:manuals:index[wiki OpenBACH].
+installing new Agents is explained in section <<install-agent,TBD>>.
 *	Install/remove a job to/from an Agent
 *	Schedule/start/stop a job instance in an Agent with different configuration
 parameters.
