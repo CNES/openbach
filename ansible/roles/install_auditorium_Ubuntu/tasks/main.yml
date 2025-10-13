@@ -66,11 +66,26 @@
   become: yes
 
 - name: Create OpenBACH repository
-  file: path=/opt/openbach/auditorium/frontend state=directory
+  file:
+    path: /opt/openbach/auditorium/frontend
+    state: directory
+    mode: 0755
   remote_user: openbach
 
 - name: Upload Auditorium Frontend
-  synchronize: src=frontend/ dest=/opt/openbach/auditorium/frontend/ recursive=yes delete=yes
+  synchronize:
+    src: frontend/
+    dest: /opt/openbach/auditorium/frontend/
+    recursive: yes
+    delete: yes
+  remote_user: openbach
+
+- name: Fix file Permissions for Auditorium Frontend
+  file:
+    path: /opt/openbach/auditorium/frontend
+    state: directory
+    mode: 0755
+    recursive: yes
   remote_user: openbach
 
 - name: Restart OpenBACH Services
