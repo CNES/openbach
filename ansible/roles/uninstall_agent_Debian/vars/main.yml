@@ -25,5 +25,5 @@
 
 ---
 
-- include_role:
-    name: "install_collector_{{ ansible_distribution }}"
+openbach_repository:
+  - deb [signed-by=/etc/apt/keyrings/net4sat.gpg] https://raw.githubusercontent.com/CNES/net4sat-packages/master/{{ ansible_distribution_release }}/ {{ ansible_distribution_release }} dev

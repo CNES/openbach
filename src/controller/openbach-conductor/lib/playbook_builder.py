@@ -79,11 +79,6 @@ class PlayResult(CallbackBase):
 
     def raise_for_error(self):
         """Raise an error if something failed during an Ansible Play"""
-        if self._context is not None:
-            # Clear tags at the end of a play (ansible bug?)
-            self._context.only_tags.clear()
-            self._context.skip_tags.clear()
-
         if self.failure:
             raise errors.UnprocessableError(
                     'Ansible playbook execution failed',
@@ -158,6 +153,23 @@ class ServicesResult(SilentResult):
             self.services[host]['ntp'] = result._result['stdout']
 
 
+class DummyCLI(CLI):
+    """Dummy CLI allowing us to initialize loader and inventory properly"""
+    USES_CONNECTION = False
+
+    def __init__(self):
+        pass
+
+    def init_parser(self, usage="", desc=None, epilog=None):
+        pass
+
+    def post_process_args(self, options):
+        pass
+
+    def run(self):
+        pass
+
+
 class PlaybookBuilder():
     """Easy Playbook configuration and launching"""
 
@@ -227,7 +239,7 @@ class PlaybookBuilder():
             self.options.remote_user = username
 
         context._init_global_context(self.options)
-        self.loader, self.inventory, self.variables = CLI._play_prereqs()
+        self.loader, self.inventory, self.variables = DummyCLI()._play_prereqs()
 
     def __del__(self):
         """Remove the Inventory file when this object is garbage collected"""
