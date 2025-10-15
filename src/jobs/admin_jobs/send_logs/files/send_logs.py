@@ -40,6 +40,7 @@ import os
 import socket
 import syslog
 import argparse
+from pathlib import Path
 from datetime import datetime
 from functools import partial
 from contextlib import suppress
@@ -54,8 +55,7 @@ import collect_agent
 
 
 # Configure logger
-syslog.openlog('send_logs', syslog.LOG_PID, syslog.LOG_USER)
-LOGS_DIR = '/var/log/openbach/'
+LOGS_DIR = Path('/var/log/openbach/')
 DATE_FORMAT = '%Y-%m-%d %H:%M:%S.%f'
 
 
@@ -115,8 +115,8 @@ def build_socket_sender():
     return sock, sender
 
 
-def send_logs(filename, send_log):
-    with open(os.path.join(LOGS_DIR, filename)) as log:
+def send_logs(file_path, send_log):
+    with file_path.open() as log:
         for line in log:
             message = (
                     '<{line[pri]}>{line[timestamp]} '
@@ -134,40 +134,43 @@ def send_logs(filename, send_log):
 
 
 def main(origin, jobs=None):
-    # We don't need to send stats so configure logs only
-    collect_agent.register_collect('')
     sock, send_log = build_socket_sender()
 
-    jobs = set(jobs) if jobs else set()
-    origin_timestamp = datetime.timestamp(origin)
+    if jobs is not None:
+        jobs = set(jobs)
+    origin_timestamp = origin.timestamp()
 
     with sock:
-        for filename in os.listdir(LOGS_DIR):
-            job_name, _ = filename.rsplit('_', 1)
-            file_timestamp = os.path.getmtime(os.path.join(LOGS_DIR, filename))
-            if job_name in jobs and file_timestamp >= origin_timestamp:
+        for file_path in LOGS_DIR.iterdir():
+            job_name, _ = filepath.stem.rsplit('_', 1)
+            file_timestamp = file_path.lstat().st_mtime
+            if (not jobs or job_name in jobs) and file_timestamp >= origin_timestamp:
                 with suppress(ValueError):
-                    send_logs(filename, send_log)
+                    send_logs(file_path, send_log)
 
 
 if __name__ == '__main__':
-    # Define Usage
-    parser = argparse.ArgumentParser(
-            description=__doc__,
-            formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument(
-            'date', nargs=2,
-            help='date and time from which to re-send logs (accepted format: {})'.format(DATE_FORMAT))
-    parser.add_argument(
-            '-j', '--job_name',
-            action='append',
-            help='name of a Job to send logs from')
+    # We don't need to send stats so configure logs only
+    with collect_agent.register_collect(''):
+        date_usage = DATE_FORMAT.replace('%', '%%')  # Somehow argparse still uses %-formatting for its help message
 
-    # get args
-    args = parser.parse_args()
-    try:
-        date = datetime.strptime('{} {}'.format(*args.date), DATE_FORMAT)
-    except ValueError:
-        parser.error('date and time are not in the expected ({}) format'.format(DATE_FORMAT))
-    else:
-        main(date, args.job_name)
+        # Define Usage
+        parser = argparse.ArgumentParser(
+                description=__doc__,
+                formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        parser.add_argument(
+                'date', nargs=2,
+                help='date and time from which to re-send logs (accepted format: {})'.format(date_usage))
+        parser.add_argument(
+                '-j', '--job-name',
+                action='append',
+                help='name of a Job to send logs from (leave empty to send logs from all jobs)')
+
+        # get args
+        args = parser.parse_args()
+        try:
+            date = datetime.strptime('{} {}'.format(*args.date), DATE_FORMAT)
+        except ValueError:
+            parser.error('date and time are not in the expected ({}) format'.format(DATE_FORMAT))
+        else:
+            main(date, args.job_name)

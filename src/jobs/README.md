@@ -28,7 +28,9 @@ your arguments. This function will return a boolean value indicating success upo
 the rstats daemon. Further uses of the library include the `send_stat` and `send_log` functions.
 
 At any moment, if your program fails, you should follow unix conventions of returning a non-zero
-status code. You may use `sys.exit` in Python to do so.
+status code. You may use `sys.exit` in Python to do so. Wrapping your code into the
+`use_configuration` context-manager can also help ensure any issue with your program is properly
+logged.
 
 A toy example of Python job could look like:
 
@@ -48,57 +50,19 @@ def build_parser():
     return parser
 
 
-def timestamp():
-    """Current timestamp in milliseconds"""
-    return int(time() * 1000)
-
-
 def main(interval, count):
     """Toy program body: emit count stats, one each interval seconds"""
-    config_file = '/opt/openbach/agent/jobs/toy/toy_rstats_filter.conf'
-    success = collect_agent.register_collect(config_file)
-    if not success:
-        message = 'Could not connect to rstats'
-        collect_agent.send_log(syslog.LOG_ERR, message)
-        exit(message)
-
     for i in range(count):
         if i:
             sleep(interval)
-        collect_agent.send_stat(timestamp(), toy_statistic='spam')
+        collect_agent.send_stat(collect_agent.now(), toy_statistic='spam')
 
 
 if __name__ == '__main__':
-    args = build_parser().parse_args()
-    main(args.interval, args.count)
+    with collect_agent.use_configuration('/opt/openbach/agent/jobs/toy/toy_rstats_filter.conf'):
+        args = build_parser().parse_args()
+        main(args.interval, args.count)
 ```
-
-A common pattern, for jobs meant to send statistics is to check whether or not the connection
-to rstats succeeded and, if not, fail with an error message; this behavior can be implemented
-as follows:
-
-``` python
-@contextlib.contextmanager
-def use_configuration(filepath):
-    success = collect_agent.register_collect(filepath)
-    if not success:
-        message = 'ERROR connecting to collect-agent'
-        collect_agent.send_log(syslog.LOG_ERR, message)
-        sys.exit(message)
-    collect_agent.send_log(syslog.LOG_DEBUG, 'Starting job ' + os.environ.get('JOB_NAME', '!'))
-    try:
-        yield
-    except Exception:
-        message = traceback.format_exc()
-        collect_agent.send_log(syslog.LOG_CRIT, message)
-        raise
-    except SystemExit as e:
-        if e.code != 0:
-            collect_agent.send_log(syslog.LOG_CRIT, 'Abrupt program termination: ' + str(e.code))
-        raise
-```
-
-Usage being to wrap your entry point under a `with collect_agent.use_configuration(config_file)` statement.
 
 ## Adding metadata
 
@@ -128,11 +92,11 @@ general:
 
 
 platform_configuration:
-  - ansible_system: 'Linux'
-    ansible_distribution: 'Ubuntu'
-    ansible_distribution_version: '20.04'
-    command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/toy/toy.py'
-    command_stop:
+  ansible_system: 'Debian'
+  ansible_distribution: 'Ubuntu'
+  ansible_distribution_release: 'noble'
+  command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/toy/toy.py'
+  command_stop:
 
 
 arguments:
@@ -187,7 +151,23 @@ added for future evolutions of OpenBACH).
 
 The `platform_configuration` section describe OS on which this job can be installed and
 how to invoke them on such OS. OpenBACH will check if the target agent meet the needs of
-the job before installing it. You can put more than one entry in this list. The `command_stop`
+the job before installing it. Multiple target OSes can be specified in the (optional)
+`supported_platforms` array. Keys under the `platform_configuration` will then act as
+defaults and keys in the `supported_platforms` items will override these defaults:
+
+``` yaml
+platform_configuration:
+  ansible_system: 'Debian'
+  ansible_distribution: 'Ubuntu'
+  command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/toy/toy.py'
+  command_stop:
+  supported_platforms:
+    - ansible_distribution_release: 'focal'
+    - ansible_distribution_release: 'jammy'
+    - ansible_distribution_release: 'noble'
+```
+
+You can put more than one entry in this list. The `command_stop`
 entry is optional and (if set) will be called __instead of sending a signal__ to the job to
 stop it (so it's more usefull for persistent jobs). When the `command_stop` is called, it is
 called with the same arguments than those provided when starting the job.
@@ -196,8 +176,7 @@ The `arguments` section describe what kind of arguments the job expect. They are
 mandatory and optional ones so OpenBACH can perform some error checking before trying to
 start the job. See the [arguments section](#specifying-arguments) for more details.
 
->>>
-:warning: Guidelines concerning the arguments names:
+> :warning: Guidelines concerning the arguments names:
   * Do not add spaces in the name
   * Avoid special characters
   * Do not name arguments as keywords used in Python: 'False', 'await',
@@ -207,11 +186,8 @@ start the job. See the [arguments section](#specifying-arguments) for more detai
     'del', 'global', 'not', 'with', 'async', 'elif', 'if', 'or', 'yield'.
   * The arguments (and the statistics) must always begin with a letter.
 
-We propose these recommendations 
-
 If these guidelines are not followed, the jobs will work but it will be difficult
 to use them in the [scenario_builder / helpers, etc][2].
->>>
 
 Finally, the `statistics` section is only informational and describe which statistics
 the callers of the job can expect.

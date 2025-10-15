@@ -158,15 +158,6 @@ class Rstats:
                  agent_name='agent_name_not_found', reset_handlers=False):
         self._mutex = threading.Lock()
 
-        # We do no want to locally store the files again if the admin
-        # job send_stats retransmits the stats of a given job
-        if job_name.split('-')[0] == 'send_stats':
-            job_name = job_name.split('-')[1]
-            store_local = False
-            reset_handlers = True
-        else:
-            store_local = True
-        
         self.metadata = {
                 'job_name': 'rstats' if job_name is None else job_name,
                 'agent_name': agent_name,
@@ -191,7 +182,7 @@ class Rstats:
                     break
 
         self._confpath = confpath
-        self.reload_conf(reset_handlers, store_local, logpath)
+        self.reload_conf(reset_handlers, True, logpath)
 
     def reload_conf(self, reset_handlers=False, store_local=True, logpath=DEFAULT_LOG_PATH):
         config = configparser.ConfigParser()
@@ -407,7 +398,7 @@ def create_stat(confpath, job_name, job_instance_id, scenario_instance_id,
     return statistic_id
 
 
-def send_stat(connection_id, timestamp, statistics, suffix=None, stored_files=False):
+def send_stat(connection_id, timestamp, statistics, suffix=None, metadatas=None, stored_files=False):
     # Type conversion
     with _handle_parse_errors('connection_id', 'integer'):
         connection_id = int(connection_id)
@@ -420,8 +411,12 @@ def send_stat(connection_id, timestamp, statistics, suffix=None, stored_files=Fa
             raise ValueError
 
     client_connection = StatsManager()[connection_id]
+    if metadatas:
+        backup = {**client_connection.metadata}
+        client_connection.metadata.update(metadatas)
     client_connection.send_stat(suffix, timestamp, statistics, stored_files)
-
+    if metadatas:
+        client_connection.metadata = backup
 
 def reload_stat(connection_id):
     # Type conversion
