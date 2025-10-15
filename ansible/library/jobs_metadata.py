@@ -159,9 +159,12 @@ def get_all_jobs_infos(folders, limit, substitute, include_platforms):
                     with open(configuration_file, encoding='utf-8') as config:
                         conf = yaml_load(config) if yaml_load is not None else {}
                     os_configuration = conf.get('platform_configuration', {})
+                    supported_platforms = os_configuration.pop('supported_platforms')
+                    if supported_platforms is None:
+                        supported_platforms = [os_configuration]
                     informations['platforms'] = [
                             {key: c.get(key, os_configuration.get(key)) for key in REQUIRED_KEYS}
-                            for c in os_configuration.pop('supported_platforms', [])
+                            for c in supported_platforms
                     ]
 
                 yield informations
