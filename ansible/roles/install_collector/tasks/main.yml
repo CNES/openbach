@@ -26,4 +26,4 @@
 ---
 
 - include_role:
-    name: "install_controller_{{ ansible_distribution }}"
+    name: "install_collector_{{ ansible_distribution }}"

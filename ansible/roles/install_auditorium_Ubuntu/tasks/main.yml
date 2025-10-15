@@ -85,7 +85,7 @@
     path: /opt/openbach/auditorium/frontend
     state: directory
     mode: 0755
-    recursive: yes
+    recurse: yes
   remote_user: openbach
 
 - name: Restart OpenBACH Services

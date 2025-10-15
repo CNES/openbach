@@ -64,7 +64,6 @@
     creates: /opt/openbach/virtualenv/lib/{{ openbach_check_python_version.stdout }}/site-packages/ansible_collections/ansible/posix
   environment: "{{ openbach_proxy_env }}"
   remote_user: openbach
-  when: openbach_check_ansible_version.stdout == "False"
 
 - name: Create OpenBACH repository
   file:
