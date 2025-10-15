@@ -83,7 +83,7 @@ class ActionModule(ActionBase):
             with open(source_full, encoding='utf-8') as stream:
                 content = from_yaml(stream.read())
 
-            default_config = content.pop('platform_configuration', {}):
+            default_config = content.pop('platform_configuration', {})
             supported_platforms = default_config.pop('supported_platforms')
             if supported_platforms is None:
                 supported_platforms = [config]
