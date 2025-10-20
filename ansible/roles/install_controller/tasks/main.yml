@@ -156,9 +156,12 @@
 
 - name: Fix Directory Permissions
   file:
-    path: /opt/openbach/controller/backend/backend/
+    path: /opt/openbach/controller/{{ item }}/
     state: directory
     mode: 0755
+  with_items:
+    - backend
+    - backend/backend
   remote_user: openbach
 
 - name: Configure PgBouncer
