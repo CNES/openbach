@@ -47,7 +47,7 @@ from ansible import context
 from ansible.cli import CLI
 from ansible.executor.playbook_executor import PlaybookExecutor
 from ansible.plugins.callback import CallbackBase
-from ansible.plugins.loader import init_plugin_loader
+from ansible.plugins.loader import init_plugin_loader, PluginLoader
 from ansible.errors import AnsibleParserError
 
 from . import errors
@@ -69,10 +69,22 @@ class PlayResult(CallbackBase):
     based on the current execution of a Play.
     """
 
+    CALLBACK_VERSION = 2.0
+    CALLBACK_TYPE = 'notification'
+    CALLBACK_NAME = 'result'
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.failure = defaultdict(list)
         self._context = None
+        PluginLoader._update_object(
+                None,
+                obj=self,
+                name=self.CALLBACK_NAME,
+                path=__file__,
+                resolved=True)
+        self._init_callback_methods()
+        self.set_options()
 
     def set_play_context(self, play_context):
         self._context = play_context
@@ -120,6 +132,8 @@ class PlayResult(CallbackBase):
 
 
 class ProxyResult(PlayResult):
+    CALLBACK_NAME = 'proxy'
+
     def v2_runner_on_ok(self, result):
         if result._task_fields['action'] == 'debug':
             self.proxies = result._result.get('openbach_proxy_env', '')
@@ -128,18 +142,24 @@ class ProxyResult(PlayResult):
 
 
 class SetupResult(PlayResult):
+    CALLBACK_NAME = 'setup'
+
     def v2_runner_on_ok(self, result):
         if result._task_fields['action'] in ('setup', 'gather_facts'):
             self.ansible_facts = result._result['ansible_facts']
 
 
 class SilentResult(PlayResult):
+    CALLBACK_NAME = 'silent'
+
     def raise_for_error(self):
         with suppress(errors.UnprocessableError):
             super().raise_for_error()
 
 
 class ServicesResult(SilentResult):
+    CALLBACK_NAME = 'services'
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.services = defaultdict(dict)
@@ -278,6 +298,7 @@ class PlaybookBuilder():
         )
         
         tasks = PlaybookExecutor(**tasks_parameters)
+        tasks._tqm.load_callbacks()
         tasks._tqm._callback_plugins.append(playbook_results)
         tasks.run()
         playbook_results.raise_for_error()
