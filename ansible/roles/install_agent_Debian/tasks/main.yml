@@ -32,11 +32,7 @@
 
       Expected Debian bookworm or trixie or Ubuntu focal, jammy, or noble instead of
       {{ ansible_distribution }} {{ ansible_distribution_release }}.
-  when: (ansible_distribution_release != 'bookworm') and
-        (ansible_distribution_release != 'trixie') and
-        (ansible_distribution_release != 'focal') and
-        (ansible_distribution_release != 'jammy') and
-        (ansible_distribution_release != 'noble')
+  when: ansible_distribution_release not in ['bookworm', 'trixie', 'focal', 'jammy', 'noble']
 
 - name: Expand openbach User
   user:
@@ -116,17 +112,18 @@
     state: absent
   become: yes
   environment: "{{ openbach_proxy_env }}"
-  when: (ansible_distribution == 'Debian') or ((ansible_distribution_release != 'focal') and (ansible_distribution_release != 'jammy'))
+  when: (ansible_distribution == 'Debian') or (ansible_distribution_release not in ['focal', 'jammy'])
 
 - name: Install APT Dependencies
   apt:
     pkg:
-      - ntp
+      - "{{ 'ntp' if ansible_distribution_release not in ['trixie'] else 'ntpsec' }}"
       - rsyslog
       - rsync
       - grub-common
       - collect-agent
       - python3-venv
+      - "{{ 'python3-packaging if ansible_distribution_release not in ['focal'] else omit }}"
       - python3-dev
       - build-essential
     state: latest
