@@ -39,7 +39,7 @@ from setuptools import setup, Extension
 
 MAJOR_VERSION = '2'
 MINOR_VERSION = '2'
-DEBUG_VERSION = '1'
+DEBUG_VERSION = '2'
 
 
 collect_agent = Extension(

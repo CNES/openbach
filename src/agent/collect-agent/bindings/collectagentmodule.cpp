@@ -268,7 +268,7 @@ collect_agent_send_stat(PyObject *self, PyObject *args, PyObject *kwargs)
         return nullptr;
 
     json::JSON metadata;
-    json::JSON statistics{json::Object()};
+    json::JSON statistics = json::Object();
     if (kwargs) {
         PyObject *key, *value;
         Py_ssize_t pos = 0;
@@ -318,7 +318,7 @@ collect_agent_store_files(PyObject *self, PyObject *args, PyObject *kwargs)
         return nullptr;
 
     json::JSON metadata;
-    json::JSON statistics{json::Object()};
+    json::JSON statistics = json::Object();
     if (kwargs) {
         bool should_copy = true;
         PyObject *key, *value;
