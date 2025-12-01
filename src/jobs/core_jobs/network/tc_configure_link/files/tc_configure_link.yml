@@ -54,6 +54,8 @@ platform_configuration:
     - ansible_distribution_release: 'noble'
     - ansible_distribution: 'Debian'
       ansible_distribution_release: 'bookworm'
+    - ansible_distribution: 'Debian'
+      ansible_distribution_release: 'trixie'
 
 arguments:
   required:

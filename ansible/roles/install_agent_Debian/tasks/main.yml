@@ -123,7 +123,7 @@
       - grub-common
       - collect-agent
       - python3-venv
-      - "{{ 'python3-packaging if ansible_distribution_release not in ['focal'] else omit }}"
+      - "{{ 'python3-packaging' if ansible_distribution_release not in ['focal'] else omit }}"
       - python3-dev
       - build-essential
     state: latest

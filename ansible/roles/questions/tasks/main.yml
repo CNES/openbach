@@ -64,7 +64,7 @@
       echo: no 
     register: vault_pass
     no_log: True
-    when: openbach_proxy_env
+    when: ((openbach_proxy_env | default({})) | count) > 0
 
   tags:
     - encrypt_proxy_variable
