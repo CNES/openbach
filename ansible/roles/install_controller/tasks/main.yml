@@ -43,7 +43,7 @@
   pip:
     name:
       - packaging
-      - ansible
+      - ansible==12.1.0
       - psycopg2
       - fuzzywuzzy
       - python-Levenshtein
@@ -60,6 +60,20 @@
 
 - name: Install extraneous Ansible collection
   command: ansible-galaxy collection install ansible.posix
+  args:
+    creates: /opt/openbach/virtualenv/lib/{{ openbach_check_python_version.stdout }}/site-packages/ansible_collections/ansible/posix
+  environment: "{{ openbach_proxy_env }}"
+  remote_user: openbach
+
+- name: Install extraneous Ansible collection
+  command: ansible-galaxy collection install community.general
+  args:
+    creates: /opt/openbach/virtualenv/lib/{{ openbach_check_python_version.stdout }}/site-packages/ansible_collections/ansible/posix
+  environment: "{{ openbach_proxy_env }}"
+  remote_user: openbach
+
+- name: Install extraneous Ansible collection
+  command: ansible-galaxy collection install community.postgresql
   args:
     creates: /opt/openbach/virtualenv/lib/{{ openbach_check_python_version.stdout }}/site-packages/ansible_collections/ansible/posix
   environment: "{{ openbach_proxy_env }}"
