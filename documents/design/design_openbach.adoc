@@ -602,9 +602,9 @@ Herein, we describe the design of the configuration frontends, and in
 particular the available supervision functions allowing to configure
 OpenBACH and the different jobs/scenarios. On the other hand, the design
 and requirements of the other OpenBACH frontend, i.e. those aiming at
-displaying the statistics/data and the log messages, are detailed in
-section <<section_display>> (after the description design of the Collector
-and the Agents). This order is preferable since it makes the comprehension
+displaying the statistics/data and the log messages, are detailed 
+<<user-content-display-of-data-collection,after the description design of the Collector
+and the Agents>>. This order is preferable since it makes the comprehension
 of the chosen solution easier as well as the provided requirements of the
 frontends.
 
@@ -626,8 +626,7 @@ benchmark, so that he would be able to correctly perform different tasks.
 The tasks that a user shall be able to carry out are:
 
 *	Install/uninstall Agents in the network entities. The procedure for
-installing new Agents is explained in section <<install-agent>> (TBD)
-and in the wiki OpenBACH (http://opensand.org/support/wiki/doku.php?id=openbach:manuals:index).
+installing new Agents is explained in section link:../../src/auditorium/README.md#manage-agents[Manage agents].
 *	Install/remove a job to/from an Agent
 *	Schedule/start/stop a job instance in an Agent with different configuration
 parameters.
@@ -2221,8 +2220,8 @@ the post-processing tasks allowing to perform dedicated calculations of the
 collected statistics.
 
 A variant of the functional scheme of OpenBACH that is used for performing
-operations on the collected data via the post-processing jobs is shown in
-<<img-design_post_processing>> (highlighted in red), where:
+operations on the collected data via the post-processing jobs is shown
+<<img-design_post_processing,highlighted in red>>, where:
 
 * After a user choses to launch a post-processing job (the same way any
 other Job is launched)

@@ -32,7 +32,7 @@ general:
       generate UDP/TCP traffic with configured parameters (duration,
       bandwidth, parallel flows, ToS, MSS, etc.). It measures
       throughput, sent/lost packets, jitter, etc. 
-  job_version: '2.12'
+  job_version: '2.13'
   keywords:
     - iperf
     - iperf3
@@ -45,21 +45,18 @@ general:
   need_privileges: yes
 
 platform_configuration:
-  - ansible_system: 'Debian'
-    ansible_distribution: 'Ubuntu'
-    ansible_distribution_version: '20.04'
-    command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/iperf3/iperf3.py'
-    command_stop:
-  - ansible_system: 'Debian'
-    ansible_distribution: 'Ubuntu'
-    ansible_distribution_version: '22.04'
-    command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/iperf3/iperf3.py'
-    command_stop:
-  - ansible_system: 'Debian'
-    ansible_distribution: 'Ubuntu'
-    ansible_distribution_version: '24.04'
-    command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/iperf3/iperf3.py'
-    command_stop:
+  ansible_system: 'Debian'
+  ansible_distribution: 'Ubuntu'
+  command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/iperf3/iperf3.py'
+  command_stop:
+  supported_platforms:
+    - ansible_distribution_release: 'focal'
+    - ansible_distribution_release: 'jammy'
+    - ansible_distribution_release: 'noble'
+    - ansible_distribution: 'Debian'
+      ansible_distribution_release: 'bookworm'
+    - ansible_distribution: 'Debian'
+      ansible_distribution_release: 'trixie'
 
 arguments:
   required:

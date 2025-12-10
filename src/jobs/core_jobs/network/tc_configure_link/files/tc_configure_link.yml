@@ -31,7 +31,7 @@ general:
       This Job configures the delay, the bandwidth or the
       loss on an given interface (it removes the previous
       configuration of the interface).
-  job_version: '3.1'
+  job_version: '3.2'
   keywords:
     - delay
     - bandwidth
@@ -44,21 +44,18 @@ general:
   need_privileges: yes
 
 platform_configuration:
-  - ansible_system: 'Debian'
-    ansible_distribution: 'Ubuntu'
-    ansible_distribution_version: '20.04'
-    command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/tc_configure_link/tc_configure_link.py'
-    command_stop:
-  - ansible_system: 'Debian'
-    ansible_distribution: 'Ubuntu'
-    ansible_distribution_version: '22.04'
-    command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/tc_configure_link/tc_configure_link.py'
-    command_stop:
-  - ansible_system: 'Debian'
-    ansible_distribution: 'Ubuntu'
-    ansible_distribution_version: '24.04'
-    command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/tc_configure_link/tc_configure_link.py'
-    command_stop:
+  ansible_system: 'Debian'
+  ansible_distribution: 'Ubuntu'
+  command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/tc_configure_link/tc_configure_link.py'
+  command_stop:
+  supported_platforms:
+    - ansible_distribution_release: 'focal'
+    - ansible_distribution_release: 'jammy'
+    - ansible_distribution_release: 'noble'
+    - ansible_distribution: 'Debian'
+      ansible_distribution_release: 'bookworm'
+    - ansible_distribution: 'Debian'
+      ansible_distribution_release: 'trixie'
 
 arguments:
   required:

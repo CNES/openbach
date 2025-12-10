@@ -43,7 +43,7 @@
   pip:
     name:
       - packaging
-      - ansible
+      - ansible==12.1.0
       - psycopg2
       - fuzzywuzzy
       - python-Levenshtein
@@ -54,29 +54,38 @@
   environment: "{{ openbach_proxy_env }}"
   remote_user: openbach
 
-- name: Check the installed version of Ansible
-  command: /opt/openbach/virtualenv/bin/python3 -c "from packaging.version import parse; from ansible import __version__; print(parse(__version__) < parse('2.9'))"
-  remote_user: openbach
-  register: openbach_check_ansible_version
+- name: Check the OpenBach's Python version
+  command: ls /opt/openbach/virtualenv/lib/
+  register: openbach_check_python_version
 
 - name: Install extraneous Ansible collection
-  command: ansible-galaxy collection install ansible.posix
+  command: ansible-galaxy collection install {{ item.name }}
   args:
-    creates: /opt/openbach/virtualenv/lib/python3.12/site-packages/ansible_collections/ansible/posix
+    creates: /opt/openbach/virtualenv/lib/{{ openbach_check_python_version.stdout }}/site-packages/ansible_collections/{{ item.creates }}
+  with_items:
+    - name: ansible.posix
+      creates: ansible/posix
+    - name: community.general
+      creates: community/general
+    - name: community.postgresql
+      creates: community/postgresql
   environment: "{{ openbach_proxy_env }}"
   remote_user: openbach
-  when: openbach_check_ansible_version.stdout == "False"
 
 - name: Create OpenBACH repository
   file:
-    path: /opt/openbach/controller/{{ item }}
+    path: /opt/openbach/{{ item }}
     state: directory
+    mode: 0755
   with_items:
-    - backend
-    - conductor
-    - src/jobs/private_jobs
-    - src/agent
-    - ansible
+    - controller
+    - controller/backend
+    - controller/conductor
+    - controller/src
+    - controller/src/jobs
+    - controller/src/jobs/private_jobs
+    - controller/src/agent
+    - controller/ansible
   remote_user: openbach
 
 - name: Setup temporary files cleanup
@@ -151,6 +160,16 @@
     src: /home/openbach/.ssh/id_rsa.pub
     dest: "{{ openbach_installer_folder }}/controller_key"
   become: yes
+
+- name: Fix Directory Permissions
+  file:
+    path: /opt/openbach/controller/{{ item }}/
+    state: directory
+    mode: 0755
+  with_items:
+    - backend
+    - backend/backend
+  remote_user: openbach
 
 - name: Configure PgBouncer
   copy:

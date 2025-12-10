@@ -1,3 +1,15 @@
+collect-agent (1.4.5) focal; urgency=low
+
+  * Fixed segfault when using send_stat
+
+ -- OpenBACH maintainers <admin@openbach.org>  Thu, 30 oct 2025 14:44:23 +0100
+
+collect-agent (1.4.4) focal; urgency=low
+
+  * Added the ability to override metadatas when performing a send_stat
+
+ -- OpenBACH maintainers <admin@openbach.org>  Fri, 19 sep 2025 15:38:41 +0200
+
 collect-agent (1.4.3) focal; urgency=low
 
   * Update Copyright Notice

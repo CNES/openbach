@@ -45,6 +45,14 @@
     state: directory
   become: yes
 
+- name: Install GnuPG if not present
+  apt:
+    pkg: gnupg
+    state: latest
+    update_cache: yes
+  become: yes
+  environment: "{{ openbach_proxy_env }}"
+  
 - name: Make sure folder exists for Net4sat GPG key
   file:
     path: /etc/apt/keyrings

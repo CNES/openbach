@@ -1,0 +1,77 @@
+server {
+    listen 80;
+    server_name localhost;
+    client_max_body_size 100m;
+    proxy_redirect off;
+    # access_log /var/log/nginx/log/host.access.log main;
+
+    location / {
+        root /opt/openbach/auditorium/frontend;
+        index index.html;
+        try_files $uri /index.html;
+    }
+
+    location /openbach/ {
+        proxy_pass http://{{ controller_ip }}:{{ django_port }}/;
+        proxy_set_header Host $host;
+    }
+
+    location /kibana {
+        proxy_pass http://{{ auditorium_ip }}:{{ kibana_port }}/kibana;
+        proxy_set_header Host $host;
+        proxy_set_header Authorization $http_authorization;
+        proxy_pass_header Authorization;
+    }
+
+    location ~ ^/chronograf/api/(.*)$ {
+        set $upstream_base http://{{ auditorium_ip }}:{{ chronograf_port }}/chronograf/chronograf/v1/;
+        set $upstream $upstream_base$1$is_args$args;
+
+        proxy_redirect $upstream_base /chronograf/api/;
+        proxy_set_header Host $host;
+
+        # Nginx cannot handle nested if statements, so this is
+        # a two-phases process: Check request then handle it.
+
+        # Allowed CORS domain
+        if ($http_origin ~* (https?://{{ auditorium_ip }}(:[0-9]+)?$)) {
+            set $cors "1";
+        }
+
+        # OPTIONS is a CORS pre-flight
+        if ($request_method = "OPTIONS") {
+            set $cors "${cors}o";
+        }
+
+        # CORS requests from allowed domains gains additional headers
+        if ($cors = "1") {
+            more_set_headers 'Access-Control-Allow-Origin: $http_origin';
+            more_set_headers 'Access-Control-Allow-Credentials: true';
+        }
+
+        # Handle OPTIONS (pre-flight) ourselves: return response directly
+        if ($cors = "1o") {
+            more_set_headers 'Access-Control-Allow-Headers: Accept,Content-Type,Origin';
+            more_set_headers 'Access-Control-Allow-Methods: GET,POST,HEAD,OPTIONS,PUT,DELETE';
+            more_set_headers 'Access-Control-Allow-Origin: $http_origin';
+            more_set_headers 'Access-Control-Allow-Credentials: true';
+            more_set_headers 'Access-Control-Max-Age: 30';
+            add_header Content-Length 0;
+            add_header Content-Type text/plain;
+            return 204;
+        }
+
+        # Actual redirect
+        proxy_pass $upstream;
+    }
+
+    location /chronograf {
+        proxy_pass http://{{ auditorium_ip }}:{{ chronograf_port }}/chronograf;
+        proxy_set_header Host $host;
+    }
+
+    location /influxdb_api/ {
+        proxy_pass http://{{ collector_ip }}:{{ influxdb_port }}/;
+        proxy_set_header Host $host;
+    }
+}

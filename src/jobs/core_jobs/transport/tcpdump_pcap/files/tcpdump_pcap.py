@@ -44,7 +44,7 @@ import syslog
 import pathlib
 import argparse
 import subprocess
-from tempfile import mkstemp
+import tempfile
 from functools import partial
 
 import collect_agent
@@ -83,12 +83,12 @@ def format_capture_filter(src_ip, dst_ip, src_port, dst_port, proto, ignore_port
         yield 'port not {}'.format(p)
 
 
-def main(src_ip, dst_ip, src_port, dst_port, proto, ignore_ports, interface, capture_file, duration):
+def main(src_ip, dst_ip, src_port, dst_port, proto, ignore_ports, interface, capture_file, duration, user):
     """Capture packets on a live network interface. Only consider packets matching the specified fields."""
 
     do_save_pcap = partial(save_pcap, capture_file, False)
     if not capture_file:
-        with mkstemp(prefix='openbach_tcpdump_', suffix='_capture.pcap') as f:
+        with tempfile.NamedTemporaryFile(prefix='openbach_tcpdump_', suffix='_capture.pcap') as f:
             capture_file = f.name
         do_save_pcap = partial(save_pcap, capture_file, True)
     signal.signal(signal.SIGTERM, do_save_pcap)
@@ -96,7 +96,9 @@ def main(src_ip, dst_ip, src_port, dst_port, proto, ignore_ports, interface, cap
 
     capture_file = pathlib.Path(capture_file)
     capture_filter = ' and '.join(format_capture_filter(src_ip, dst_ip, src_port, dst_port, proto, ignore_ports))
-    cmd = ['tcpdump', '-i', interface, capture_filter, '-w', capture_file.as_posix(), '-Z', 'root']
+    cmd = ['tcpdump', '-i', interface, capture_filter, '-w', capture_file.as_posix()] 
+    if user :
+        cmd += ['-Z', user]
     if duration:
         cmd += ['-G', str(duration), '-W', '1']
 
@@ -105,7 +107,12 @@ def main(src_ip, dst_ip, src_port, dst_port, proto, ignore_ports, interface, cap
         capture_file.unlink(missing_ok=True)
         subprocess.run(cmd, capture_output=True, text=True, check=True)
     except subprocess.CalledProcessError as p:
-        message = 'ERROR when launching tcpdump: {}'.format(p.stderr)
+        message = (
+        f"ERROR when launching tcpdump:\n"
+        f"  returncode={p.returncode}\n"
+        f"  stdout={p.stdout!r}\n"
+        f"  stderr={p.stderr!r}\n"
+        f"WARNING tcpdump may segfault when using '-w' AND '-Z root' options depending on your OS version (like Ubuntu 24.04)\n")
         collect_agent.send_log(syslog.LOG_ERR, message)
         sys.exit(message)
     except Exception as ex:
@@ -140,10 +147,11 @@ if __name__ == '__main__':
                 '-n', '--ignore-ports',
                 type=int, nargs='+', default=[],
                 help='Do not capture if one of the following ports is used')
-
+        parser.add_argument('-Z', '--user', type=str, 
+                help='change ownership of the captured file. By default, tcpdump uses the "tcpdump" user.')
         args = parser.parse_args()
         if args.capture_file:
             with args.capture_file as f:
-                args.caputure_file = f.name
+                args.capture_file = f.name
 
         main(**vars(args))

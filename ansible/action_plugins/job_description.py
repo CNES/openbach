@@ -83,16 +83,23 @@ class ActionModule(ActionBase):
             with open(source_full, encoding='utf-8') as stream:
                 content = from_yaml(stream.read())
 
-            for config in content.pop('platform_configuration', []):
-                if (config['ansible_system'] == os_family
-                    and config['ansible_distribution'] == os_distribution
-                    and config['ansible_distribution_version'] == os_distribution_version):
+            default_config = content.pop('platform_configuration', {})
+            supported_platforms = default_config.pop('supported_platforms')
+            if supported_platforms is None:
+                supported_platforms = [config]
+            checks = [
+                    ('ansible_system', os_family),
+                    ('ansible_distribution', os_distribution),
+                    ('ansible_distribution_release', os_distribution_version)
+            ]
+            for config in supported_platforms:
+                if all(config.get(key, default_config.get(key)) == target for key, target in checks):
                     break
             else:
                 raise AnsibleActionFail("No suitable platform found in provided src")
 
-            content.setdefault('general', {})['command'] = config['command']
-            content['general']['command_stop'] = config['command_stop']
+            content.setdefault('general', {})['command'] = config.get('command', default_config.get('command'))
+            content['general']['command_stop'] = config.get('command_stop', default_config.get('command_stop'))
             transformed = to_yaml(content, default_flow_style=False, explicit_start=True)
 
             new_task = self._task.copy()

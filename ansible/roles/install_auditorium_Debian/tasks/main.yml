@@ -1,0 +1,271 @@
+#   OpenBACH is a generic testbed able to control/configure multiple
+#   network/physical entities (under test) and collect data from them. It is
+#   composed of an Auditorium (HMIs), a Controller, a Collector and multiple
+#   Agents (one for each network entity that wants to be tested).
+#   
+#   
+#   Copyright © 2016-2023 CNES
+#   
+#   
+#   This file is part of the OpenBACH testbed.
+#   
+#   
+#   OpenBACH is a free software : you can redistribute it and/or modify it under
+#   the terms of the GNU General Public License as published by the Free Software
+#   Foundation, either version 3 of the License, or (at your option) any later
+#   version.
+#   
+#   This program is distributed in the hope that it will be useful, but WITHOUT
+#   ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS
+#   FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+#   details.
+#   
+#   You should have received a copy of the GNU General Public License along with
+#   this program. If not, see http://www.gnu.org/licenses/.
+
+---
+
+- name: Install apt Dependencies
+  ansible.builtin.apt:
+    pkg:
+      - libfontconfig
+      - nginx-extras
+    state: present
+  become: yes
+  environment: "{{ openbach_proxy_env }}"
+
+- name: Install apt Dependencies from Upstream
+  ansible.builtin.apt:
+    deb: "{{ item }}"
+  with_items:
+    - https://dl.influxdata.com/chronograf/releases/chronograf_{{ chronograf_version }}_amd64.deb
+    - https://artifacts.elastic.co/downloads/kibana/kibana-{{ kibana_version }}-amd64.deb
+  become: yes
+  environment: "{{ openbach_proxy_env }}"
+
+- name: Configure Chronograf
+  ansible.builtin.template:
+    src: chronograf.j2
+    dest: /etc/default/chronograf
+    mode: 0640
+  become: yes
+
+- name: Configure Kibana
+  ansible.builtin.template:
+    src: kibana.yml.j2
+    dest: /etc/kibana/kibana.yml
+  vars:
+    collector_ip: "{{ openbach_collector }}"
+    auditorium_ip: "{{ inventory_hostname }}"
+  become: yes
+
+- name: Configure Kibana environement variables 
+  ansible.builtin.lineinfile:
+    path: /etc/default/kibana
+    line: "NODE_OPTIONS=--max-old-space-size=512"
+  become: yes
+
+- name: Configure Nginx
+  ansible.builtin.template:
+    src: default.j2
+    dest: /etc/nginx/sites-available/default
+  vars:
+    controller_ip: "{{ openbach_controller | mandatory }}"
+    auditorium_ip: "{{ inventory_hostname }}"
+    collector_ip: "{{ openbach_collector | mandatory }}"
+  become: yes
+
+- name: Create OpenBACH repository
+  ansible.builtin.file:
+    path: /opt/openbach/auditorium/frontend
+    state: directory
+    mode: 0755
+  remote_user: openbach
+
+- name: Upload Auditorium Frontend
+  ansible.posix.synchronize:
+    src: frontend/
+    dest: /opt/openbach/auditorium/frontend/
+    recursive: yes
+    delete: yes
+  remote_user: openbach
+
+- name: Fix file Permissions for Auditorium Frontend
+  ansible.builtin.file:
+    path: /opt/openbach/auditorium/frontend
+    state: directory
+    mode: 0755
+    recurse: yes
+  remote_user: openbach
+
+- name: Restart OpenBACH Services
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    state: restarted
+    enabled: yes
+    daemon_reload: yes
+  with_items:
+    - kibana
+    - chronograf
+    - nginx
+  become: yes
+
+- block:
+    - name: Wait for Kibana to Start
+      ansible.builtin.wait_for:
+        port: "{{ kibana_port }}"
+        timeout: 60
+
+    - name: Wait for kibana server to get ready
+      ansible.builtin.uri:
+        url: http://localhost:{{ kibana_port }}/kibana/api/saved_objects/lens/vertical_bar
+        method: GET
+        status_code: 200, 404
+      register: responses
+      until: responses.status not in  [503,-1]
+      retries: 10
+      delay: 5
+      
+
+    - name: Check if Kibana dashboard exists
+      ansible.builtin.uri:
+        url: http://localhost:{{ kibana_port }}/kibana/api/saved_objects/{{ item.url }}
+        method: GET
+        status_code: 200, 404
+        headers:
+          kbn-version: "9.0.0"
+          kbn-name: "kibana"
+          kbn-xsrf: "true"
+      with_items:
+        - filename: index_pattern.ndjson
+          url: index-pattern/default_logstash_index
+        - filename: vertical_bar.ndjson
+          url: lens/vertical_bar
+        - filename: pie.ndjson
+          url: lens/pie
+          result: pie_response
+        - filename: log_search.ndjson
+          url: search/log_search
+        - filename: dashboard.ndjson
+          url: dashboard/default_dashboard
+      register: responses
+
+    - block:
+        - name: Configure Kibana dashboard
+          ansible.builtin.uri:
+            url: http://localhost:{{ kibana_port }}/kibana/api/saved_objects/_import?overwrite=true
+            method: POST
+            body: 
+              file: 
+                filename: "{{ item.filename }}"
+            status_code: 200, 201
+            body_format: form-multipart
+            headers:
+              kbn-version: "9.0.0"
+              kbn-name: "kibana"
+              kbn-xsrf: "true"
+          with_items:
+            - filename: index_pattern.ndjson
+              url: index-pattern/default_logstash_index
+              code: "{{responses.results[2].status}}"
+            - filename: vertical_bar.ndjson
+              url: lens/vertical_bar
+              code: "{{responses.results[0].status}}"
+            - filename: pie.ndjson
+              url: lens/pie
+              code: "{{responses.results[1].status}}"
+            - filename: log_search.ndjson
+              url: search/log_search
+              code: "{{responses.results[3].status}}"
+            - filename: dashboard.ndjson
+              url: dashboard/default_dashboard
+              code: "{{responses.results[4].status}}"
+      rescue:
+        - name: Remove Old Kibana Index
+          ansible.builtin.uri:
+            url: http://{{ openbach_collector }}:{{ elasticsearch_port }}/.kibana
+            method: DELETE
+            user: "elastic"
+            password: "elastic"
+
+        - name: Configure Kibana dashboard
+          ansible.builtin.uri:
+            url: http://localhost:{{ kibana_port }}/kibana/api/saved_objects/_import?overwrite=true
+            method: POST
+            body: 
+              file: 
+                filename: "{{ item.filename }}"
+            status_code: 200, 201
+            body_format: form-multipart
+            headers:
+              kbn-version: "9.0.0"
+              kbn-name: "kibana"
+              kbn-xsrf: "reporting"
+          with_items:
+            - filename: index_pattern.ndjson
+              url: index-pattern/default_logstash_index
+            - filename: vertical_bar.ndjson
+              url: lens/vertical_bar
+            - filename: pie.ndjson
+              url: lens/pie
+            - filename: log_search.ndjson
+              url: search/log_search
+            - filename: dashboard.ndjson
+              url: dashboard/default_dashboard
+  when: openbach_restore_host is not defined
+
+- name: Wait for Chronograf to Start
+  ansible.builtin.wait_for:
+    port: "{{ chronograf_port }}"
+    timeout: 60
+
+- block:
+    - name: Extract Backup Files
+      ansible.builtin.unarchive:
+        src: "{{ openbach_archive_root }}/{{ openbach_restore_host }}/openbach_auditorium.tar.gz"
+        dest: "/tmp/"
+
+    - name: Lookup for Chronograf Dump Folder
+      ansible.builtin.find:
+        paths: /tmp
+        recurse: no
+        patterns: openbach_auditorium_backup_*_chronograf
+        file_type: directory
+      register: openbach_chronograf_dump_folder
+      failed_when: (openbach_chronograf_dump_folder.files | count) != 1
+
+    - name: Store Chronograf Dump Folder Name
+      ansible.builtin.set_fact:
+        openbach_chronograf_dump_folder_name: "{{ openbach_chronograf_dump_folder.files | map(attribute='path') | first }}"
+
+    - name: Lookup for Chronograf Dump Filename
+      ansible.builtin.find:
+        paths: "{{ openbach_chronograf_dump_folder_name }}"
+        recurse: no
+        patterns: '*'
+      register: openbach_chronograf_dump
+
+    - name: Restore Chronograf Dashboards
+      ansible.builtin.uri:
+        url: http://localhost:{{ chronograf_port }}/chronograf/chronograf/v1/dashboards
+        method: POST
+        src: "{{ item.path }}"
+        remote_src: yes
+        status_code: 201
+        body_format: json
+      loop: "{{ openbach_chronograf_dump.files }}"
+      loop_control:
+        label: "{{ item.path }}"
+
+    - name: Remove Extracted Files
+      ansible.builtin.file:
+        path: "{{ openbach_chronograf_dump_folder_name }}"
+        state: absent
+  remote_user: openbach
+  when: openbach_restore_host is defined
+
+- name: Copy the version file on the Auditorium
+  ansible.builtin.copy:
+    src: ../version
+    dest: /opt/openbach/auditorium/version
+  remote_user: openbach

@@ -144,6 +144,18 @@ namespace collect_agent {
       bool is_files=false);
 
   /*
+   * Send a new statistic containing several attributes
+   * for the given job, overriding metadatas stored in
+   * rstats
+   */
+  DLL_PUBLIC std::string send_stat(
+      long long timestamp,
+      const json::JSON& stats,
+      const json::JSON& metadatas,
+      const std::string& suffix="",
+      bool is_files=false);
+
+  /*
    * Store a single file in a defined local path 
    */
   DLL_PUBLIC std::string store_file(

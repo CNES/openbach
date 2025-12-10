@@ -411,6 +411,20 @@ std::string send_stat(
     const json::JSON& stats,
     const std::string& suffix,
     bool is_files) {
+  return send_stat(timestamp, stats, json::JSON{}, suffix, is_files);
+}
+
+
+/*
+ * Create the message to generate a new statistic, with provided metadatas;
+ * send it to the RStats service and propagate its response.
+ */
+std::string send_stat(
+    long long timestamp,
+    const json::JSON& stats,
+    const json::JSON& metadatas,
+    const std::string& suffix,
+    bool is_files) {
   // Format the message
   json::JSON command = {
     "command_id", 2,
@@ -419,6 +433,7 @@ std::string send_stat(
       "timestamp", timestamp,
       "statistics", stats,
       "stored_files", is_files,
+      "metadatas", metadatas,
     }
   };
   if (suffix != "") {

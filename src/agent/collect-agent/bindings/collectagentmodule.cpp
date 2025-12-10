@@ -267,20 +267,39 @@ collect_agent_send_stat(PyObject *self, PyObject *args, PyObject *kwargs)
     if (!extract_statistics(args, timestamp, suffix, kwargs))
         return nullptr;
 
-    json::JSON statistics;
-    if (kwargs){
-        try {
-            statistics = parse_json(kwargs);
-        } catch (std::bad_function_call& e) {
-            if (!PyErr_Occurred())
-                PyErr_SetString(PyExc_ValueError, "Incompatible type found in statistics dictionary");
-            return nullptr;
+    json::JSON metadata;
+    json::JSON statistics = json::Object();
+    if (kwargs) {
+        PyObject *key, *value;
+        Py_ssize_t pos = 0;
+        while (PyDict_Next(kwargs, &pos, &key, &value)) {
+            const char * c_key = PyUnicode_AsUTF8(key);
+            if (c_key == nullptr)
+                return nullptr;
+
+            if (std::strcmp(c_key, "metadatas") == 0) {
+                try {
+                    metadata = parse_json(value);
+                } catch (std::bad_function_call& e) {
+                    if (!PyErr_Occurred())
+                        PyErr_SetString(PyExc_ValueError, "Incompatible type found in metadata dictionary");
+                    return nullptr;
+                }
+            } else {
+                try {
+                    statistics[c_key] = parse_json(value);
+                } catch (std::bad_function_call& e) {
+                    if (!PyErr_Occurred())
+                        PyErr_SetString(PyExc_ValueError, "Incompatible type found in statistics dictionary");
+                    return nullptr;
+                }
+            }
         }
     }
 
     std::string result;
     Py_BEGIN_ALLOW_THREADS
-    result = collect_agent::send_stat(timestamp, statistics, suffix);
+    result = collect_agent::send_stat(timestamp, statistics, metadata, suffix);
     Py_END_ALLOW_THREADS
     return Py_BuildValue("s", result.c_str());
 }
@@ -298,7 +317,8 @@ collect_agent_store_files(PyObject *self, PyObject *args, PyObject *kwargs)
     if (!extract_statistics(args, timestamp, suffix, kwargs))
         return nullptr;
 
-    json::JSON statistics;
+    json::JSON metadata;
+    json::JSON statistics = json::Object();
     if (kwargs) {
         bool should_copy = true;
         PyObject *key, *value;
@@ -311,6 +331,16 @@ collect_agent_store_files(PyObject *self, PyObject *args, PyObject *kwargs)
             if (std::strcmp(c_key, "copy") == 0) {
                 should_copy = PyObject_IsTrue(value) == 1;
             }
+
+            if (std::strcmp(c_key, "metadatas") == 0) {
+                try {
+                    metadata = parse_json(value);
+                } catch (std::bad_function_call& e) {
+                    if (!PyErr_Occurred())
+                        PyErr_SetString(PyExc_ValueError, "Incompatible type found in metadata dictionary");
+                    return nullptr;
+                }
+            }
         }
 
         pos = 0;
@@ -319,7 +349,7 @@ collect_agent_store_files(PyObject *self, PyObject *args, PyObject *kwargs)
             if (c_key == nullptr)
                 return nullptr;
 
-            if (std::strcmp(c_key, "copy") == 0) {
+            if (std::strcmp(c_key, "copy") == 0 || std::strcmp(c_key, "metadatas") == 0) {
                 continue;
             }
 
@@ -347,7 +377,7 @@ collect_agent_store_files(PyObject *self, PyObject *args, PyObject *kwargs)
 
     std::string result;
     Py_BEGIN_ALLOW_THREADS
-    result = collect_agent::send_stat(timestamp, statistics, suffix, true);
+    result = collect_agent::send_stat(timestamp, statistics, metadata, suffix, true);
     Py_END_ALLOW_THREADS
     return Py_BuildValue("s", result.c_str());
 }

@@ -388,9 +388,9 @@ class AddCollector(ThreadedAction, CollectorAction):
                         'install_collector',
                         collector.json,
                         self.name,
-                        self.vault_password,
                         self.username,
                         self.password,
+                        self.vault_password,
                         cookie=self.cookie)
             except errors.ConductorError:
                 collector.delete()
@@ -455,7 +455,12 @@ class ModifyCollector(ThreadedAction, CollectorAction):
             raise errors.ConductorWarning('No modification to do')
 
         for agent in collector.agents.all():
-            start_playbook('assign_collector', self.vault_password, agent.address, agent.port, collector.json)
+            start_playbook(
+                    'assign_collector',
+                    agent.address,
+                    agent.port,
+                    collector.json,
+                    self.vault_password)
 
 
 class DeleteCollector(ThreadedAction, CollectorAction):
@@ -479,7 +484,7 @@ class DeleteCollector(ThreadedAction, CollectorAction):
                     agents_addresses=[agent.address for agent in other_agents])
 
         # Perform physical uninstallation through a playbook
-        start_playbook('uninstall_collector', self.vault_password, collector.json)
+        start_playbook('uninstall_collector', collector.json, self.vault_password)
 
         # The associated Agent was removed by the playbook, remove it from DB
         try:
@@ -555,7 +560,12 @@ class AgentAction(ConductorAction):
         """Update the local status of an Agent by trying to connect to it"""
         agent = self.get_agent_or_not_found_error()
         try:
-            start_playbook('check_connection', self.vault_password, agent.address, agent.port, restart)
+            start_playbook(
+                    'check_connection',
+                    agent.address,
+                    agent.port,
+                    restart,
+                    self.vault_password)
         except errors.ConductorError:
             agent.set_reachable(False)
             agent.set_available(False)
@@ -611,10 +621,10 @@ class RegenerateSyslogConfiguration(AgentAction):
                 'enable_logs',
                 self.address,
                 collector,
-                self.vault_password,
-                installed_jobs=jobs,
-                severity=convert_severity(agent.severity),
-                local_severity=convert_severity(agent.local_severity))
+                jobs,
+                convert_severity(agent.severity),
+                convert_severity(agent.local_severity),
+                self.vault_password)
 
         infos = {
                 'agent': {
@@ -727,8 +737,8 @@ class UninstallAgent(ThreadedAction, AgentAction):
                     'uninstall_agent',
                     agent.address,
                     agent.collector.json,
-                    self.vault_password,
-                    jobs=installed_jobs)
+                    installed_jobs,
+                    self.vault_password)
         except errors.ConductorError:
             agent.set_status(Agent.Status.UNINSTALL_FAILED)
             agent.save()
@@ -744,7 +754,12 @@ class AttachAgent(InstallAgent):
         if not self.skip_playbook:
             try:
                 # Perform physical installation through a playbook
-                start_playbook('enable_controller_access', self.address, self.username, self.password, self.vault_password)
+                start_playbook(
+                        'enable_controller_access',
+                        self.address,
+                        self.username,
+                        self.password,
+                        self.vault_password)
                 with tempfile.NamedTemporaryFile('w', prefix='openbach_files/') as f:
                     print(self.name, file=f, flush=True)
                     parameters = {
@@ -752,8 +767,17 @@ class AttachAgent(InstallAgent):
                             'source': f.name,
                             'destination': '/opt/openbach/agent/agent_name',
                     }
-                    start_playbook('push_file', self.address, self.vault_password, [parameters])
-                start_playbook('assign_collector', self.address, self.agent_port, agent.collector.json, self.vault_password)
+                    start_playbook(
+                            'push_file',
+                            self.address,
+                            [parameters],
+                            vault_password=self.vault_password)
+                start_playbook(
+                        'assign_collector',
+                        self.address,
+                        self.agent_port,
+                        agent.collector.json,
+                        self.vault_password)
             except errors.ConductorError:
                 agent.delete()
                 raise
@@ -796,7 +820,12 @@ class DetachAgent(UninstallAgent):
         # Create a fake collector with default values
         collector = Collector(address='127.0.0.1')
         try:
-            start_playbook('assign_collector', agent.address, agent.port, collector.json, self.vault_password)
+            start_playbook(
+                    'assign_collector',
+                    agent.address,
+                    agent.port,
+                    collector.json,
+                    self.vault_password)
             start_playbook('disable_controller_access', self.address, self.vault_password)
         except errors.ConductorError:
             agent.set_status(Agent.Status.DETACH_FAILED)
@@ -863,7 +892,10 @@ class ListAgents(AgentAction):
         agents = self.queryset
         if self.update or self.services:
             addresses = list(itertools.chain.from_iterable(agents.values_list('address')))
-            errors, services = start_playbook('check_connections', self.vault_password, *addresses)
+            errors, services = start_playbook(
+                    'check_connections',
+                    *addresses,
+                    vault_password=self.vault_password)
             if self.services:
                 return [self._services_agent(agent, errors, services) for agent in agents], 200
             return [self._infos_agent(agent, errors) for agent in agents], 200
@@ -937,7 +969,12 @@ class AssignCollector(ThreadedAction, AgentAction):
     def _action(self):
         agent = self.get_agent_or_not_found_error()
         collector = InfosCollector(self.collector_ip).get_collector_or_not_found_error()
-        start_playbook('assign_collector', agent.address, agent.port, self.vault_password, collector.json)
+        start_playbook(
+                'assign_collector',
+                agent.address,
+                agent.port,
+                collector.json,
+                self.vault_password)
         agent.collector = collector
         agent.save()
 
@@ -966,7 +1003,11 @@ class ModifyAgent(AgentAction):
                             'source': name_file.name,
                             'destination': '/opt/openbach/agent/agent_name',
                     }
-                    start_playbook('push_file', agent.address, self.vault_password, [parameters])
+                    start_playbook(
+                            'push_file',
+                            agent.address,
+                            [parameters],
+                            vault_password=self.vault_password)
             agent.save()
 
             if self.new_collector and self.new_collector != agent.collector.address:
@@ -1141,30 +1182,49 @@ class AddJob(JobAction):
         job.save()
 
         system_list = {}
-
-        # Associate OSes
-        os_commands = content['platform_configuration']
-        for os_description in os_commands:
-            os_system = os_description['ansible_system']
-            os_distribution = os_description['ansible_distribution']
-            os_distribution_version = os_description['ansible_distribution_version']
-            command = os_description['command']
-            command_stop = os_description.get('command_stop')
-            system_list.setdefault(os_system, {}).setdefault(os_distribution, []).append(os_distribution_version)
+        def _add_platform(system, distribution, release, command, stop):
+            if system is None:
+                raise KeyError('ansible_system')
+            if distribution is None:
+                raise KeyError('ansible_distribution')
+            if release is None:
+                raise KeyError('ansible_distribution_release')
+            if command is None:
+                raise KeyError('command')
+            system_list.setdefault(system, {}).setdefault(distribution, []).append(release)
             os_command, _ = OsCommand.objects.get_or_create(
-                    job=job, family=os_system, distribution=os_distribution,
-                    version=os_distribution_version,
+                    job=job, family=system, distribution=distribution, version=release,
                     defaults={
                         'command': command,
-                        'command_stop': command_stop,
+                        'command_stop': stop,
                     })
             os_command.command = command
-            os_command.command_stop = command_stop
+            os_command.command_stop = stop
             os_command.save()
+
+        # Associate OSes
+        configuration = content['platform_configuration']
+        default_system = configuration.get('ansible_system')
+        default_distribution = configuration.get('ansible_distribution')
+        default_release = configuration.get('ansible_distribution_release')
+        default_command = configuration.get('command')
+        default_stop = configuration.get('command_stop')
+        supported_platforms = configuration.get('supported_platforms')
+        if supported_platforms is None:
+            _add_platform(default_system, default_distribution, default_release, default_command, default_stop)
+        else:
+            for os_description in supported_platforms:
+                _add_platform(
+                        os_description.get('ansible_system', default_system),
+                        os_description.get('ansible_distribution', default_distribution),
+                        os_description.get('ansible_distribution_release', default_release),
+                        os_description.get('command', default_command),
+                        os_description.get('command_stop', default_stop))
+
         # Remove OSes associated to the previous version of the job
         for system, system_info in system_list.items():
             for distribution, versions in system_info.items():
-                job.os.filter(family=os_system, distribution=os_distribution).exclude(version__in=versions).delete()
+                job.os.filter(family=system, distribution=distribution).exclude(version__in=versions).delete()
 
         # Associate "new" keywords
         keywords = general_section['keywords']
@@ -1504,7 +1564,7 @@ class InstallJob(ThreadedAction, InstalledJobAction):
                 job.os.get(
                         family=ansible_fact['ansible_os_family'],
                         distribution=ansible_fact['ansible_distribution'],
-                        version=ansible_fact['ansible_distribution_version'])
+                        version=ansible_fact['ansible_distribution_release'])
             except OsCommand.DoesNotExist:
                 raise errors.UnprocessableError(
                         'Cannot install a job on an '
@@ -1870,7 +1930,7 @@ class SetStatisticsPolicyJob(ThreadedAction, InstalledJobAction):
 
         # Launch the playbook and the associated job
         try:
-            start_playbook('push_file', self.address, self.vault_password, [parameters], True)
+            start_playbook('push_file', self.address, [parameters], True, self.vault_password)
         finally:
             with suppress(OSError):
                 os.remove(rstats_filter.name)
@@ -2699,8 +2759,8 @@ class ExportScenarioInstance(RecursiveScenarioInstanceAction):
                                  start_job_instance.agent.address,
                                  normalized_job_name + '_'.join(stat_name.split()),
                                  collect_directory,
-                                 self.vault_password,
-                                 files_to_fetch)
+                                 files_to_fetch,
+                                 self.vault_password)
 
     def _action(self):
         scenario_instance = self.get_scenario_instance_or_not_found_error()
@@ -3644,7 +3704,7 @@ class PushFile(ConductorAction):
                 for local_path, remote_path, user, group, remove
                 in zip(self.local_path, self.remote_path, users, groups, removes)
         ]
-        start_playbook('push_file', agent.address, self.vault_password, parameters)
+        start_playbook('push_file', agent.address, parameters, vault_password=self.vault_password)
 
         return None, 204
 
@@ -3692,7 +3752,7 @@ class PullFile(ConductorAction):
                 for local_path, remote_path, user, group, remove
                 in zip(self.local_path, self.remote_path, users, groups, removes)
         ]
-        start_playbook('pull_file', agent.address, self.vault_password, parameters)
+        start_playbook('pull_file', agent.address, parameters, vault_password=self.vault_password)
 
         return None, 204
 
@@ -3810,9 +3870,11 @@ class DeleteDatabases(CollectorAction):
         if self.influxdb:
             try:
                 start_playbook(
-                        'manage_retention_policies', self.address, self.vault_password,
-                        openbach_influx_database=collector.stats_database_name, 
-                        influxdb_port=collector.stats_query_port)
+                        'manage_retention_policies',
+                        self.address,
+                        collector.stats_database_name,
+                        collector.stats_query_port,
+                        self.vault_password)
             except errors.ConductorError as err:
                 error = err.json()
                 syslog.syslog(

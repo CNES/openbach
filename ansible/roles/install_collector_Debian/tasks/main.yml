@@ -1,0 +1,332 @@
+#   OpenBACH is a generic testbed able to control/configure multiple
+#   network/physical entities (under test) and collect data from them. It is
+#   composed of an Auditorium (HMIs), a Controller, a Collector and multiple
+#   Agents (one for each network entity that wants to be tested).
+#   
+#   
+#   Copyright © 2016-2023 CNES
+#   
+#   
+#   This file is part of the OpenBACH testbed.
+#   
+#   
+#   OpenBACH is a free software : you can redistribute it and/or modify it under
+#   the terms of the GNU General Public License as published by the Free Software
+#   Foundation, either version 3 of the License, or (at your option) any later
+#   version.
+#   
+#   This program is distributed in the hope that it will be useful, but WITHOUT
+#   ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS
+#   FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+#   details.
+#   
+#   You should have received a copy of the GNU General Public License along with
+#   this program. If not, see http://www.gnu.org/licenses/.
+
+---
+- name: Install APT Dependencies
+  apt:
+    name:
+      - default-jdk
+      - zip
+      - cron
+    state: present
+  environment: "{{ openbach_proxy_env }}"
+  become: yes
+
+- name: Install apt Dependencies from Upstream
+  apt:
+    deb: "{{ item }}"
+  with_items:
+    - https://dl.influxdata.com/influxdb/releases/influxdb_{{ influxdb_version }}_amd64.deb
+    - https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-{{ elasticsearch_version }}-amd64.deb
+    - https://artifacts.elastic.co/downloads/logstash/logstash-{{ logstash_version }}-amd64.deb
+  environment: "{{ openbach_proxy_env }}"
+  become: yes
+
+- name: Install Python Dependencies
+  pip:
+    name:
+      - elasticsearch
+      - elasticsearch_curator
+      - influxdb
+    state: latest
+    virtualenv: /opt/openbach/virtualenv
+  environment: "{{ openbach_proxy_env }}"
+  remote_user: openbach
+
+- name: Change owner of elasticsearch sources
+  file:
+    path: /usr/share/elasticsearch/
+    owner: elasticsearch
+    group: elasticsearch
+    recurse: yes
+  become: yes
+
+- name: Upload Logstash Output Plugin
+  copy:
+    src: logstash-offline-plugins.zip
+    dest: /tmp/
+
+- name: Configure Elasticsearch
+  template:
+    src: elasticsearch.yml.j2
+    dest: /etc/elasticsearch/elasticsearch.yml
+    owner: root
+    group: elasticsearch
+  become: yes
+  
+- name: Configure used RAM of Elasticsearch
+  template:
+    src: jvm.options.j2
+    dest: /etc/elasticsearch/jvm.options.d/jvm.options
+    owner: root
+    group: elasticsearch
+  become: yes
+
+- name: Copy Elasticsearch cronjob script
+  template:
+    src: curator_cronjob.py.j2
+    dest: /etc/cron.daily/curator_cronjob.py
+    owner: root
+    group: root
+    mode: '0755'
+  become: yes
+
+- name: Add Elasticsearch cron job
+  cron:
+    name: curator
+    minute: 0
+    hour: 0
+    job: /etc/cron.daily/curator_cronjob.py
+  become: yes
+
+- name: Check if Token exist for kibana 
+  command: /usr/share/elasticsearch/bin/elasticsearch-service-tokens list elastic/kibana 
+  register: tokens
+  changed_when: false
+  become: yes
+
+- name: Create kibana Service Account Token
+  command: /usr/share/elasticsearch/bin/elasticsearch-service-tokens create elastic/kibana kibana_token
+  become: yes
+  when: "'kibana_token' not in tokens.stdout"
+
+- name: Configure Logstash
+  template:
+    src: collector.conf.j2
+    dest: /etc/logstash/conf.d/collector.conf
+    owner: root
+    group: root
+  vars:
+    auditorium_ip: "{{ openbach_auditorium | default(('auditorium' in group_names and inventory_hostname) or ('auditorium' in groups and groups.auditorium and groups.auditorium[0]) or inventory_hostname) }}"
+  become: yes
+
+- name: Add patterns to the ouptput module 'grok'
+  copy:
+    src: pattern
+    dest: /etc/logstash/conf.d/
+  become: yes
+
+- name: Install logstash-output-influxdb
+  shell: bin/logstash-plugin install file:///tmp/logstash-offline-plugins.zip
+  args:
+    chdir: '~logstash'
+    executable: /bin/bash
+    creates: ~logstash/vendor/bundle/jruby/2.3.0/gems/logstash-output-influxdb-5.0.5
+  become: yes
+  vars:
+    # The install user and the logstash user most likely do not share any group
+    # so ask Ansible to push its script world readable so :become: do work
+    ansible_shell_allow_world_readable_temp: yes
+
+- name: Set the Port to use by InfluxDB
+  replace:
+    dest: /etc/influxdb/influxdb.conf
+    regexp: '(\s+)# bind-address :  ":8086"(\s+.*)?$'
+    replace: '\1bind-address :  ":{{ influxdb_port }}"\2'
+    backup: yes
+  become: yes
+
+- name: Change default max cache memory size by InfluxDB
+  replace:
+    dest: /etc/influxdb/influxdb.conf
+    regexp: '(\s+)# cache-max-memory-size :  "1g"(\s+.*)?$'
+    replace: '\1cache-max-memory-size :  "{{ database_max_cache }}"\2'
+  become: yes
+
+- name: Restart OpenBACH Services
+  systemd:
+    name: '{{ item }}'
+    state: restarted
+    enabled: yes
+    daemon_reload: yes
+  with_items:
+    - influxdb
+    - elasticsearch
+    - logstash
+  become: yes
+
+- name: Wait for Services to Start
+  wait_for:
+    port: '{{ item }}'
+    timeout: 120
+  with_items:
+    - "{{ influxdb_port }}"
+    - "{{ elasticsearch_port }}"
+
+- block:
+  - name: Create Default InfluxDB Database
+    influxdb_database:
+      hostname: localhost
+      database_name: "{{ influxdb_database_name }}"
+      port: "{{ influxdb_port }}"
+      state: present
+
+  - name: Alter Default InfluxDB Policy
+    influxdb_retention_policy:
+      hostname: localhost
+      database_name: "{{ influxdb_database_name }}"
+      port: "{{ influxdb_port }}"
+      policy_name: "{{ influxdb_database_name }}"
+      duration: 52w
+      replication: 1
+      default: yes
+  when: openbach_restore_host is not defined
+
+- block:
+  - name: Extract Backup Files
+    unarchive:
+      src: "{{ openbach_archive_root }}/{{ openbach_restore_host }}/openbach_collector.tar.gz"
+      dest: "/tmp/"
+    remote_user: openbach
+
+  - name: Lookup for InfluxDB Dump Filename
+    find:
+      paths: /tmp
+      recurse: no
+      patterns: openbach_collector_backup_*_influxdb
+      file_type: directory
+    register: openbach_influxdb_dump
+    failed_when: (openbach_influxdb_dump.files | count) != 1
+    remote_user: openbach
+
+  - block:
+      - name: Restore InfluxDB Content
+        command: influxd restore -portable {{ openbach_influxdb_dump.files | map(attribute='path') | first }}
+        remote_user: openbach
+    rescue:
+      - fail:
+          msg: >
+            It appears that a previous OpenBACH database is still present in
+            InfluxDB. To avoid loss of data we won't overwrite it. If you
+            know what you are doing, remove this database manually before
+            retrying; or run the playbook with the
+            '--skip-tags restore_influxdb_database' option.
+    tags:
+      - restore_influxdb_database
+
+  - name: Lookup for ElasticSearch Dump Filename
+    find:
+      paths: /tmp
+      recurse: no
+      patterns: openbach_collector_backup_*_elasticsearch
+      file_type: directory
+    register: openbach_elasticsearch_dump
+    failed_when: (openbach_elasticsearch_dump.files | count) != 1
+    remote_user: openbach
+
+  - name: Store ElasticSearch Dump Filename
+    set_fact:
+      openbach_elasticsearch_dump_file: "{{ openbach_elasticsearch_dump.files | map(attribute='path') | first}}"
+
+  - block:
+      - name: Fix Permissions for ElasticSearch Dump Filename
+        file:
+          path: "{{ openbach_elasticsearch_dump_file }}"
+          owner: elasticsearch
+          group: elasticsearch
+          recurse: yes
+        become: yes
+
+      - name: Create a Temporary Snapshot Store in ElasticSearch
+        uri:
+          url: http://localhost:{{ elasticsearch_port }}/_snapshot/openbach_backup
+          method: PUT
+          body:
+            type: fs
+            settings:
+              location: "{{ openbach_elasticsearch_dump_file }}"
+              compress: true
+          body_format: json
+          user: "elastic"
+          password: "elastic"
+
+      - name: Restore ElasticSearch Content
+        uri:
+          url: http://localhost:{{ elasticsearch_port }}/_snapshot/openbach_backup/backup/_restore
+          method: POST
+          user: "elastic"
+          password: "elastic"
+
+      - name: Wait for the End of the Restore Operation
+        uri:
+          url: http://localhost:{{ elasticsearch_port }}/_recovery
+          method: GET
+          user: "elastic"
+          password: "elastic"
+        register: response
+        until: response.json and not (response.json.values() | map(attribute='shards') | flatten | map(attribute='stage') | unique | difference(['DONE']))
+        retries: 120
+        delay: 15
+
+      - name: Wait for the End of the Restore Operation
+        uri:
+          url: http://localhost:{{ elasticsearch_port }}/_recovery
+          method: GET
+          user: "elastic"
+          password: "elastic"
+        register: response
+        until: not (response.json.values() | map(attribute='shards') | flatten | map(attribute='stage') | unique | difference(['DONE']))
+        retries: 120
+        delay: 15
+    rescue:
+      - fail:
+          msg: >
+            It appears that a previous OpenBACH database is still present in
+            ElasticSearch. To avoid loss of data we won't overwrite it. If
+            you know what you are doing, remove this database manually before
+            retrying; or run the playbook with the
+            '--skip-tags restore_elasticsearch_database' option.
+    always:
+      - name: Delete the Temporary Snapshot Store
+        uri:
+          url: http://localhost:{{ elasticsearch_port }}/_snapshot/openbach_backup
+          method: DELETE
+          user: "elastic"
+          password: "elastic"
+    tags:
+      - restore_elasticsearch_database
+
+  - name: Remove Extracted Files
+    file:
+      path: "{{ item }}"
+      state: absent
+    with_items:
+      - "{{ openbach_elasticsearch_dump_file }}"
+      - "{{ openbach_influxdb_dump.files | map(attribute='path') | first }}"
+    become: yes
+
+  when: openbach_restore_host is defined
+
+- name: Create OpenBACH repository
+  file:
+    path: /opt/openbach/collector
+    state: directory
+  remote_user: openbach
+
+- name: Copy the version file on the Collector
+  copy:
+    src: ../version
+    dest: /opt/openbach/collector/version
+  remote_user: openbach

@@ -34,13 +34,12 @@
   become: yes
 
 - name: Remove Elasticsearch Config File
-  file: path=/etc/elasticsearch/elasticsearch.yml state=absent
+  file: path=/etc/elasticsearch state=absent
   become: yes
 
 - name: Remove Elasticsearch Data
   file: path=/var/lib/elasticsearch state=absent
   become: yes
-  when: openbach_clear_databases | default(False)
 
 - name: Remove Elasticsearch cronjob
   cron: name=curator minute=0 hour=0 job=/etc/cron.daily/curator_cronjob.py state=absent

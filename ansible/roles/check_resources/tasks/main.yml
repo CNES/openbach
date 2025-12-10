@@ -24,17 +24,7 @@
 #   this program. If not, see http://www.gnu.org/licenses/.
 
 ---
-
-- name: Display various values regarding the machine
-  debug:
-    msg: |
-      Total disk: {{ disk_total }} (needed: {{ required_disk }})
-      Available disk: {{ disk_available }} (needed: {{ required_disk }})
-      RAM: {{ ram }} (needed: {{ required_ram }})
-      CPU: {{ cpu }} (needed: {{ required_cpu }})
-      IPv4: {{ ipv4 }}
-      IPv6: {{ ipv6 }}
-  vars:
+- set_fact:
     disk_available: "{{ ((ansible_mounts | first)['size_available'] | int / 1000000000) | round(2, 'common') }}"
     disk_total: "{{ ((ansible_mounts | first)['size_total'] | int / 1000000000) | round(2, 'common') }}"
     ram: "{{ (ansible_memory_mb.real.total | int / 1000) | round(1, 'ceil') }}"
@@ -45,23 +35,23 @@
     required_ram: "{{ controller_ram if 'controller' in groups and inventory_hostname in groups.controller else agent_ram }}"
     required_cpu: "{{ controller_cpu if 'controller' in groups and inventory_hostname in groups.controller else agent_cpu }}"
 
+- name: Display various values regarding the machine
+  debug:
+    msg: |
+      Total disk: {{ disk_total }} (needed: {{ required_disk }})
+      Available disk: {{ disk_available }} (needed: {{ required_disk }})
+      RAM: {{ ram }} (needed: {{ required_ram }})
+      CPU: {{ cpu }} (needed: {{ required_cpu }})
+      IPv4: {{ ipv4 }}
+      IPv6: {{ ipv6 }}
+
 - name: Ensure the machine meets the requirements
   fail:
     msg: >
       Installation aborted because your machine does not meet the required resources capabilities.
 
       To avoid this check, you can restart the playbook using the '--skip-tags check_resources' flag.
-  when: (disk_total < required_disk) or
-        (ram < required_ram) or
-        (cpu < required_cpu) or
+  when: ((disk_total | float) < (required_disk | float)) or
+        ((ram | float) < (required_ram | float)) or
+        ((cpu | int) < (required_cpu | int)) or
         ((ipv4.type | default('wifi')) == 'wifi' and (ipv6.type | default('wifi')) == 'wifi')
-  vars:
-    disk_available: "{{ ((ansible_mounts | first)['size_available'] | int / 1000000000) | round(2, 'common') }}"
-    disk_total: "{{ ((ansible_mounts | first)['size_total'] | int / 1000000000) | round(2, 'common') }}"
-    ram: "{{ (ansible_memory_mb.real.total|int / 1000) | round(1, 'ceil') }}"
-    cpu: "{{ ansible_facts.processor_vcpus }}"
-    ipv4: "{{ ansible_facts.default_ipv4 }}"
-    ipv6: "{{ ansible_facts.default_ipv6 }}"
-    required_disk: "{{ controller_disk if 'controller' in groups and inventory_hostname in groups.controller else agent_disk }}"
-    required_ram: "{{ controller_ram if 'controller' in groups and inventory_hostname in groups.controller else agent_ram }}"
-    required_cpu: "{{ controller_cpu if 'controller' in groups and inventory_hostname in groups.controller else agent_cpu }}"

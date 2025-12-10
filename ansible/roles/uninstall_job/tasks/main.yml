@@ -49,7 +49,7 @@
     with_items: "{{ jobs }}"
     loop_control:
       loop_var: job_item
-    when: "'platforms' not in job_item or {'ansible_distribution': 'Ubuntu', 'ansible_distribution_version': '16.04', 'ansible_system': 'Linux'} in job_item.platforms"
+    when: "'platforms' not in job_item or {'ansible_distribution': 'Ubuntu', 'ansible_distribution_release': 'noble', 'ansible_system': 'Linux'} in job_item.platforms"
   remote_user: openbach
 
 - name: Remove the Job stats Folder

@@ -31,28 +31,25 @@ general:
       This Job executes the ip route command in order
       to allow packet/flow routing capabilities to reach
       the desired destination.
-  job_version: '2.4'
+  job_version: '2.5'
   keywords:
     - ip_route
   persistent: yes
   need_privileges: yes
 
 platform_configuration:
-  - ansible_system: 'Debian'
-    ansible_distribution: 'Ubuntu'
-    ansible_distribution_version: '20.04'
-    command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/ip_route/ip_route.py'
-    command_stop:
-  - ansible_system: 'Debian'
-    ansible_distribution: 'Ubuntu'
-    ansible_distribution_version: '22.04'
-    command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/ip_route/ip_route.py'
-    command_stop:
-  - ansible_system: 'Debian'
-    ansible_distribution: 'Ubuntu'
-    ansible_distribution_version: '24.04'
-    command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/ip_route/ip_route.py'
-    command_stop:
+  ansible_system: 'Debian'
+  ansible_distribution: 'Ubuntu'
+  command: '/opt/openbach/virtualenv/bin/python3 /opt/openbach/agent/jobs/ip_route/ip_route.py'
+  command_stop:
+  supported_platforms:
+    - ansible_distribution_release: 'focal'
+    - ansible_distribution_release: 'jammy'
+    - ansible_distribution_release: 'noble'
+    - ansible_distribution: 'Debian'
+      ansible_distribution_release: 'bookworm'
+    - ansible_distribution: 'Debian'
+      ansible_distribution_release: 'trixie'
 
 arguments:
   required:
