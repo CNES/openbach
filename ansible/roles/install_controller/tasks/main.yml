@@ -59,23 +59,16 @@
   register: openbach_check_python_version
 
 - name: Install extraneous Ansible collection
-  command: ansible-galaxy collection install ansible.posix
+  command: ansible-galaxy collection install {{ item.name }}
   args:
-    creates: /opt/openbach/virtualenv/lib/{{ openbach_check_python_version.stdout }}/site-packages/ansible_collections/ansible/posix
-  environment: "{{ openbach_proxy_env }}"
-  remote_user: openbach
-
-- name: Install extraneous Ansible collection
-  command: ansible-galaxy collection install community.general
-  args:
-    creates: /opt/openbach/virtualenv/lib/{{ openbach_check_python_version.stdout }}/site-packages/ansible_collections/ansible/posix
-  environment: "{{ openbach_proxy_env }}"
-  remote_user: openbach
-
-- name: Install extraneous Ansible collection
-  command: ansible-galaxy collection install community.postgresql
-  args:
-    creates: /opt/openbach/virtualenv/lib/{{ openbach_check_python_version.stdout }}/site-packages/ansible_collections/ansible/posix
+    creates: /opt/openbach/virtualenv/lib/{{ openbach_check_python_version.stdout }}/site-packages/ansible_collections/{{ item.creates }}
+  with_items:
+    - name: ansible.posix
+      creates: ansible/posix
+    - name: community.general
+      creates: community/general
+    - name: community.postgresql
+      creates: community/postgresql
   environment: "{{ openbach_proxy_env }}"
   remote_user: openbach
 
